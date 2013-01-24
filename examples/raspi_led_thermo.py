@@ -88,7 +88,7 @@ class RasPiDelegate(RasPiConfig, devicehive.DeviceDelegate):
         if command['command'] == 'UpdateLedState' :
             self.do_short_command(finish_deferred,  **command['parameters'])
         else :
-            self.errback()
+            finish_deferred.errback()
         # end do_command
 
 #

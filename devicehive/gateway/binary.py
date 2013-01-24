@@ -1,7 +1,6 @@
 # -*- encoding: utf8 -*-
 # vim: set et tabstop=4 shiftwidth=4 nu nowrap: fileencoding=utf-8 encoding=utf-8
 
-import unittest
 import struct
 import array
 import uuid
@@ -12,27 +11,27 @@ from twisted.internet.protocol import ServerFactory, Protocol
 from twisted.python.constants import Values, ValueConstant
 
 
-class BinaryMessageError(Exception):
+class PacketError(Exception):
     def __init__(self, msg=None):
-        super(BinaryMessageError, self).__init__(self, msg)
+        super(PacketError, self).__init__(self, msg)
 
 
-class IncompletePacketError(BinaryMessageError):    
+class IncompletePacketError(PacketError):    
     def __init__(self, msg=None):
         super(IncompletePacketError, self).__init__(msg)
 
 
-class InvalidPacketLengthError(BinaryMessageError):
+class InvalidPacketLengthError(PacketError):
     def __init__(self, msg=None):
         super(InvalidPacketLengthError, self).__init__(msg)
 
 
-class InvalidSignatureError(BinaryMessageError):
+class InvalidSignatureError(PacketError):
     def __init__(self, msg=None):
         super(InvalidSignatureError, self).__init__(msg)
 
 
-class InvalidCRCError(BinaryMessageError):
+class InvalidCRCError(PacketError):
     def __init__(self, msg=None):
         super(InvalidCRCError, self).__init__(msg)
 
@@ -85,22 +84,22 @@ class DataTypes(Values):
     Array = ValueConstant(15)
 
 
-class AbstractBinaryMessage(object):
+class AbstractPacket(object):
     signature = property(fget = lambda self : 0)
     
     version = property(fget = lambda self : 0)
     
     flags = property(fget = lambda self : 0)
-
+    
     length = property(fget = lambda self : len(self.data))
-
+    
     intent = property(fget = lambda self : 0)
-
+    
     data = property(fget = lambda self : bytearray())
-
+    
     def __len__(self):
         return self.length
-
+    
     def checksum():
         def fget(self):
             s = ((self.signature & 0xff00) >> 8) + \
@@ -128,7 +127,7 @@ class AbstractBinaryMessage(object):
                     _intent & 0xff, ((_intent & 0xff00) >> 8)] + _data + [self.checksum,]) 
 
 
-class BinaryMessage(AbstractBinaryMessage):
+class Packet(AbstractPacket):
     def __init__(self, sign, ver, flags, intent, data):
         self._signature = sign
         self._version = ver
@@ -163,16 +162,26 @@ class BinaryMessage(AbstractBinaryMessage):
         frame_data = bytearray(binstr[PACKET_OFFSET_DATA:(PACKET_OFFSET_DATA + payload_len)])
         if 0xff != (sum(binstr[0: PACKET_OFFSET_DATA + payload_len + 1]) & 0xff) :
             raise InvalidCRCError()
-        return BinaryMessage(signature, version, flags, intent, frame_data)
+        return Packet(signature, version, flags, intent, frame_data)
 
 
-class RegistrationRequest(AbstractBinaryMessage):
+class RegistrationRequestPacket(AbstractPacket):
+    """
+    This packet is send from gateway to device in order to notify device
+    that gateway works and ready.
+    """
+    
     def __init__(self):
         pass
+    
     signature = property(fget = lambda self : PACKET_SIGNATURE)
+    
     version = property(fget = lambda self : 1)
+    
     flags = property(fget = lambda self : 0)
+    
     intent = property(fget = lambda self : SystemIntents.RegistrationRequest)
+    
     data = property(fget = lambda self : [])
 
 
@@ -233,7 +242,7 @@ class BinaryPacketBuffer(object):
         """
         if not self.has_packet() :
             return None
-        msg = BinaryMessage.from_binary(self._data)
+        msg = Packet.from_binary(self._data)
         del self._data[:PACKET_OFFSET_DATA + 1 + (((self._data[PACKET_OFFSET_LEN_MSB] << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff))]
         self._skip_to_next_packet()
         return msg
@@ -407,7 +416,7 @@ def define_accessors(field):
     return (fget, fset)
 
 
-class Parameters(object):
+class Parameter(object):
     def __init__(self, type = DataTypes.Null, name = ''):
         self._type = type
         self._name = name
@@ -444,7 +453,7 @@ class Notification(object):
     
     name = binary_property(DataTypes.String, *define_accessors('_name'))
     
-    parameters = array_binary_property(Parameters, *define_accessors('_parameters'))
+    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
 
@@ -459,12 +468,12 @@ class Command(object):
     
     name = binary_property(DataTypes.String, *define_accessors('_name'))
     
-    parameters = array_binary_property(Parameters, *define_accessors('_parameters'))
+    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
 
 
-class DeviceRegistration(object):
+class RegistrationPayload(object):
     """
     Payload of device registration response which is sent from device to gateway
     """
@@ -491,11 +500,29 @@ class DeviceRegistration(object):
     
     equipment = array_binary_property(Equipment, *define_accessors('_equipment'))
     
-    notification = array_binary_property(Notification, *define_accessors('_notification'))
+    notifications = array_binary_property(Notification, *define_accessors('_notification'))
     
     commands = array_binary_property(Command, *define_accessors('_commands'))
     
-    __binary_struct__ = (device_id, device_key, device_name, device_class_name, device_class_version, equipment, notification, commands)
+    __binary_struct__ = (device_id, device_key, device_name, device_class_name, device_class_version, equipment, notifications, commands)
+
+
+class NotificationCommandResultPayload(object):
+    """
+    Payload format of NotificationCommandResult message
+    """
+    def __init__(self):
+        self._command_id = 0
+        self._status     = ''
+        self._result     = ''
+    
+    command_id = binary_property(DataTypes.Dword, *define_accessors('_command_id'))
+    
+    status = binary_property(DataTypes.String, *define_accessors('_status'))
+    
+    result = binary_property(DataTypes.String, *define_accessors('_result'))
+    
+    __binary_struct__ = (command_id, status, result)
 
 
 class BinaryProtocol(Protocol):
@@ -520,13 +547,71 @@ class BinaryProtocol(Protocol):
     def makeConnection(self, transport):
         Protocol.makeConnection(self, transport)
     
+    def send_command(self, intent, command_bin):
+        """
+        Sends binary data into transport channel
+        """
+        msg = Packet(PACKET_SIGNATURE, 1, 0, intent, bin)
+        self.transport.write(msg.to_binary())
+    
     def connectionMade(self):
         """
         Called when connection is made. Right after channel has been established gateway need to 
         send registration request intent to device(s).
         """
-        pkt = RegistrationRequest()
+        pkt = RegistrationRequestPacket()
         self.transport.write(pkt.to_binary())
+
+
+class DeviceInfo(object):
+    """
+    In order to decrease amount dependencies I use duck typing here.
+    """
+    
+    def __init__(self, factory, device_id, device_key, device_name, device_status, network_name, network_descr, devcls_name, devcls_version, equipment):
+        self.factory = factory
+        self._device_id = device_id
+        self._device_key = device_key
+        self._device_name = device_name
+        self._device_status = device_status
+        self._network_name = network_name
+        self._network_descr = network_descr
+        self._devcls_name = devcls_name
+        self._devcls_version = devcls_version
+        self._equipment = equipment
+    
+    def device_id(self):
+        return self._device_id
+    
+    def device_key(self):
+        return self._device_key
+    
+    def device_name(self):
+        return self._device_name
+    
+    def device_status(self):
+        return self._device_status
+    
+    def network_name(self):
+        return self._network_name
+    
+    def network_description(self):
+        return self._network_descr
+    
+    def device_class_name(self):
+        return self._devcls_name
+    
+    def device_class_version(self):
+        return self._devcls_version
+    
+    def device_class_is_permanent(self):
+        return False
+    
+    def equipment(self):
+        return self._equipment
+    
+    def do_command(self, command, finish_deferred):
+        factory.do_command(self, command, finish_deferred)
 
 
 class AutoClassFactory(object):
@@ -553,6 +638,9 @@ class AutoClassFactory(object):
                 members[param.name] = prop = self._generate_binary_property(param.type, fieldname)
                 members['__binary_struct__'].append(prop)
         return type('{0}Class'.format(command.name), (object,), members)
+    
+    def generate_reginfo(self, reg):
+        pass
 
 
 def autoclass_update_properties(obj, cmd):
@@ -571,13 +659,15 @@ def autoclass_update_properties(obj, cmd):
 class BinaryFactory(ServerFactory):
     def __init__(self):
         self.packet_buffer = BinaryPacketBuffer()
+        self.protocol = None
         self.command_map = dict()
-        self._registration_request = Deferred() 
+        self._registration_received = Deferred()
+        self._notification_received = Deferred()
     
     def register_command_map(self, command_name, binary_class):
         self.command_map[command_name] = binary_class
     
-    def handle_registration_request(self, reg):
+    def handle_registration_received(self, reg):
         """
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
@@ -588,18 +678,43 @@ class BinaryFactory(ServerFactory):
                 self.command_map[command.name] = autoclass_factory.generate(command)
         self._registration_request.callback(None)
     
+    def handle_notification_command_result(self, notifreq):
+        """
+        Run all callbacks attached to notification_reveived deferred
+        """
+        self._notification_received.callback(None)
+    
     def packet_received(self, packet):
         if packet.intent == SystemIntents.Register :
-            regreq = BinaryFormatter.deserialize(packet.data, DeviceRegistration)
-            self.handle_registration_request(regreq)
+            regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
+            self.handle_registration_received(regreq)
+        elif packet.intent == SystemIntents.NotifyCommandResult :
+            notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
+            self.handle_notification_command_result(notifreq)
         else:
             pass
-        pass
-   
-    def buildProtocol(self, addr):
-        return BinaryProtocol(self) 
     
-    registration_request = property(fget = lambda self : self._registration_request)
+    def do_command(self, command, finish_deferred):
+        """
+        This handler is called when a new command comes from DeviceHive server
+        """
+        command_name = command['command']
+        parameters = command['parameters']
+        if command_name in self.command_map :
+            intent = 0
+            command_bin = self.command_map[command_name]()
+            autoclass_update_properties(command_bin, parameters)
+            self.protocol.send_command(intent, command_bin)
+        else :
+            finish_deferred.errback()
+    
+    def buildProtocol(self, addr):
+        self.protocol = BinaryProtocol(self) 
+        return self.protocol
+    
+    registration_received = property(fget = lambda self : self._registration_received)
+    
+    notification_received = property(fget = lambda self : self._notification_received)
 
 
 class SerialPortAddress(object):
@@ -643,229 +758,4 @@ class SerialPortEndpoint(object):
         proto = protoFactory.buildProtocol(self._port_addr)
         return defer.execute(serial.SerialPort, proto, self._port_addr.port, self._reactor, **self._port_addr.port_options)
 
-
-class TestBinaryMessage(unittest.TestCase):
-    def setUp(self):
-        self.binmsg = BinaryMessage(PACKET_SIGNATURE, 2, 3, 4, bytearray('123'))
-    
-    def tearDown(self):
-        pass
-    
-    def test_properties(self):
-        self.assertEquals(PACKET_SIGNATURE, self.binmsg.signature, 'Signatures are not equal')
-        self.assertEquals(2, self.binmsg.version, 'Versions are not equal')
-        self.assertEquals(3, self.binmsg.flags, 'Flags are not equal')
-        self.assertEquals(4, self.binmsg.intent, 'Intents are not equal')
-    
-    def test_checksum(self):
-        self.assertEquals(0xd5, self.binmsg.checksum, 'Invalid checksum')
-    
-    def test_to_binary(self):
-        tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
-        binval = self.binmsg.to_binary()
-        self.assertEquals(tstval, binval, 'Invalid binary message has been formated')
-    
-    def test_from_binary(self):
-        copybinmsg = BinaryMessage.from_binary(self.binmsg.to_binary())
-        self.assertEquals(self.binmsg.signature,  copybinmsg.signature)
-        self.assertEquals(self.binmsg.version, copybinmsg.version)
-        self.assertEquals(self.binmsg.flags, copybinmsg.flags)
-        self.assertEquals(self.binmsg.intent, copybinmsg.intent)
-        self.assertEquals(self.binmsg.length, copybinmsg.length)
-        self.assertEquals(self.binmsg.data, copybinmsg.data)
-
-    def test_crc_error(self):
-        tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xBA])
-        try:
-           invmsg = BinaryMessage.from_binary(tstval)
-           self.assertTrue(False, 'from_binary method should raises InvalidCRCError')
-        except InvalidCRCError:
-            pass
-    
-    def test_incomplete_packet(self):
-        tstval = bytearray([0, 1, 2, 3])
-        try:
-            invmsg = BinaryMessage.from_binary(tstval)
-            self.assertTrue(False, 'from_binary method should raises IncompltePacketError in case data-packet passed into this method is too small')
-        except IncompletePacketError:
-            pass
-    
-    def test_invalid_packet_length(self):
-        tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x00, 0x03, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
-        try:
-            invmsg = BinaryMessage.from_binary(tstval)
-            self.assertTrue(False, 'from_binary method should raises InvalidPacketlengthError in case there not enough data passed into it')
-        except InvalidPacketLengthError:
-            pass
-    
-    def test_raise_invalid_signature(self):
-        tstval = bytearray([0xBA, 0xD1, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
-        try:
-            invmsg = BinaryMessage.from_binary(tstval)
-            self.assertTrue(False, 'from_binary method should raises InvalidSignatureError in case packet signature is incorrect')
-        except InvalidSignatureError:
-            pass
-
-
-class BinaryPacketBufferTest(unittest.TestCase):
-    def test_adding_normal_packet(self):
-        pkt = [PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
-        pkt_buff  = BinaryPacketBuffer()
-        pkt_buff.append(pkt)
-        self.assertEquals(pkt, pkt_buff.data)
-        self.assertTrue(pkt_buff.has_packet())
-    
-    def test_adding_partial_packet(self):
-        pkt = [PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
-        pkt_buff  = BinaryPacketBuffer()
-        pkt_buff.append(pkt[:4])
-        pkt_buff.append(pkt[4:])
-        self.assertEquals(pkt, pkt_buff.data, 'One complete packet should be located in the buffer')
-        self.assertTrue(pkt_buff.has_packet())
-    
-    def test_add_packet_prefixed_with_junk(self):
-        pkt = [0xBA, 0xDB, 0xAD, PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
-        pkt_buff = BinaryPacketBuffer()
-        pkt_buff.append(pkt[:6])
-        pkt_buff.append(pkt[6:])
-        self.assertEquals(pkt[3:], pkt_buff.data, 'Junk data should be skipped in the head of packet buffer')
-        self.assertTrue(pkt_buff.has_packet())
-
-    def test_onechar_junk_add(self):
-        pkt_buff = BinaryPacketBuffer()
-        pkt_buff.append([0])
-        pkt_buff.append([1])
-        pkt_buff.append([2])
-        self.assertEquals(0, len(pkt_buff.data), 'If buffer is empty and one character comes to it this character should be of SIGNATURE_HI value')
-        self.assertFalse(pkt_buff.has_packet())
-
-    def test_invalid_signature(self):
-        pkt = [99, 98, 97, PACKET_SIGNATURE_HI, 96, PACKET_SIGNATURE_LO, 94, 93, PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
-        pkt_buff = BinaryPacketBuffer()
-        pkt_buff.append(pkt)
-        self.assertEquals(pkt[8:], pkt_buff.data, 'Buffer should starts from FULL frame signature')
-        self.assertTrue(pkt_buff.has_packet())
-    
-    def test_inv_sign_last_signhi(self):
-        pkt = [99, 98, 97, PACKET_SIGNATURE_HI, 96, PACKET_SIGNATURE_LO, 94, 93, PACKET_SIGNATURE_HI]
-        pkt_buff = BinaryPacketBuffer()
-        pkt_buff.append(pkt)
-        self.assertEquals([PACKET_SIGNATURE_HI], pkt_buff.data, 'One last character should stay untoched if it is SIGNATURE_HI')
-        self.assertFalse(pkt_buff.has_packet())
-    
-    def test_signature_byteatatime(self):
-        pkt = [99, 98, 97, PACKET_SIGNATURE_HI, 96, PACKET_SIGNATURE_LO, 94, 93, PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
-        pkt_buff = BinaryPacketBuffer()
-        for byte in pkt:
-            pkt_buff.append([byte])
-        self.assertEquals(pkt[8:], pkt_buff.data, 'Even if we adds packet by one byte the buffer should starts from FULL frame signature')
-        self.assertTrue(pkt_buff.has_packet())
-
-
-class _SubObject(object):
-    def __init__(self, val = 0):
-        self._val = val
-    def _set_val(self, value):
-        self._val = value
-    sword_prop = binary_property(DataTypes.SignedWord, fget = lambda self : self._val, fset = _set_val)
-    __binary_struct__ = [sword_prop]
-
-
-class _TestObject(object):
-    def __init__(self):
-        self._byte_prop = 0
-        self._word_prop = 0
-        self._dword_prop = 0
-        self._bool_prop = False
-        self._false_prop = False
-        self._str_prop = ''
-        self.arr_prop = []
-        self.guid_prop = uuid.uuid1()
-        self.aguid_prop = (uuid.uuid1()).bytes
-    def gen_props(name):
-        def fget(self):
-            return getattr(self, name)
-        def fset(self, value):
-            setattr(self, name, value)
-        return {'fget': fget, 'fset': fset}
-    byte_prop  = binary_property(DataTypes.Byte, **gen_props('_byte_prop'))
-    word_prop  = binary_property(DataTypes.Word, **gen_props('_word_prop'))
-    dword_prop = binary_property(DataTypes.Dword, **gen_props('_dword_prop'))
-    bool_prop  = binary_property(DataTypes.Boolean, **gen_props('_bool_prop'))
-    false_prop = binary_property(DataTypes.Boolean, **gen_props('_false_prop'))
-    str_prop   = binary_property(DataTypes.String, **gen_props('_str_prop'))
-    arr_prop   = array_binary_property(_SubObject, **gen_props('_arr_prop'))
-    guid_prop  = binary_property(DataTypes.Guid, **gen_props('_guid_prop'))
-    aguid_prop = binary_property(DataTypes.Guid, **gen_props('_aguid_prop'))
-    __binary_struct__ = (byte_prop, word_prop, dword_prop, bool_prop, false_prop, str_prop, arr_prop, guid_prop, aguid_prop)
-
-
-class BinaryFormatterTest(unittest.TestCase):
-    def _create_default_test_object(self):
-        res = _TestObject()
-        res.byte_prop  = 0xab
-        res.word_prop  = 0xabcd
-        res.dword_prop = 0x12345678
-        res.bool_prop  = True
-        res.false_prop = False
-        res.str_prop   = 'abc'
-        res.arr_prop   = [_SubObject(-1024), _SubObject(-8192)]
-        res.guid_prop  = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
-        res.aguid_prop = res.guid_prop.bytes
-        return res
-    
-    def setUp(self):
-        self.binary = bytearray([0xab,
-                                 0xcd, 0xab,
-                                 0x78, 0x56, 0x34, 0x12,
-                                 0x01,
-                                 0x00,
-                                 0x03, 0x00, ord('a'), ord('b'), ord('c'),
-                                 0x02, 0x00, 0x00, 0xfc, 0x00, 0xe0,
-                                 0xfa, 0x8a, 0x9d, 0x6e, 0x65, 0x55, 0x11, 0xe2, 0x89, 0xb8, 0xe0, 0xcb, 0x4e, 0xb9, 0x21, 0x29,
-                                 0xfa, 0x8a, 0x9d, 0x6e, 0x65, 0x55, 0x11, 0xe2, 0x89, 0xb8, 0xe0, 0xcb, 0x4e, 0xb9, 0x21, 0x29])
-        pass
-    
-    def test_serialize_byte(self):
-        obj = self._create_default_test_object()
-        binstr = BinaryFormatter.serialize(obj)
-        self.assertEquals(self.binary, binstr)
-    
-    def test_deserializer(self):
-        res = BinaryFormatter.deserialize(self.binary, _TestObject)
-        self.assertEquals(0xab, res.byte_prop)
-        self.assertEquals(0xabcd, res.word_prop)
-        self.assertEquals(0x12345678, res.dword_prop)
-        self.assertTrue(res.bool_prop)
-        self.assertFalse(res.false_prop)
-        self.assertEquals('abc', res.str_prop)
-        self.assertEquals(2, len(res.arr_prop))
-        self.assertEquals(-1024, res.arr_prop[0].sword_prop)
-        self.assertEquals(-8192, res.arr_prop[1].sword_prop)
-        
-        guid = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
-        self.assertEquals(guid, res.guid_prop)
-        self.assertEquals(guid, res.aguid_prop)
-
-
-class AutoClassFactoryTest(unittest.TestCase):
-    def test_auto_class(self):
-        params = (Parameters(DataTypes.Word, 'property1'), Parameters(DataTypes.Byte, 'property2'))
-        cmd = Command(intent = 100, name = 'CommandName', parameters = params)
-        #
-        factory = AutoClassFactory()
-        cls = factory.generate(cmd)
-        self.assertTrue(hasattr(cls, 'property1'))
-        self.assertTrue(isinstance(cls.property1, AbstractBinaryProperty))
-        self.assertTrue(hasattr(cls, 'property2'))
-        self.assertTrue(isinstance(cls.property2, AbstractBinaryProperty))
-        #
-        obj = cls()
-        autoclass_update_properties(obj, {'property1': 123, 'property2': 321})
-        self.assertEquals(123, obj.property1)
-        self.assertEquals(321, obj.property2)
-
-
-if __name__ == '__main__':
-    unittest.main()
 
