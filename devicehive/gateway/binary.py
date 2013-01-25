@@ -623,18 +623,25 @@ class BinaryFactory(ServerFactory):
             self.device_class_version = devcls_version
             self.device_class_is_permanent = devcls_is_permanent
             self.offline_timeout = offline_timeout
-            self.equipment = equipment    
+            self.equipment = equipment
     
-    class _CommandItem(object):
-        def __init__(self, intent = 0, cls = None):
+    class _Notification(object):
+        def __init__(self, name, parameters):
+            self.name = name
+            self.parameters = parameters
+    
+    class _DescrItem(object):
+        def __init__(self, intent = 0, cls = None, info = None):
             self.intent = intent
-            self.cls = None
+            self.cls = cls
+            self.info = info
     
     def __init__(self, gateway):
         self.packet_buffer = BinaryPacketBuffer()
         self.protocol = None
         self.gateway = gateway
         self.command_descriptors = {}
+        self.notification_descriptors = {}
         self.pending_results = {}
     
     def register_command_descriptor(self, command_name, binary_class):
@@ -642,20 +649,16 @@ class BinaryFactory(ServerFactory):
         Method is specific for binary protocol. It allows specify custom deserialization
         description for the command's payload.
         """
-        self.command_descriptors[command_name] = BinaryFactory._CommandItem(intent = -1, cls = binary_class)
+        self.command_descriptors[command_name] = BinaryFactory._DescrItem(intent = -1, cls = binary_class)
+    
+    def register_notification_descriptor(self, notification_name, binary_class):
+        self.notification_descriptors[notification_name] = BinaryFactory._DescrItem(intent = -1, cls = binary_class)
     
     def handle_registration_received(self, reg):
         """
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
         """
-        autoclass_factory = AutoClassFactory()
-        for command in reg.commands:
-            if not command.name in self.command_descriptors :
-                cls = autoclass_factory.generate(command)
-                self.command_descriptors[command.name] = BinaryFactory._CommandItem(command.intent, cls)
-            else :
-                self.command_descriptors[command.name].intent = command.intent
         info = BinaryFactory._DeviceInfo(self, device_id = str(reg.device_id), \
                                 device_key = reg.device_key, \
                                 device_name = reg.device_name, \
@@ -663,6 +666,22 @@ class BinaryFactory(ServerFactory):
                                 devcls_name = reg.device_class_name, \
                                 devcls_version = reg.device_class_version, \
                                 equipment = [devicehive.Equipment(e.name, e.code, e.typename) for e in reg.equipment])
+        #
+        autoclass_factory = AutoClassFactory()
+        for command in reg.commands:
+            if not command.name in self.command_descriptors :
+                cls = autoclass_factory.generate(command)
+                self.command_descriptors[command.name] = BinaryFactory._DescrItem(command.intent, cls, info)
+            else :
+                self.command_descriptors[command.name].intent = command.intent
+                self.command_descriptors[command.name].info = command.info
+        for notification in reg.notifications :
+            if not notification.name in self.notification_descriptors :
+                cls = autoclass_factory.generate(notification)
+                self.command_descriptors[command.name] = BinaryFactory._DescrItem(notification.intent, cls, info)
+            else :
+                self.notification_descriptors[notification.name].intent = notification.intent
+                self.notification_descriptors[notification.name].info = info
         self.gateway.registration_hook(info)
         device_delegate = BinaryFactory._DeviceDelegate(self, info)
         self.gateway.registration_received(device_delegate)
@@ -675,6 +694,12 @@ class BinaryFactory(ServerFactory):
             deferred = self.pending_results.pop(notification.command_id)
             deferred.callback(devicehive.CommandResult(notification.status, notification.result))
     
+    def handle_pass_notification(self, pkt):
+        for (notif,nname) in [(self.notification_descriptors[nname], nname) for nname in self.notification_descriptors if self.notification_descriptors[nname].intent == pkt.intent] :
+            obj = BinaryFormatter.deserialize(pkt.data, notif.cls)
+            params = binary_object_to_dict(obj)
+            self.gateway.notification_received(notif.info, BinaryFactory._Notification(nname, params))
+    
     def packet_received(self, packet):
         if packet.intent == SystemIntents.Register :
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
@@ -683,7 +708,7 @@ class BinaryFactory(ServerFactory):
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
             self.handle_notification_command_result(notifreq)
         else:
-            pass
+            self.handle_pass_notification(packet)
     
     def do_command(self, command, finish_deferred):
         """
