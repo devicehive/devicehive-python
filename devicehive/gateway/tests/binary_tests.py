@@ -233,7 +233,7 @@ class AutoClassFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(cls.property2, AbstractBinaryProperty))
         #
         obj = cls()
-        autoclass_update_properties(obj, {'property1': 123, 'property2': 321})
+        binary_object_update(obj, {'property1': 123, 'property2': 321})
         self.assertEquals(123, obj.property1)
         self.assertEquals(321, obj.property2)
     
@@ -261,6 +261,15 @@ class AutoClassFactoryTest(unittest.TestCase):
         self.assertEquals(obj.arr_prop[1].sword_prop, d['arr_prop'][1]['sword_prop'])
         self.assertEquals(obj.guid_prop, d['guid_prop'])
         self.assertEquals(obj.aguid_prop, d['aguid_prop'])
+    
+    def test_binary_object_update_array(self):
+        obj = _TestObject()
+        obj.arr_prop = (_SubObject(1), _SubObject(2))
+        newval = {'arr_prop': ({'sword_prop': 123}, {'sword_prop': 456})}
+        binary_object_update(obj, newval)
+        self.assertEquals(123, obj.arr_prop[0].sword_prop)
+        self.assertEquals(456, obj.arr_prop[1].sword_prop)
+
 
 if __name__ == '__main__':
     unittest.main()

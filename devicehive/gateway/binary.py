@@ -589,21 +589,27 @@ class AutoClassFactory(object):
                 members[param.name] = prop = self._generate_binary_property(param.type, fieldname)
                 members['__binary_struct__'].append(prop)
         return type('{0}Class'.format(command.name), (object,), members)
-    
-    def generate_reginfo(self, reg):
-        pass
 
 
-def autoclass_update_properties(obj, cmd):
+def binary_object_update(obj, value):
     """
     Applies dictionary values to corresponding object properties.
+    @param value - should be a dictionary
     """
-    props = [(prop[0], cmd[prop[1]]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
+    props = [(prop[0], value[prop[1]]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
                                             if isinstance(prop[0], AbstractBinaryProperty) and
                                             prop[0] in obj.__binary_struct__ and
-                                            cmd.has_key(prop[1])]
+                                            value.has_key(prop[1])]
     for prop in props :
-        prop[0].__set__(obj, prop[1])
+        if isinstance(prop[0], array_binary_property) :
+            lst = []
+            for i in prop[1] :
+                element = prop[0].element_type()
+                binary_object_update(element, i)
+                lst.append(element)
+            prop[0].__set__(obj, lst)
+        else :
+            prop[0].__set__(obj, prop[1])
     return obj
 
 
