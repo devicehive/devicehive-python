@@ -236,6 +236,31 @@ class AutoClassFactoryTest(unittest.TestCase):
         autoclass_update_properties(obj, {'property1': 123, 'property2': 321})
         self.assertEquals(123, obj.property1)
         self.assertEquals(321, obj.property2)
+    
+    def test_binary_object_to_dict(self):
+        obj = _TestObject()
+        obj.byte_prop  = 0xab
+        obj.word_prop  = 0xabcd
+        obj.dword_prop = 0x12345678
+        obj.bool_prop  = True
+        obj.false_prop = False
+        obj.str_prop   = 'abc'
+        obj.arr_prop   = [_SubObject(-1024), _SubObject(-8192)]
+        obj.guid_prop  = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
+        obj.aguid_prop = obj.guid_prop.bytes
+        d = binary_object_to_dict(obj)
+        
+        self.assertEquals(obj.byte_prop, d['byte_prop'])
+        self.assertEquals(obj.word_prop, d['word_prop'])
+        self.assertEquals(obj.dword_prop, d['dword_prop'])
+        self.assertEquals(obj.bool_prop, d['bool_prop'])
+        self.assertEquals(obj.false_prop, d['false_prop'])
+        self.assertEquals(obj.str_prop, d['str_prop'])
+        self.assertEquals(len(obj.arr_prop), len(d['arr_prop']))
+        self.assertEquals(obj.arr_prop[0].sword_prop, d['arr_prop'][0]['sword_prop'])
+        self.assertEquals(obj.arr_prop[1].sword_prop, d['arr_prop'][1]['sword_prop'])
+        self.assertEquals(obj.guid_prop, d['guid_prop'])
+        self.assertEquals(obj.aguid_prop, d['aguid_prop'])
 
 if __name__ == '__main__':
     unittest.main()

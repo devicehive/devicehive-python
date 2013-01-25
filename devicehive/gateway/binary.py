@@ -607,6 +607,22 @@ def autoclass_update_properties(obj, cmd):
     return obj
 
 
+def binary_object_to_dict(obj):
+    props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
+                                            if isinstance(prop[0], AbstractBinaryProperty) and
+                                            prop[0] in obj.__binary_struct__]
+    result = {}
+    for prop in props :
+        if isinstance(prop[0], array_binary_property) :
+            lst = []
+            for o in prop[0].__get__(obj) :
+                lst.append(binary_object_to_dict(o))
+            result[prop[1]] = lst
+        else :
+            result[prop[1]] = prop[0].__get__(obj)
+    return result
+
+
 class BinaryFactory(ServerFactory):
     class _DeviceInfo(object):
         def __init__(self, device_id = '', device_key = '', device_name = '', device_status = '', \
