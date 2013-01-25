@@ -635,6 +635,7 @@ class BinaryFactory(ServerFactory):
         self.protocol = None
         self.gateway = gateway
         self.command_descriptors = {}
+        self.pending_results = {}
     
     def register_command_descriptor(self, command_name, binary_class):
         """
@@ -666,11 +667,13 @@ class BinaryFactory(ServerFactory):
         device_delegate = BinaryFactory._DeviceDelegate(self, info)
         self.gateway.registration_received(device_delegate)
     
-    def handle_notification_command_result(self, notifreq):
+    def handle_notification_command_result(self, notification):
         """
         Run all callbacks attached to notification_reveived deferred
         """
-        self._notification_received.callback(None)
+        if notification.command_id in self.pending_results :
+            deferred = self.pending_results.pop(notification.command_id)
+            deferred.callback(devicehive.CommandResult(notification.status, notification.result))
     
     def packet_received(self, packet):
         if packet.intent == SystemIntents.Register :
@@ -686,12 +689,15 @@ class BinaryFactory(ServerFactory):
         """
         This handler is called when a new command comes from DeviceHive server
         """
+        command_id = command['id']
         command_name = command['command']
         parameters = command['parameters']
         if command_name in self.command_descriptors :
             command_desc = self.command_descriptors[command_name]
             command_obj = command_desc.cls()
             autoclass_update_properties(command_obj, parameters)
+            self.pending_results[command_id] = finish_deferred
+            #
             self.protocol.send_command(command_desc.intent, command_bin)
         else :
             finish_deferred.errback()
@@ -699,10 +705,6 @@ class BinaryFactory(ServerFactory):
     def buildProtocol(self, addr):
         self.protocol = BinaryProtocol(self) 
         return self.protocol
-    
-    registration_received = property(fget = lambda self : self._registration_received)
-    
-    notification_received = property(fget = lambda self : self._notification_received)
 
 
 class SerialPortAddress(object):
