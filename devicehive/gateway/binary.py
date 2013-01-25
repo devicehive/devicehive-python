@@ -4,6 +4,8 @@
 import struct
 import array
 import uuid
+import devicehive
+from devicehive.gateway import IDeviceInfo
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
 import twisted.internet.serialport
@@ -563,57 +565,6 @@ class BinaryProtocol(Protocol):
         self.transport.write(pkt.to_binary())
 
 
-class DeviceInfo(object):
-    """
-    In order to decrease amount dependencies I use duck typing here.
-    """
-    
-    def __init__(self, factory, device_id, device_key, device_name, device_status, network_name, network_descr, devcls_name, devcls_version, equipment):
-        self.factory = factory
-        self._device_id = device_id
-        self._device_key = device_key
-        self._device_name = device_name
-        self._device_status = device_status
-        self._network_name = network_name
-        self._network_descr = network_descr
-        self._devcls_name = devcls_name
-        self._devcls_version = devcls_version
-        self._equipment = equipment
-    
-    def device_id(self):
-        return self._device_id
-    
-    def device_key(self):
-        return self._device_key
-    
-    def device_name(self):
-        return self._device_name
-    
-    def device_status(self):
-        return self._device_status
-    
-    def network_name(self):
-        return self._network_name
-    
-    def network_description(self):
-        return self._network_descr
-    
-    def device_class_name(self):
-        return self._devcls_name
-    
-    def device_class_version(self):
-        return self._devcls_version
-    
-    def device_class_is_permanent(self):
-        return False
-    
-    def equipment(self):
-        return self._equipment
-    
-    def do_command(self, command, finish_deferred):
-        factory.do_command(self, command, finish_deferred)
-
-
 class AutoClassFactory(object):
     """
     Class is used to generate binary serializable classes
@@ -657,15 +608,40 @@ def autoclass_update_properties(obj, cmd):
 
 
 class BinaryFactory(ServerFactory):
-    def __init__(self):
+    class _DeviceInfo(object):
+        def __init__(self, device_id = '', device_key = '', device_name = '', device_status = '', \
+                     network_name = None, network_descr = None, network_key = None, devcls_name = '', \
+                     devcls_version = '', devcls_is_permanent = False, offline_timeout = None, equipment = []):
+            self.device_id = device_id
+            self.device_key = device_key
+            self.device_name = device_name
+            self.device_status = device_status
+            self.network_name = network_name
+            self.network_description = network_descr
+            self.network_key = network_key
+            self.device_class_name = devcls_name
+            self.device_class_version = devcls_version
+            self.device_class_is_permanent = devcls_is_permanent
+            self.offline_timeout = offline_timeout
+            self.equipment = equipment    
+    
+    class _CommandItem(object):
+        def __init__(self, intent = 0, cls = None):
+            self.intent = intent
+            self.cls = None
+    
+    def __init__(self, gateway):
         self.packet_buffer = BinaryPacketBuffer()
         self.protocol = None
-        self.command_map = dict()
-        self._registration_received = Deferred()
-        self._notification_received = Deferred()
+        self.gateway = gateway
+        self.command_descriptors = {}
     
-    def register_command_map(self, command_name, binary_class):
-        self.command_map[command_name] = binary_class
+    def register_command_descriptor(self, command_name, binary_class):
+        """
+        Method is specific for binary protocol. It allows specify custom deserialization
+        description for the command's payload.
+        """
+        self.command_descriptors[command_name] = BinaryFactory._CommandItem(intent = -1, cls = binary_class)
     
     def handle_registration_received(self, reg):
         """
@@ -674,9 +650,21 @@ class BinaryFactory(ServerFactory):
         """
         autoclass_factory = AutoClassFactory()
         for command in reg.commands:
-            if not command.name in self.command_map:
-                self.command_map[command.name] = autoclass_factory.generate(command)
-        self._registration_request.callback(None)
+            if not command.name in self.command_descriptors :
+                cls = autoclass_factory.generate(command)
+                self.command_descriptors[command.name] = BinaryFactory._CommandItem(command.intent, cls)
+            else :
+                self.command_descriptors[command.name].intent = command.intent
+        info = BinaryFactory._DeviceInfo(self, device_id = str(reg.device_id), \
+                                device_key = reg.device_key, \
+                                device_name = reg.device_name, \
+                                device_status = 'Online', \
+                                devcls_name = reg.device_class_name, \
+                                devcls_version = reg.device_class_version, \
+                                equipment = [devicehive.Equipment(e.name, e.code, e.typename) for e in reg.equipment])
+        self.gateway.registration_hook(info)
+        device_delegate = BinaryFactory._DeviceDelegate(self, info)
+        self.gateway.registration_received(device_delegate)
     
     def handle_notification_command_result(self, notifreq):
         """
@@ -700,11 +688,11 @@ class BinaryFactory(ServerFactory):
         """
         command_name = command['command']
         parameters = command['parameters']
-        if command_name in self.command_map :
-            intent = 0
-            command_bin = self.command_map[command_name]()
-            autoclass_update_properties(command_bin, parameters)
-            self.protocol.send_command(intent, command_bin)
+        if command_name in self.command_descriptors :
+            command_desc = self.command_descriptors[command_name]
+            command_obj = command_desc.cls()
+            autoclass_update_properties(command_obj, parameters)
+            self.protocol.send_command(command_desc.intent, command_bin)
         else :
             finish_deferred.errback()
     
