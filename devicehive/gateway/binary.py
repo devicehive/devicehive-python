@@ -5,7 +5,7 @@ import struct
 import array
 import uuid
 import devicehive
-from devicehive.gateway import IDeviceInfo
+from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
 import twisted.internet.serialport
@@ -182,7 +182,7 @@ class RegistrationRequestPacket(AbstractPacket):
     
     flags = property(fget = lambda self : 0)
     
-    intent = property(fget = lambda self : SystemIntents.RegistrationRequest)
+    intent = property(fget = lambda self : SystemIntents.RequestRegistration.value)
     
     data = property(fget = lambda self : [])
 
@@ -354,15 +354,15 @@ class BinaryFormatter(object) :
         return result
     
     @staticmethod
-    def deserialize(data, type):
+    def deserialize(data, cls):
         """
         Deserilizes @data array into object of type @type
         @param data - binary string/constant byte array/tuple or list
         @type  type - type in which binary string would be deserialized
         """
-        def _deserialize(data, type, offset = 0):
-            if hasattr(type, '__binary_struct__') :
-                obj = type()
+        def _deserialize(data, cls, offset = 0):
+            if hasattr(cls, '__binary_struct__') :
+                obj = cls()
                 for prop in obj.__binary_struct__ :
                     if prop.type == DataTypes.Null :
                         pass
@@ -403,10 +403,10 @@ class BinaryFormatter(object) :
                         raise BinarySerializerError('Failed to deserialize property {0}. Reason: unsupported property type {1}.'.format(prop, prop.type))
                 return (obj, offset)
             else :
-                raise BinarySerializerError('Failed to deserialize an object. Reason: unsupported type {0}.'.format(type))
+                raise BinarySerializerError('Failed to deserialize an object. Reason: unsupported type {0}.'.format(cls))
             return None
         data = array.array('B', data)
-        obj, offset = _deserialize(data, type)
+        obj, offset = _deserialize(data, cls)
         return obj
 
 
@@ -420,7 +420,7 @@ def define_accessors(field):
 
 class Parameter(object):
     def __init__(self, type = DataTypes.Null, name = ''):
-        self._type = type
+        self._type = type.value
         self._name = name
     
     type = binary_property(DataTypes.Byte, *define_accessors('_type'))
@@ -431,7 +431,7 @@ class Parameter(object):
 
 
 class Equipment(object):
-    def __init__(self, name, code, typename):
+    def __init__(self, name = '', code = 0, typename = ''):
         self._name = name
         self._code = code
         self._typename = typename
@@ -446,7 +446,7 @@ class Equipment(object):
 
 
 class Notification(object):
-    def __init__(self, intent, name, parameters):
+    def __init__(self, intent = 0, name = '', parameters = list()):
         self._intent = intent
         self._name = name
         self._parameters = parameters
@@ -461,7 +461,7 @@ class Notification(object):
 
 
 class Command(object):
-    def __init__(self, intent = 0, name = '', parameters = []):
+    def __init__(self, intent = 0, name = '', parameters = list()):
         self._intent = intent
         self._name = name
         self._parameters = parameters
@@ -544,16 +544,16 @@ class BinaryProtocol(Protocol):
             self.factory.packet_received(self.factory.packet_buffer.pop_packet())
     
     def connectionLost(self, reason):
-        Protocol.connectionLost(self, reason)
+        return Protocol.connectionLost(self, reason)
     
     def makeConnection(self, transport):
-        Protocol.makeConnection(self, transport)
+        return Protocol.makeConnection(self, transport)
     
-    def send_command(self, intent, command_bin):
+    def send_command(self, intent, payload):
         """
         Sends binary data into transport channel
         """
-        msg = Packet(PACKET_SIGNATURE, 1, 0, intent, bin)
+        msg = Packet(PACKET_SIGNATURE, 1, 0, intent, payload)
         self.transport.write(msg.to_binary())
     
     def connectionMade(self):
@@ -631,6 +631,7 @@ def binary_object_to_dict(obj):
 
 class BinaryFactory(ServerFactory):
     class _DeviceInfo(object):
+        implements(IDeviceInfo)
         def __init__(self, device_id = '', device_key = '', device_name = '', device_status = '', \
                      network_name = None, network_descr = None, network_key = None, devcls_name = '', \
                      devcls_version = '', devcls_is_permanent = False, offline_timeout = None, equipment = []):
@@ -648,6 +649,7 @@ class BinaryFactory(ServerFactory):
             self.equipment = equipment
     
     class _Notification(object):
+        implements(INotification)
         def __init__(self, name, parameters):
             self.name = name
             self.parameters = parameters
@@ -681,7 +683,7 @@ class BinaryFactory(ServerFactory):
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
         """
-        info = BinaryFactory._DeviceInfo(self, device_id = str(reg.device_id), \
+        info = BinaryFactory._DeviceInfo(device_id = reg.device_id, \
                                 device_key = reg.device_key, \
                                 device_name = reg.device_name, \
                                 device_status = 'Online', \
@@ -700,13 +702,11 @@ class BinaryFactory(ServerFactory):
         for notification in reg.notifications :
             if not notification.name in self.notification_descriptors :
                 cls = autoclass_factory.generate(notification)
-                self.command_descriptors[command.name] = BinaryFactory._DescrItem(notification.intent, cls, info)
+                self.notification_descriptors[notification.name] = BinaryFactory._DescrItem(notification.intent, cls, info)
             else :
                 self.notification_descriptors[notification.name].intent = notification.intent
                 self.notification_descriptors[notification.name].info = info
-        self.gateway.registration_hook(info)
-        device_delegate = BinaryFactory._DeviceDelegate(self, info)
-        self.gateway.registration_received(device_delegate)
+        self.gateway.registration_received(info)
     
     def handle_notification_command_result(self, notification):
         """
@@ -723,10 +723,10 @@ class BinaryFactory(ServerFactory):
             self.gateway.notification_received(notif.info, BinaryFactory._Notification(nname, params))
     
     def packet_received(self, packet):
-        if packet.intent == SystemIntents.Register :
+        if packet.intent == SystemIntents.Register.value :
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
-        elif packet.intent == SystemIntents.NotifyCommandResult :
+        elif packet.intent == SystemIntents.NotifyCommandResult.value :
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
             self.handle_notification_command_result(notifreq)
         else:

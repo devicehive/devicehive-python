@@ -3,7 +3,9 @@
 
 import sys
 from os import path
+import uuid
 import unittest
+from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
 
 
 orig_name = __name__
@@ -15,6 +17,9 @@ try :
 finally :
     sys.path[:] = orig_path
     __name__ = orig_name
+
+
+__all__ = ('PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest')
 
 
 class PacketTests(unittest.TestCase):
@@ -135,16 +140,15 @@ class BinaryPacketBufferTests(unittest.TestCase):
         self.assertTrue(pkt_buff.has_packet())
 
 
-class _SubObject(object):
-    def __init__(self, val = 0):
-        self._val = val
-    def _set_val(self, value):
-        self._val = value
-    sword_prop = binary_property(DataTypes.SignedWord, fget = lambda self : self._val, fset = _set_val)
-    __binary_struct__ = [sword_prop]
-
-
 class _TestObject(object):
+    class _SubObject(object):
+        def __init__(self, val = 0):
+            self._val = val
+        def _set_val(self, value):
+            self._val = value
+        sword_prop = binary_property(DataTypes.SignedWord, fget = lambda self : self._val, fset = _set_val)
+        __binary_struct__ = [sword_prop]
+    
     def __init__(self):
         self._byte_prop = 0
         self._word_prop = 0
@@ -182,7 +186,7 @@ class BinaryFormatterTest(unittest.TestCase):
         res.bool_prop  = True
         res.false_prop = False
         res.str_prop   = 'abc'
-        res.arr_prop   = [_SubObject(-1024), _SubObject(-8192)]
+        res.arr_prop   = (_TestObject._SubObject(-1024), _TestObject._SubObject(-8192))
         res.guid_prop  = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
         res.aguid_prop = res.guid_prop.bytes
         return res
@@ -245,7 +249,7 @@ class AutoClassFactoryTest(unittest.TestCase):
         obj.bool_prop  = True
         obj.false_prop = False
         obj.str_prop   = 'abc'
-        obj.arr_prop   = [_SubObject(-1024), _SubObject(-8192)]
+        obj.arr_prop   = (_TestObject._SubObject(-1024), _TestObject._SubObject(-8192))
         obj.guid_prop  = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
         obj.aguid_prop = obj.guid_prop.bytes
         d = binary_object_to_dict(obj)
@@ -264,13 +268,89 @@ class AutoClassFactoryTest(unittest.TestCase):
     
     def test_binary_object_update_array(self):
         obj = _TestObject()
-        obj.arr_prop = (_SubObject(1), _SubObject(2))
+        obj.arr_prop = (_TestObject._SubObject(1), _TestObject._SubObject(2))
         newval = {'arr_prop': ({'sword_prop': 123}, {'sword_prop': 456})}
         binary_object_update(obj, newval)
         self.assertEquals(123, obj.arr_prop[0].sword_prop)
         self.assertEquals(456, obj.arr_prop[1].sword_prop)
 
 
+class BinaryFactoryTests(unittest.TestCase):
+    class _GatewayMock(object):
+        reg_has_been_received = False
+        device_info = None
+        def registration_received(self, device_info):
+            self.reg_has_been_received = True
+            self.device_info = device_info
+    
+    def setUp(self):
+        self.gateway = BinaryFactoryTests._GatewayMock()
+        self.device_id = uuid.uuid1()
+        rp = RegistrationPayload()
+        rp.device_id = self.device_id
+        rp.device_key = 'test-device-key'
+        rp.device_name= 'test-device-name'
+        rp.device_class_name = 'test-device-class-name'
+        rp.device_class_version = 'test-device-class-version'
+        rp.equipment = ( Equipment('eq-1-name', 'eq-1-code', 'eq-1-typecode'), )
+        rp.notifications = ( Notification(300, 'notification-1-name',  (Parameter(DataTypes.Word, 'word_param'), Parameter(DataTypes.Byte, 'byte_param'))), )
+        rp.commands = (Command(301, 'command-1-name', (Parameter(DataTypes.SignedWord, 'sword_param'),)), )
+        self.device_reg_payload = BinaryFormatter.serialize(rp)
+        self.device_reg_pkt = Packet(PACKET_SIGNATURE, 1, 0, SystemIntents.Register.value, self.device_reg_payload)
+    
+    def tearDown(self):
+        del self.gateway
+    
+    def test_make_connection(self):
+        """
+        When protocol initilizes it sends registration request into device transport
+        """
+        binfactory = BinaryFactory( self.gateway )
+        protocol = binfactory.buildProtocol(None)
+        transport = StringTransport()
+        protocol.makeConnection( transport )
+        # makeConnection
+        bindata = bytearray(transport.value())
+        pkt = Packet.from_binary(bindata)
+        self.assertEquals(PACKET_SIGNATURE, pkt.signature)
+        self.assertEquals(1, pkt.version)
+        self.assertEquals(SystemIntents.RequestRegistration.value, pkt.intent)
+        self.assertEquals(0, len(pkt.data))
+        # dataReceived registration from device
+        protocol.dataReceived( self.device_reg_pkt.to_binary() )
+        self.assertTrue(self.gateway.reg_has_been_received)
+        self.assertNotEquals(None, self.gateway.device_info)
+        self.assertEquals(self.device_id, self.gateway.device_info.device_id)
+        self.assertEquals('test-device-key', self.gateway.device_info.device_key)
+        self.assertEquals('test-device-name', self.gateway.device_info.device_name)
+        self.assertEquals('test-device-class-name', self.gateway.device_info.device_class_name)
+        self.assertEquals('test-device-class-version', self.gateway.device_info.device_class_version)
+        self.assertEquals(1, len(self.gateway.device_info.equipment))
+        eq = self.gateway.device_info.equipment[0]
+        self.assertEquals('eq-1-name', eq.name)
+        self.assertEquals('eq-1-code', eq.code)
+        self.assertEquals('eq-1-typecode', eq._type)
+        # test notification_descriptors
+        self.assertEquals(1, len(binfactory.notification_descriptors))
+        self.assertTrue( 'notification-1-name' in binfactory.notification_descriptors )
+        notif = binfactory.notification_descriptors['notification-1-name']
+        self.assertEquals(300, notif.intent)
+        self.assertNotEquals(None, notif.cls)
+        self.assertTrue(hasattr(notif.cls, 'word_param'))
+        self.assertTrue(hasattr(notif.cls, 'byte_param'))
+        self.assertTrue(DataTypes.Word.value, notif.cls.word_param.type)
+        self.assertTrue(DataTypes.Byte.value, notif.cls.byte_param.type)
+        # test command_descriptors
+        self.assertEquals(1, len(binfactory.command_descriptors))
+        self.assertTrue('command-1-name' in binfactory.command_descriptors)
+        cmd = binfactory.command_descriptors['command-1-name']
+        self.assertEquals(301, cmd.intent)
+        self.assertNotEquals(None, cmd.cls)
+        self.assertTrue(hasattr(cmd.cls, 'sword_param'))
+        self.assertTrue(DataTypes.SignedWord.value, cmd.cls.sword_param.type)
+
+
 if __name__ == '__main__':
     unittest.main()
+
 

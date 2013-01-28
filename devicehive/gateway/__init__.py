@@ -143,6 +143,6 @@ class BaseGateway(object):
         transport_endpoint.listen(device_factory)
 
 
-__all__ ['IDeviceInfo', 'INotification', 'BaseGateway']
+__all__ = ['IDeviceInfo', 'INotification', 'BaseGateway']
 
 
