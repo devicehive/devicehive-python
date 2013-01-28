@@ -19,7 +19,7 @@ finally :
     __name__ = orig_name
 
 
-__all__ = ('PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest')
+__all__ = ('PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest', 'BinaryFactoryTests')
 
 
 class PacketTests(unittest.TestCase):
