@@ -316,7 +316,11 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertEquals(1, pkt.version)
         self.assertEquals(SystemIntents.RequestRegistration.value, pkt.intent)
         self.assertEquals(0, len(pkt.data))
+    
+    def test_registration(self):
         # dataReceived registration from device
+        binfactory = BinaryFactory( self.gateway )
+        protocol = binfactory.buildProtocol(None)
         protocol.dataReceived( self.device_reg_pkt.to_binary() )
         self.assertTrue(self.gateway.reg_has_been_received)
         self.assertNotEquals(None, self.gateway.device_info)
@@ -348,6 +352,12 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertNotEquals(None, cmd.cls)
         self.assertTrue(hasattr(cmd.cls, 'sword_param'))
         self.assertTrue(DataTypes.SignedWord.value, cmd.cls.sword_param.type)
+    
+    def test_registration2(self):
+        pass
+    
+    def test_notification_command_response(self):
+        pass
 
 
 if __name__ == '__main__':
