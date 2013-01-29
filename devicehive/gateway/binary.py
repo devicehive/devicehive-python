@@ -5,7 +5,6 @@ import struct
 import array
 import uuid
 import devicehive
-import inspect
 from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
