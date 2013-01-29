@@ -103,7 +103,8 @@ class BaseGateway(object):
         log.msg('Device {0} has sent registration information.'.format(device_info))
         device = BaseGateway._DeviceDelegate(self, device_info)
         factory = self.factory_cls(device_delegate = device)
-        factory.on_failure = self.on_devicehive_protocol_failure
+        factory.on_failure = self.on_proto_failure
+        factory.on_registration_finished = self.on_proto_registered
         self.connect(device, factory)
     
     def connect(self, device, factory):
@@ -140,8 +141,11 @@ class BaseGateway(object):
         else :
             raise GatewayError('channel to device is not established')
     
-    def on_devicehive_protocol_failure(self, *args):
+    def on_proto_failure(self, *args):
         log.msg('Device-Hive protocol failure. Terminating reactors. Arguments: {0}'.format(args))
+    
+    def on_proto_registered(sef, *args):
+        log.msg('Device-Hive protocol has registered a device. Reason: {0}.'.format(args))
     
     def run(self, transport_endpoint, device_factory):
         """
