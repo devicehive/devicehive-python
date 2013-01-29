@@ -5,6 +5,7 @@ import struct
 import array
 import uuid
 import devicehive
+import inspect
 from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
@@ -250,7 +251,41 @@ class BinaryPacketBuffer(object):
 
 
 class AbstractBinaryProperty(property):
+    __DEFAULT_VALUE__ = {DATA_TYPE_NULL: None,
+                         DATA_TYPE_BYTE: 0,
+                         DATA_TYPE_WORD: 0,
+                         DATA_TYPE_DWORD: 0,
+                         DATA_TYPE_QWORD: 0,
+                         DATA_TYPE_SBYTE: 0,
+                         DATA_TYPE_SWORD: 0,
+                         DATA_TYPE_SDWORD: 0,
+                         DATA_TYPE_SQWORD: 0,
+                         DATA_TYPE_SINGLE: 0.0,
+                         DATA_TYPE_DOUBLE: 0.0,
+                         DATA_TYPE_BOOL: False,
+                         DATA_TYPE_GUID: uuid.uuid1(),
+                         DATA_TYPE_STRING: '',
+                         DATA_TYPE_BINARY: bytearray(),
+                         DATA_TYPE_ARRAY: []}
+    
+    def __prop_counter():
+        i = 0
+        while True :
+            yield '_property{0}'.format(i)
+            i += 1
+    
+    __prop_counter = __prop_counter()
+    
     def __init__(self, type, fget = None, fset = None):
+        if (fget is None) and (fset is None) :
+            fieldname = AbstractBinaryProperty.__prop_counter.next()
+            fieldtype = type
+            def getter(self):
+                return getattr(self, fieldname, AbstractBinaryProperty.__DEFAULT_VALUE__[fieldtype])
+            def setter(self, value):
+                setattr(self, fieldname, value)
+            fget = getter
+            fset = setter
         super(AbstractBinaryProperty, self).__init__(fget, fset)
         self.type = type
 
@@ -270,38 +305,6 @@ class array_binary_property(AbstractBinaryProperty):
     def __init__(self, element_type, fget = None, fset = None):
         super(array_binary_property, self).__init__(DATA_TYPE_ARRAY, fget, fset)
         self.element_type = element_type
-
-
-import inspect
-
-
-class auto_binary_property(binary_property):
-    __DEFAULT_VALUE__ = {DATA_TYPE_NULL: None,
-                         DATA_TYPE_BYTE: 0,
-                         DATA_TYPE_WORD: 0,
-                         DATA_TYPE_DWORD: 0,
-                         DATA_TYPE_QWORD: 0,
-                         DATA_TYPE_SBYTE: 0,
-                         DATA_TYPE_SWORD: 0,
-                         DATA_TYPE_SDWORD: 0,
-                         DATA_TYPE_SQWORD: 0,
-                         DATA_TYPE_SINGLE: 0.0,
-                         DATA_TYPE_DOUBLE: 0.0,
-                         DATA_TYPE_BOOL: False,
-                         DATA_TYPE_GUID: uuid.uuid1(),
-                         DATA_TYPE_STRING: '',
-                         DATA_TYPE_BINARY: bytearray(),
-                         DATA_TYPE_ARRAY: []}
-    
-    def __init__(self, type):
-        names = inspect.currentframe().f_back.f_code.co_names
-        fieldname = '_{0}'.format(names[names.index( self.__class__.__name__ ) + 1])
-        fieldtype = type
-        def getter(self):
-            return getattr(self, fieldname, auto_binary_property.__DEFAULT_VALUE__[fieldtype])
-        def setter(self, value):
-            setattr(self, value)
-        super(auto_binary_property, self).__init__(type, fget = getter, fset = setter)
 
 
 class BinaryFormatterError(Exception):

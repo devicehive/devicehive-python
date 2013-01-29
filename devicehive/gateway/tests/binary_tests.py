@@ -382,6 +382,20 @@ class BinaryFormatterErrorTests(unittest.TestCase):
         self.assertNotEquals(None, BinaryDeserializationError("description"))
 
 
+class AbstractBinaryPropertyTests(unittest.TestCase):
+    def test_auto_getter_setter(self):
+        class _Test(object):
+            prop1 = binary_property(DATA_TYPE_DWORD)
+            prop2 = binary_property(DATA_TYPE_QWORD)
+        t = _Test()
+        self.assertTrue(hasattr(_Test, 'prop1'))
+        self.assertTrue(hasattr(_Test, 'prop2'))
+        t.prop1 = 12
+        t.prop2 = 13
+        self.assertEquals(12, t.prop1)
+        self.assertEquals(13, t.prop2)
+
+
 if __name__ == '__main__':
     unittest.main()
 
