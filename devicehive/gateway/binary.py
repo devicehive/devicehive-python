@@ -251,7 +251,7 @@ class BinaryPacketBuffer(object):
 
 class AbstractBinaryProperty(property):
     def __init__(self, type, fget = None, fset = None):
-        property.__init__(self, fget, fset)
+        super(AbstractBinaryProperty, self).__init__(fget, fset)
         self.type = type
 
 
@@ -260,7 +260,7 @@ class binary_property(AbstractBinaryProperty):
     Defines binary serializable property
     """
     def __init__(self, type, fget = None, fset = None):
-        AbstractBinaryProperty.__init__(self, type, fget, fset)
+        super(binary_property, self).__init__(type, fget, fset)
 
 
 class array_binary_property(AbstractBinaryProperty):
@@ -268,8 +268,40 @@ class array_binary_property(AbstractBinaryProperty):
     Defines binary serializable property of Array type
     """
     def __init__(self, element_type, fget = None, fset = None):
-        AbstractBinaryProperty.__init__(self, DATA_TYPE_ARRAY, fget, fset)
+        super(array_binary_property, self).__init__(DATA_TYPE_ARRAY, fget, fset)
         self.element_type = element_type
+
+
+import inspect
+
+
+class auto_binary_property(binary_property):
+    __DEFAULT_VALUE__ = {DATA_TYPE_NULL: None,
+                         DATA_TYPE_BYTE: 0,
+                         DATA_TYPE_WORD: 0,
+                         DATA_TYPE_DWORD: 0,
+                         DATA_TYPE_QWORD: 0,
+                         DATA_TYPE_SBYTE: 0,
+                         DATA_TYPE_SWORD: 0,
+                         DATA_TYPE_SDWORD: 0,
+                         DATA_TYPE_SQWORD: 0,
+                         DATA_TYPE_SINGLE: 0.0,
+                         DATA_TYPE_DOUBLE: 0.0,
+                         DATA_TYPE_BOOL: False,
+                         DATA_TYPE_GUID: uuid.uuid1(),
+                         DATA_TYPE_STRING: '',
+                         DATA_TYPE_BINARY: bytearray(),
+                         DATA_TYPE_ARRAY: []}
+    
+    def __init__(self, type):
+        names = inspect.currentframe().f_back.f_code.co_names
+        fieldname = '_{0}'.format(names[names.index( self.__class__.__name__ ) + 1])
+        fieldtype = type
+        def getter(self):
+            return getattr(self, fieldname, auto_binary_property.__DEFAULT_VALUE__[fieldtype])
+        def setter(self, value):
+            setattr(self, value)
+        super(auto_binary_property, self).__init__(type, fget = getter, fset = setter)
 
 
 class BinaryFormatterError(Exception):
@@ -569,7 +601,6 @@ class AutoClassFactory(object):
     """
     Class is used to generate binary serializable classes
     """
-    
     def _generate_binary_property(self, paramtype, fieldname):
         def getter(self):
             return getattr(self, fieldname)
