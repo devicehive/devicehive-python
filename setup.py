@@ -1,3 +1,6 @@
+# -*- encoding: utf8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+
 from os import path
 from sys import platform
 try:
@@ -7,7 +10,7 @@ except:
 from distutils.sysconfig import get_python_lib
 
 
-setup (
+setup(
     name = 'devicehive',
     version = '0.0.1',
     author = 'DataArt Apps (http://dataart.com)',
@@ -27,6 +30,7 @@ setup (
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/virtual_led_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/virtual_led_example.cfg']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/rpi_example.py']),
-		(path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/basic_gateway_example.py']),
+                (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/basic_gateway_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/rpi_example.cfg'])]
 )
+
