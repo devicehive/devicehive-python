@@ -1,6 +1,8 @@
 # -*- encoding: utf8 -*-
-# vim: set et tabstop=4 shiftwidth=4 nu nowrap: fileencoding=utf-8 encoding=utf-8
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
 
+from twisted.internet import reactor
+from twisted.python import log
 import devicehive
 from zope.interface import Interface, Attribute
 
@@ -36,10 +38,10 @@ class BaseGateway(object):
     """
     
     class _DeviceDelegate(devicehive.DeviceDelegate):
-        def __init__(self, gateway):
-            super(BinaryFactory._DeviceDelegate, self).__init__()
+        def __init__(self, gateway, info):
+            super(BaseGateway._DeviceDelegate, self).__init__()
             self.gateway = gateway
-            self.info = None
+            self.info = info
         
         def device_id(self):
             return self.info.device_id if not self.info is None else None
@@ -98,8 +100,10 @@ class BaseGateway(object):
         Method could be overridden in subclass to change device registration behaviour
         or device registration information.
         """
+        log.msg('Device {0} has sent registration information.'.format(device_info))
         device = BaseGateway._DeviceDelegate(self, device_info)
-        factory = self.factory_cls(device = device)
+        factory = self.factory_cls(device_delegate = device)
+        factory.on_failure = self.on_devicehive_protocol_failure
         self.connect(device, factory)
     
     def connect(self, device, factory):
@@ -118,6 +122,7 @@ class BaseGateway(object):
         """
         Method is called by the device.
         """
+        log.msg('Device {0} has sent notification {1}.'.format(device_info, notification))
         id = device_info.device_id
         if id in self.devices :
             self.devices[id].device.notify(notification.name, **notification.parameters)
@@ -134,6 +139,9 @@ class BaseGateway(object):
                 raise GatewayError('unknwon device {0}'.format(id))
         else :
             raise GatewayError('channel to device is not established')
+    
+    def on_devicehive_protocol_failure(self, *args):
+        log.msg('Device-Hive protocol failure. Terminating reactors. Arguments: {0}'.format(args))
     
     def run(self, transport_endpoint, device_factory):
         """

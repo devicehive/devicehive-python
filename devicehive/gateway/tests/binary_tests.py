@@ -1,5 +1,5 @@
 # -*- encoding: utf8 -*-
-# vim: set et tabstop=4 shiftwidth=4 nu nowrap: fileencoding=utf-8 encoding=utf-8
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
 
 import sys
 from os import path
@@ -19,7 +19,7 @@ finally :
     __name__ = orig_name
 
 
-__all__ = ('PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest', 'BinaryFactoryTests')
+__all__ = ['PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest', 'BinaryFactoryTests']
 
 
 class PacketTests(unittest.TestCase):
@@ -146,7 +146,7 @@ class _TestObject(object):
             self._val = val
         def _set_val(self, value):
             self._val = value
-        sword_prop = binary_property(DataTypes.SignedWord, fget = lambda self : self._val, fset = _set_val)
+        sword_prop = binary_property(DATA_TYPE_SWORD, fget = lambda self : self._val, fset = _set_val)
         __binary_struct__ = [sword_prop]
     
     def __init__(self):
@@ -165,15 +165,15 @@ class _TestObject(object):
         def fset(self, value):
             setattr(self, name, value)
         return {'fget': fget, 'fset': fset}
-    byte_prop  = binary_property(DataTypes.Byte, **gen_props('_byte_prop'))
-    word_prop  = binary_property(DataTypes.Word, **gen_props('_word_prop'))
-    dword_prop = binary_property(DataTypes.Dword, **gen_props('_dword_prop'))
-    bool_prop  = binary_property(DataTypes.Boolean, **gen_props('_bool_prop'))
-    false_prop = binary_property(DataTypes.Boolean, **gen_props('_false_prop'))
-    str_prop   = binary_property(DataTypes.String, **gen_props('_str_prop'))
+    byte_prop  = binary_property(DATA_TYPE_BYTE, **gen_props('_byte_prop'))
+    word_prop  = binary_property(DATA_TYPE_WORD, **gen_props('_word_prop'))
+    dword_prop = binary_property(DATA_TYPE_DWORD, **gen_props('_dword_prop'))
+    bool_prop  = binary_property(DATA_TYPE_BOOL, **gen_props('_bool_prop'))
+    false_prop = binary_property(DATA_TYPE_BOOL, **gen_props('_false_prop'))
+    str_prop   = binary_property(DATA_TYPE_STRING, **gen_props('_str_prop'))
     arr_prop   = array_binary_property(_SubObject, **gen_props('_arr_prop'))
-    guid_prop  = binary_property(DataTypes.Guid, **gen_props('_guid_prop'))
-    aguid_prop = binary_property(DataTypes.Guid, **gen_props('_aguid_prop'))
+    guid_prop  = binary_property(DATA_TYPE_GUID, **gen_props('_guid_prop'))
+    aguid_prop = binary_property(DATA_TYPE_GUID, **gen_props('_aguid_prop'))
     __binary_struct__ = (byte_prop, word_prop, dword_prop, bool_prop, false_prop, str_prop, arr_prop, guid_prop, aguid_prop)
 
 
@@ -222,11 +222,26 @@ class BinaryFormatterTest(unittest.TestCase):
         guid = uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129')
         self.assertEquals(guid, res.guid_prop)
         self.assertEquals(guid, res.aguid_prop)
+    
+    def test_deserialize_array_prop_invalid_definition(self):
+        class _InvalidDefObject(object):
+            def __init__(self, val = 0):
+                self._val = val
+            def _set_val(self, value):
+                self._val = value
+            invalid_array_prop = binary_property(DATA_TYPE_ARRAY, fget = lambda self : self._val, fset = _set_val)
+            __binary_struct__ = [invalid_array_prop]
+        invalidbin = bytearray([0x01, 0x00, 0xff])
+        try :
+            res = BinaryFormatter.deserialize(self.binary, _InvalidDefObject)
+            self.assertTrue(False, 'Deserialization should raises an exception on attempt to deserialize invalid defined object')
+        except BinaryDeserializationError:
+            pass
 
 
 class AutoClassFactoryTest(unittest.TestCase):
     def test_auto_class(self):
-        params = (Parameter(DataTypes.Word, 'property1'), Parameter(DataTypes.Byte, 'property2'))
+        params = (Parameter(DATA_TYPE_WORD, 'property1'), Parameter(DATA_TYPE_BYTE, 'property2'))
         cmd = Command(intent = 100, name = 'CommandName', parameters = params)
         #
         factory = AutoClassFactory()
@@ -293,8 +308,8 @@ class BinaryFactoryTests(unittest.TestCase):
         rp.device_class_name = 'test-device-class-name'
         rp.device_class_version = 'test-device-class-version'
         rp.equipment = ( Equipment('eq-1-name', 'eq-1-code', 'eq-1-typecode'), )
-        rp.notifications = ( Notification(300, 'notification-1-name',  (Parameter(DataTypes.Word, 'word_param'), Parameter(DataTypes.Byte, 'byte_param'))), )
-        rp.commands = (Command(301, 'command-1-name', (Parameter(DataTypes.SignedWord, 'sword_param'),)), )
+        rp.notifications = ( Notification(300, 'notification-1-name',  (Parameter(DATA_TYPE_WORD, 'word_param'), Parameter(DATA_TYPE_BYTE, 'byte_param'))), )
+        rp.commands = (Command(301, 'command-1-name', (Parameter(DATA_TYPE_SWORD, 'sword_param'),)), )
         self.device_reg_payload = BinaryFormatter.serialize(rp)
         self.device_reg_pkt = Packet(PACKET_SIGNATURE, 1, 0, SystemIntents.Register.value, self.device_reg_payload)
     
@@ -324,7 +339,7 @@ class BinaryFactoryTests(unittest.TestCase):
         protocol.dataReceived( self.device_reg_pkt.to_binary() )
         self.assertTrue(self.gateway.reg_has_been_received)
         self.assertNotEquals(None, self.gateway.device_info)
-        self.assertEquals(self.device_id, self.gateway.device_info.device_id)
+        self.assertEquals(str(self.device_id), self.gateway.device_info.device_id)
         self.assertEquals('test-device-key', self.gateway.device_info.device_key)
         self.assertEquals('test-device-name', self.gateway.device_info.device_name)
         self.assertEquals('test-device-class-name', self.gateway.device_info.device_class_name)
@@ -342,8 +357,8 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertNotEquals(None, notif.cls)
         self.assertTrue(hasattr(notif.cls, 'word_param'))
         self.assertTrue(hasattr(notif.cls, 'byte_param'))
-        self.assertTrue(DataTypes.Word.value, notif.cls.word_param.type)
-        self.assertTrue(DataTypes.Byte.value, notif.cls.byte_param.type)
+        self.assertTrue(DATA_TYPE_WORD, notif.cls.word_param.type)
+        self.assertTrue(DATA_TYPE_BYTE, notif.cls.byte_param.type)
         # test command_descriptors
         self.assertEquals(1, len(binfactory.command_descriptors))
         self.assertTrue('command-1-name' in binfactory.command_descriptors)
@@ -351,13 +366,20 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertEquals(301, cmd.intent)
         self.assertNotEquals(None, cmd.cls)
         self.assertTrue(hasattr(cmd.cls, 'sword_param'))
-        self.assertTrue(DataTypes.SignedWord.value, cmd.cls.sword_param.type)
+        self.assertTrue(DATA_TYPE_SWORD, cmd.cls.sword_param.type)
     
     def test_registration2(self):
         pass
     
     def test_notification_command_response(self):
         pass
+
+
+class BinaryFormatterErrorTests(unittest.TestCase):
+    def test_base_class(self):
+        self.assertNotEquals(None, BinaryFormatterError("description")) 
+        self.assertNotEquals(None, BinarySerializationError("description"))
+        self.assertNotEquals(None, BinaryDeserializationError("description"))
 
 
 if __name__ == '__main__':

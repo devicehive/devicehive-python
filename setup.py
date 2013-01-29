@@ -27,5 +27,6 @@ setup (
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/virtual_led_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/virtual_led_example.cfg']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/rpi_example.py']),
+		(path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/basic_gateway_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/rpi_example.cfg'])]
 )

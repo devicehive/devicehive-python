@@ -5,7 +5,7 @@
 import unittest
 from binary_tests import *
 
-__all__ = ('binary_tests',)
+__all__ = ['binary_tests']
 
 if __name__ == '__main__':
     unittest.main()

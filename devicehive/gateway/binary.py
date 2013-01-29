@@ -1,5 +1,5 @@
 # -*- encoding: utf8 -*-
-# vim: set et tabstop=4 shiftwidth=4 nu nowrap: fileencoding=utf-8 encoding=utf-8
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
 
 import struct
 import array
@@ -9,8 +9,10 @@ from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
 import twisted.internet.serialport
+from twisted.python import log
 from twisted.internet.protocol import ServerFactory, Protocol
 from twisted.python.constants import Values, ValueConstant
+from twisted.internet.serialport import SerialPort
 
 
 class PacketError(Exception):
@@ -64,26 +66,22 @@ PACKET_OFFSET_DATA       = 8
 EMPTY_PACKET_LENGTH      = 9
 
 
-class DataTypes(Values):
-    """
-    DeviceHive system data-types
-    """
-    Null = ValueConstant(0)
-    Byte = ValueConstant(1)
-    Word = ValueConstant(2)
-    Dword = ValueConstant(3)
-    Qword = ValueConstant(4)
-    SignedByte = ValueConstant(5)
-    SignedWord = ValueConstant(6)
-    SignedDword = ValueConstant(7)
-    SignedQword = ValueConstant(8)
-    Single = ValueConstant(9)
-    Double = ValueConstant(10)
-    Boolean = ValueConstant(11)
-    Guid = ValueConstant(12)
-    String = ValueConstant(13)
-    Binary = ValueConstant(14)
-    Array = ValueConstant(15)
+DATA_TYPE_NULL   = 0
+DATA_TYPE_BYTE   = 1
+DATA_TYPE_WORD   = 2
+DATA_TYPE_DWORD  = 3
+DATA_TYPE_QWORD  = 4
+DATA_TYPE_SBYTE  = 5
+DATA_TYPE_SWORD  = 6
+DATA_TYPE_SDWORD = 7
+DATA_TYPE_SQWORD = 8
+DATA_TYPE_SINGLE = 9
+DATA_TYPE_DOUBLE = 10
+DATA_TYPE_BOOL   = 11
+DATA_TYPE_GUID   = 12
+DATA_TYPE_STRING = 13
+DATA_TYPE_BINARY = 14
+DATA_TYPE_ARRAY  = 15
 
 
 class AbstractPacket(object):
@@ -146,7 +144,10 @@ class Packet(AbstractPacket):
     intent = property(fget = lambda self : self._intent)
     
     data = property(fget = lambda self : self._data)
-
+    
+    def __str__(self):
+        return '<<intent:{0}, data_len:{1}>>'.format(self._intent, len(self._data))
+    
     @staticmethod
     def from_binary(binstr):
         binstr_len = len(binstr)
@@ -198,6 +199,8 @@ class BinaryPacketBuffer(object):
     data = property(fget = lambda self : self._data)
     
     def append(self, value):
+        if isinstance(value, str) :
+            value = [ord(x) for x in value]
         self._data.extend(value)
         self._skip_to_next_packet()
     
@@ -244,10 +247,10 @@ class BinaryPacketBuffer(object):
         """
         if not self.has_packet() :
             return None
-        msg = Packet.from_binary(self._data)
+        pkt = Packet.from_binary(self._data)
         del self._data[:PACKET_OFFSET_DATA + 1 + (((self._data[PACKET_OFFSET_LEN_MSB] << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff))]
         self._skip_to_next_packet()
-        return msg
+        return pkt
 
 
 class AbstractBinaryProperty(property):
@@ -266,16 +269,16 @@ class binary_property(AbstractBinaryProperty):
 
 class array_binary_property(AbstractBinaryProperty):
     """
-    Defines binary serializable property of DataTypes.Array type
+    Defines binary serializable property of Array type
     """
     def __init__(self, element_type, fget = None, fset = None):
-        AbstractBinaryProperty.__init__(self, DataTypes.Array, fget, fset)
+        AbstractBinaryProperty.__init__(self, DATA_TYPE_ARRAY, fget, fset)
         self.element_type = element_type
 
 
 class BinaryFormatterError(Exception):
     def __init__(self, msg = None):
-        super(BinarySerializerError, self).__init__(msg)
+        super(BinaryFormatterError, self).__init__(msg)
 
 
 class BinarySerializationError(BinaryFormatterError):
@@ -293,17 +296,17 @@ class BinaryFormatter(object) :
     Class provides method to serialize and deserialize binary payload into and from python objects
     """
     
-    __basic_type_map__ = {DataTypes.Byte: ('B', 1),
-                          DataTypes.Word: ('<H', 2),
-                          DataTypes.Dword: ('<I', 4),
-                          DataTypes.Qword: ('<Q', 8),
-                          DataTypes.SignedByte: ('b', 1),
-                          DataTypes.SignedWord: ('<h', 2),
-                          DataTypes.SignedDword: ('<i', 4),
-                          DataTypes.SignedQword: ('<q', 8),
-                          DataTypes.Single: ('f', 4),
-                          DataTypes.Double: ('d', 8),
-                          DataTypes.Boolean: ('?', 1)}
+    __basic_type_map__ = {DATA_TYPE_BYTE: ('B', 1),
+                          DATA_TYPE_WORD: ('<H', 2),
+                          DATA_TYPE_DWORD: ('<I', 4),
+                          DATA_TYPE_QWORD: ('<Q', 8),
+                          DATA_TYPE_SBYTE: ('b', 1),
+                          DATA_TYPE_SWORD: ('<h', 2),
+                          DATA_TYPE_SDWORD: ('<i', 4),
+                          DATA_TYPE_SQWORD: ('<q', 8),
+                          DATA_TYPE_SINGLE: ('f', 4),
+                          DATA_TYPE_DOUBLE: ('d', 8),
+                          DATA_TYPE_BOOL: ('?', 1)}
     
     @staticmethod
     def serialize(obj) :
@@ -322,33 +325,34 @@ class BinaryFormatter(object) :
             for prop in obj.__binary_struct__ :
                 if not isinstance(prop, AbstractBinaryProperty) :
                     raise BinarySerializationError('property {0} should be of AbstractBinaryProperty type'.format(prop))
-                if prop.type == DataTypes.Null :
+                if prop.type == DATA_TYPE_NULL :
                     pass
                 elif prop.type in BinaryFormatter.__basic_type_map__ :
                     packstr = BinaryFormatter.__basic_type_map__[prop.type][0]
-                    result.extend(struct.pack(packstr, prop.__get__(obj)))
-                elif prop.type == DataTypes.Guid :
+                    propval = prop.__get__(obj)
+                    result.extend(struct.pack(packstr, propval))
+                elif prop.type == DATA_TYPE_GUID :
                     guid = prop.__get__(obj)
                     if isinstance(guid, uuid.UUID) :
                         guid = guid.bytes
                     elif len(guid) != 16 :
                         raise BinarySerializationError('guid property should of uuid.UUID type or be an array of 16 elements')
                     result.extend(guid)
-                elif prop.type == DataTypes.String :
+                elif prop.type == DATA_TYPE_STRING :
                     str = prop.__get__(obj)
                     bstr = array.array('B', str)
                     bstr_len = len(bstr)
                     result.extend(struct.pack('<H', bstr_len))
                     result.extend(bstr)
-                elif prop.type == DataTypes.Binary :
+                elif prop.type == DATA_TYPE_BINARY :
                     str = prop.__get__(obj)
                     str_len = len(str)
                     result.extend(struct.pack('<H', str_len))
                     result.extend(str)
-                elif prop.type == DataTypes.Array :
+                elif prop.type == DATA_TYPE_ARRAY :
                     result.extend(BinaryFormatter.serialize(prop.__get__(obj)))
                 else :
-                    BinarySerializationError('unsupported property type {0}'.format(prop.type))
+                    BinarySerializationError('unsupported property type {0}({1})'.format( type(prop.type), prop.type))
         else :
             raise BinarySerializationError('unsupported type {0}.'.format(type(obj)))
         return result
@@ -364,34 +368,34 @@ class BinaryFormatter(object) :
             if hasattr(cls, '__binary_struct__') :
                 obj = cls()
                 for prop in obj.__binary_struct__ :
-                    if prop.type == DataTypes.Null :
+                    if prop.type == DATA_TYPE_NULL :
                         pass
                     elif prop.type in BinaryFormatter.__basic_type_map__ :
                         packstr, datalen = BinaryFormatter.__basic_type_map__[prop.type]
                         value = struct.unpack_from(packstr, data, offset)[0]
                         prop.__set__(obj, value)
                         offset += datalen
-                    elif prop.type == DataTypes.Guid :
+                    elif prop.type == DATA_TYPE_GUID :
                         value = struct.unpack_from('B' * 16, data, offset)
                         fields = ((value[0] << 24) | (value[1] << 16) | (value[2] << 8) | (value[3]),
                          (value[4] << 8) | value[5], (value[6] << 8) | value[7], value[8], value[9], (value[10] << 40) | (value[11] << 32) | (value[12] << 24) | (value[13] << 16) | (value[14] << 8) | value[15])
                         prop.__set__(obj, uuid.UUID(fields = fields))
                         offset += 16
-                    elif prop.type == DataTypes.String :
+                    elif prop.type == DATA_TYPE_STRING :
                         strlen = struct.unpack_from('<H', data, offset)[0]
                         offset += 2
                         bstr = bytearray(data[offset:offset + strlen])
                         offset += strlen
                         prop.__set__(obj, bstr.decode('utf-8'))
-                    elif prop.type == DataTypes.Binary :
+                    elif prop.type == DATA_TYPE_BINARY :
                         binlen = struct.unpack_from('<H', data, offset)[0]
                         offset += 2
                         bin = data[offset:offset + binlen]
                         offset += binlen
                         prop.__set__(obj, bin)
-                    elif prop.type == DataTypes.Array :
+                    elif prop.type == DATA_TYPE_ARRAY :
                         if not isinstance(prop, array_binary_property) :
-                            raise BinarySerializerError('Failed to deserialize array property {0}. Reason: property must be defined using array_binary_property function.'.format(prop))
+                            raise BinaryDeserializationError('Failed to deserialize array property {0}. Reason: property must be defined using array_binary_property function.'.format(prop))
                         arrlen = struct.unpack_from('<H', data, offset)[0]
                         offset += 2
                         value = []
@@ -400,10 +404,10 @@ class BinaryFormatter(object) :
                             value.append(subobj)
                         prop.__set__(obj, list(value))
                     else :
-                        raise BinarySerializerError('Failed to deserialize property {0}. Reason: unsupported property type {1}.'.format(prop, prop.type))
+                        raise BinaryDeserializationError('Failed to deserialize property {0} in object {1}. Reason: unsupported property type {2} ({3}).'.format(prop, obj, type(prop.type), prop.type))
                 return (obj, offset)
             else :
-                raise BinarySerializerError('Failed to deserialize an object. Reason: unsupported type {0}.'.format(cls))
+                raise BinaryDeserializationError('Failed to deserialize an object. Reason: unsupported type {0}.'.format(cls))
             return None
         data = array.array('B', data)
         obj, offset = _deserialize(data, cls)
@@ -419,13 +423,13 @@ def define_accessors(field):
 
 
 class Parameter(object):
-    def __init__(self, type = DataTypes.Null, name = ''):
-        self._type = type.value
+    def __init__(self, type = DATA_TYPE_NULL, name = ''):
+        self._type = type
         self._name = name
     
-    type = binary_property(DataTypes.Byte, *define_accessors('_type'))
+    type = binary_property(DATA_TYPE_BYTE, *define_accessors('_type'))
     
-    name = binary_property(DataTypes.String, *define_accessors('_name'))
+    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
     __binary_struct__ = (type, name)
 
@@ -436,11 +440,11 @@ class Equipment(object):
         self._code = code
         self._typename = typename
     
-    name = binary_property(DataTypes.String, *define_accessors('_name'))
+    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
-    code = binary_property(DataTypes.String, *define_accessors('_code'))
+    code = binary_property(DATA_TYPE_STRING, *define_accessors('_code'))
     
-    typename = binary_property(DataTypes.String, *define_accessors('_typename'))
+    typename = binary_property(DATA_TYPE_STRING, *define_accessors('_typename'))
     
     __binary_struct__ = (name, code, typename)
 
@@ -451,9 +455,9 @@ class Notification(object):
         self._name = name
         self._parameters = parameters
     
-    intent = binary_property(DataTypes.Word, *define_accessors('_intent'))
+    intent = binary_property(DATA_TYPE_WORD, *define_accessors('_intent'))
     
-    name = binary_property(DataTypes.String, *define_accessors('_name'))
+    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
     parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
@@ -466,9 +470,9 @@ class Command(object):
         self._name = name
         self._parameters = parameters
     
-    intent = binary_property(DataTypes.Word, *define_accessors('_intent'))
+    intent = binary_property(DATA_TYPE_WORD, *define_accessors('_intent'))
     
-    name = binary_property(DataTypes.String, *define_accessors('_name'))
+    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
     parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
@@ -490,15 +494,15 @@ class RegistrationPayload(object):
         self._notification = list()
         self._commands = list()
     
-    device_id = binary_property(DataTypes.Guid, *define_accessors('_device_id'))
+    device_id = binary_property(DATA_TYPE_GUID, *define_accessors('_device_id'))
     
-    device_key = binary_property(DataTypes.String, *define_accessors('_device_key'))
+    device_key = binary_property(DATA_TYPE_STRING, *define_accessors('_device_key'))
     
-    device_name = binary_property(DataTypes.String, *define_accessors('_device_name'))
+    device_name = binary_property(DATA_TYPE_STRING, *define_accessors('_device_name'))
     
-    device_class_name = binary_property(DataTypes.String, *define_accessors('_device_class_name'))
+    device_class_name = binary_property(DATA_TYPE_STRING, *define_accessors('_device_class_name'))
     
-    device_class_version = binary_property(DataTypes.String, *define_accessors('_device_class_version'))
+    device_class_version = binary_property(DATA_TYPE_STRING, *define_accessors('_device_class_version'))
     
     equipment = array_binary_property(Equipment, *define_accessors('_equipment'))
     
@@ -518,11 +522,11 @@ class NotificationCommandResultPayload(object):
         self._status     = ''
         self._result     = ''
     
-    command_id = binary_property(DataTypes.Dword, *define_accessors('_command_id'))
+    command_id = binary_property(DATA_TYPE_DWORD, *define_accessors('_command_id'))
     
-    status = binary_property(DataTypes.String, *define_accessors('_status'))
+    status = binary_property(DATA_TYPE_STRING, *define_accessors('_status'))
     
-    result = binary_property(DataTypes.String, *define_accessors('_result'))
+    result = binary_property(DATA_TYPE_STRING, *define_accessors('_result'))
     
     __binary_struct__ = (command_id, status, result)
 
@@ -582,7 +586,7 @@ class AutoClassFactory(object):
         for param in command.parameters :
             fieldname = '_{0}'.format(param.name)
             paramtype = param.type
-            if paramtype == DataTypes.Array :
+            if paramtype == DATA_TYPE_ARRAY :
                 raise NotImplementedError('Array properties in automatic classes are not supported.')
             else :
                 members[fieldname]  = None
@@ -647,12 +651,16 @@ class BinaryFactory(ServerFactory):
             self.device_class_is_permanent = devcls_is_permanent
             self.offline_timeout = offline_timeout
             self.equipment = equipment
+        def __str__(self):
+            return '{{device_id: "{0}", device_key: "{1}", network_name: "{2}", ... }}'.format(self.device_id, self.device_key, self.network_name)
     
     class _Notification(object):
         implements(INotification)
         def __init__(self, name, parameters):
             self.name = name
             self.parameters = parameters
+        def __str__(self):
+            return '{{name: "{0}", parameters: {1}}}'.format(self.name, self.parameters)
     
     class _DescrItem(object):
         def __init__(self, intent = 0, cls = None, info = None):
@@ -683,7 +691,7 @@ class BinaryFactory(ServerFactory):
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
         """
-        info = BinaryFactory._DeviceInfo(device_id = reg.device_id, \
+        info = BinaryFactory._DeviceInfo(device_id = str(reg.device_id), \
                                 device_key = reg.device_key, \
                                 device_name = reg.device_name, \
                                 device_status = 'Online', \
@@ -712,6 +720,7 @@ class BinaryFactory(ServerFactory):
         """
         Run all callbacks attached to notification_reveived deferred
         """
+        log.msg('BinaryFactory.handle_notification_command_result')
         if notification.command_id in self.pending_results :
             deferred = self.pending_results.pop(notification.command_id)
             deferred.callback(devicehive.CommandResult(notification.status, notification.result))
@@ -723,6 +732,7 @@ class BinaryFactory(ServerFactory):
             self.gateway.notification_received(notif.info, BinaryFactory._Notification(nname, params))
     
     def packet_received(self, packet):
+        log.msg('Data packet {0} has been received from device channel'.format(packet))
         if packet.intent == SystemIntents.Register.value :
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
@@ -736,6 +746,7 @@ class BinaryFactory(ServerFactory):
         """
         This handler is called when a new command comes from DeviceHive server
         """
+        log.msg('BinaryFactory.do_command')
         command_id = command['id']
         command_name = command['command']
         parameters = command['parameters']
@@ -750,6 +761,7 @@ class BinaryFactory(ServerFactory):
             finish_deferred.errback()
     
     def buildProtocol(self, addr):
+        log.msg('BinaryFactory.buildProtocol')
         self.protocol = BinaryProtocol(self) 
         return self.protocol
 
@@ -793,6 +805,6 @@ class SerialPortEndpoint(object):
     
     def listen(self, protoFactory):
         proto = protoFactory.buildProtocol(self._port_addr)
-        return defer.execute(serial.SerialPort, proto, self._port_addr.port, self._reactor, **self._port_addr.port_options)
+        return SerialPort(proto, self._port_addr.port, self._reactor, **self._port_addr.port_options)
 
 
