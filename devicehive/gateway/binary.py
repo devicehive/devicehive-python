@@ -40,13 +40,9 @@ class InvalidCRCError(PacketError):
         super(InvalidCRCError, self).__init__(msg)
 
 
-class SystemIntents(Values):
-    """
-    System defined intents
-    """
-    RequestRegistration = ValueConstant(0)
-    Register = ValueConstant(1)
-    NotifyCommandResult = ValueConstant(2)
+SYS_INTENT_REQUEST_REGISTRATION = 0
+SYS_INTENT_REGISTER = 1
+SYS_INTENT_NOTIFY_COMMAND_RESULT = 2
 
 
 PACKET_SIGNATURE         = 0xc5c3
@@ -183,7 +179,7 @@ class RegistrationRequestPacket(AbstractPacket):
     
     flags = property(fget = lambda self : 0)
     
-    intent = property(fget = lambda self : SystemIntents.RequestRegistration.value)
+    intent = property(fget = lambda self : SYS_INTENT_REQUEST_REGISTRATION)
     
     data = property(fget = lambda self : [])
 
@@ -733,10 +729,10 @@ class BinaryFactory(ServerFactory):
     
     def packet_received(self, packet):
         log.msg('Data packet {0} has been received from device channel'.format(packet))
-        if packet.intent == SystemIntents.Register.value :
+        if packet.intent == SYS_INTENT_REGISTER :
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
-        elif packet.intent == SystemIntents.NotifyCommandResult.value :
+        elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT :
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
             self.handle_notification_command_result(notifreq)
         else:

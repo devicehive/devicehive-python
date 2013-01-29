@@ -311,7 +311,7 @@ class BinaryFactoryTests(unittest.TestCase):
         rp.notifications = ( Notification(300, 'notification-1-name',  (Parameter(DATA_TYPE_WORD, 'word_param'), Parameter(DATA_TYPE_BYTE, 'byte_param'))), )
         rp.commands = (Command(301, 'command-1-name', (Parameter(DATA_TYPE_SWORD, 'sword_param'),)), )
         self.device_reg_payload = BinaryFormatter.serialize(rp)
-        self.device_reg_pkt = Packet(PACKET_SIGNATURE, 1, 0, SystemIntents.Register.value, self.device_reg_payload)
+        self.device_reg_pkt = Packet(PACKET_SIGNATURE, 1, 0, SYS_INTENT_REGISTER, self.device_reg_payload)
     
     def tearDown(self):
         del self.gateway
@@ -329,7 +329,7 @@ class BinaryFactoryTests(unittest.TestCase):
         pkt = Packet.from_binary(bindata)
         self.assertEquals(PACKET_SIGNATURE, pkt.signature)
         self.assertEquals(1, pkt.version)
-        self.assertEquals(SystemIntents.RequestRegistration.value, pkt.intent)
+        self.assertEquals(SYS_INTENT_REQUEST_REGISTRATION, pkt.intent)
         self.assertEquals(0, len(pkt.data))
     
     def test_registration(self):
