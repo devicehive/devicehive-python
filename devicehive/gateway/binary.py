@@ -488,13 +488,13 @@ class BinaryFormatter(object) :
         """
         Converts json object @value into BinarySerializable
         """
-        if not isinstance(value, dict) :
+        if not isinstance(json, dict) :
             raise TypeError('dict expected')
         
         members = {'__binary_struct__': []}
-        for prop_name in value :
-            prop = BinaryFormatter.deserialize_json_definition(value[prop_name])
-            members[property_name] = prop
+        for prop_name in json :
+            prop = BinaryFormatter.deserialize_json_definition(json[prop_name])
+            members[prop_name] = prop
             members['__binary_struct__'].append(prop)
         
         return type(BinaryFormatter.__class_counter.next(), (object,), members)

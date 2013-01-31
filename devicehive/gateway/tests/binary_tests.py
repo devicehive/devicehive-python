@@ -273,14 +273,50 @@ class BinaryFormatterTest(unittest.TestCase):
         self.assertEquals(u'state', obj.notifications[0].parameters[1].name)
         self.assertEquals(DATA_TYPE_BOOL, obj.notifications[0].parameters[1].type)
     
-    def test_deserialize_complex_obj(self):
+    def test_deserialize_complex_array(self) :
         payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"array_prop":["str"]}}]}'
         obj = BinaryFormatter.deserialize_register2(payload)
         self.assertEquals(300, obj.notifications[0].intent)
         # test array property
-        prop = obj.notifications[0].parameters[0] 
+        prop = obj.notifications[0].parameters[0]
         self.assertEquals(DATA_TYPE_ARRAY, prop.type)
         self.assertEquals(DATA_TYPE_STRING, prop.qualifier)
+    
+    def test_deserialize_complex_obj(self) :
+        payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"obj_prop":{"str_prop":"str"}}}]}'
+        obj = BinaryFormatter.deserialize_register2(payload)
+        self.assertEquals(300, obj.notifications[0].intent)
+        prop = obj.notifications[0].parameters[0]
+        self.assertEquals(u'obj_prop', prop.name)
+        self.assertEquals(DATA_TYPE_OBJECT, prop.type)
+        self.assertTrue(hasattr(prop.qualifier, 'str_prop'))
+        self.assertTrue(isinstance(prop.qualifier.str_prop, binary_property))
+        self.assertEquals(DATA_TYPE_STRING, prop.qualifier.str_prop.type)
+    
+    def test_deserialize_complex_array_obj(self):
+        payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"array_prop":[{"str_prop":"str"}]}}]}'
+        obj = BinaryFormatter.deserialize_register2(payload)
+        prop = obj.notifications[0].parameters[0]
+        self.assertEquals(u'array_prop', prop.name)
+        self.assertEquals(DATA_TYPE_ARRAY, prop.type)
+        self.assertFalse(prop.qualifier is None)
+        self.assertTrue(hasattr(prop.qualifier, 'str_prop'))
+        self.assertTrue(isinstance(prop.qualifier.str_prop, binary_property))
+        self.assertEquals(DATA_TYPE_STRING, prop.qualifier.str_prop.type)
+    
+    def test_deserialize_complex_array_array_obj_array(self) :
+        payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"array_prop":[[{"array_prop":["str"]}]]}}]}'
+        obj = BinaryFormatter.deserialize_register2(payload)
+        prop = obj.notifications[0].parameters[0]
+        self.assertEquals(u'array_prop', prop.name)
+        self.assertEquals(DATA_TYPE_ARRAY, prop.type)
+        self.assertTrue(isinstance(prop.qualifier, array_binary_property))
+        #
+        subarray = prop.qualifier
+        self.assertTrue(hasattr(subarray.qualifier, 'array_prop'))
+        self.assertEquals(DATA_TYPE_ARRAY, subarray.qualifier.array_prop.type)
+        self.assertEquals(DATA_TYPE_STRING, subarray.qualifier.array_prop.qualifier)
+
 
 class AutoClassFactoryTest(unittest.TestCase):
     def test_auto_class(self):
