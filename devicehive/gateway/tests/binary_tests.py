@@ -237,7 +237,50 @@ class BinaryFormatterTest(unittest.TestCase):
             self.assertTrue(False, 'Deserialization should raises an exception on attempt to deserialize invalid defined object')
         except BinaryDeserializationError:
             pass
-
+    
+    def test_deserialize_register2(self):
+        payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"DEVICE_KEY","name":"DEVICE_NAME","deviceClass":{"name":"DEVICE_CLASS_NAME","version":"DEVICE_CLASS_VERSION"},"equipment":[{"code":"LED_EQP_CODE","name":"LED_EQP_NAME","type":"LED_EQP_TYPE"},{"code":"BTN_EQP_CODE","name":"BTN_EQP_NAME","type":"BTN_EQP_TYPE"}],"commands":[{"intent":257,"name":"UpdateLedState","params":{"equipment":"str","state":"bool"}}],"notifications":[{"intent":256,"name":"equipment","params":{"equipment":"str","state":"bool"}}]}'
+        obj = BinaryFormatter.deserialize_register2(payload)
+        self.assertEquals(uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129'), obj.device_id)
+        self.assertEquals(u'DEVICE_KEY', obj.device_key)
+        self.assertEquals(u'DEVICE_NAME', obj.device_name)
+        self.assertEquals(u'DEVICE_CLASS_NAME', obj.device_class_name)
+        self.assertEquals(u'DEVICE_CLASS_VERSION', obj.device_class_version)
+        # equipment
+        self.assertEquals(2, len(obj.equipment))
+        self.assertEquals(u'LED_EQP_CODE', obj.equipment[0].code)
+        self.assertEquals(u'LED_EQP_NAME', obj.equipment[0].name)
+        self.assertEquals(u'LED_EQP_TYPE', obj.equipment[0].typename)
+        self.assertEquals(u'BTN_EQP_CODE', obj.equipment[1].code)
+        self.assertEquals(u'BTN_EQP_NAME', obj.equipment[1].name)
+        self.assertEquals(u'BTN_EQP_TYPE', obj.equipment[1].typename)
+        # command
+        self.assertEquals(1, len(obj.commands))
+        self.assertEquals(257, obj.commands[0].intent)
+        self.assertEquals(u'UpdateLedState', obj.commands[0].name)
+        self.assertEquals(2, len(obj.commands[0].parameters))
+        self.assertEquals(u'equipment', obj.commands[0].parameters[0].name)
+        self.assertEquals(DATA_TYPE_STRING, obj.commands[0].parameters[0].type)
+        self.assertEquals(u'state', obj.commands[0].parameters[1].name)
+        self.assertEquals(DATA_TYPE_BOOL, obj.commands[0].parameters[1].type)
+        # notifications
+        self.assertEquals(1, len(obj.notifications))
+        self.assertEquals(256, obj.notifications[0].intent)
+        self.assertEquals(u'equipment', obj.notifications[0].name)
+        self.assertEquals(2, len(obj.notifications[0].parameters))
+        self.assertEquals(u'equipment', obj.notifications[0].parameters[0].name)
+        self.assertEquals(DATA_TYPE_STRING, obj.notifications[0].parameters[0].type)
+        self.assertEquals(u'state', obj.notifications[0].parameters[1].name)
+        self.assertEquals(DATA_TYPE_BOOL, obj.notifications[0].parameters[1].type)
+    
+    def test_deserialize_complex_obj(self):
+        payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"array_prop":["str"]}}]}'
+        obj = BinaryFormatter.deserialize_register2(payload)
+        self.assertEquals(300, obj.notifications[0].intent)
+        # test array property
+        prop = obj.notifications[0].parameters[0] 
+        self.assertEquals(DATA_TYPE_ARRAY, prop.type)
+        self.assertEquals(DATA_TYPE_STRING, prop.qualifier)
 
 class AutoClassFactoryTest(unittest.TestCase):
     def test_auto_class(self):

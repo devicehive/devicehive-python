@@ -5,6 +5,8 @@ import struct
 import array
 import uuid
 import devicehive
+import json
+from collections import Iterable
 from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
 from twisted.internet import interfaces, defer
@@ -43,6 +45,7 @@ class InvalidCRCError(PacketError):
 SYS_INTENT_REQUEST_REGISTRATION = 0
 SYS_INTENT_REGISTER = 1
 SYS_INTENT_NOTIFY_COMMAND_RESULT = 2
+SYS_INTENT_REGISTER2 = 3
 
 
 PACKET_SIGNATURE         = 0xc5c3
@@ -78,6 +81,8 @@ DATA_TYPE_GUID   = 12
 DATA_TYPE_STRING = 13
 DATA_TYPE_BINARY = 14
 DATA_TYPE_ARRAY  = 15
+
+DATA_TYPE_OBJECT = 16
 
 
 class AbstractPacket(object):
@@ -272,7 +277,6 @@ class AbstractBinaryProperty(property):
         while True :
             yield '_property{0}'.format(i)
             i += 1
-    
     __prop_counter = __prop_counter()
     
     def __init__(self, type, fget = None, fset = None):
@@ -291,7 +295,8 @@ class AbstractBinaryProperty(property):
 
 class binary_property(AbstractBinaryProperty):
     """
-    Defines binary serializable property
+    Defines binary serializable property. If a user provides BinarySerializable type into @type parameter
+    then it would be serialized as a complex object or a structure.
     """
     def __init__(self, type, fget = None, fset = None):
         super(binary_property, self).__init__(type, fget, fset)
@@ -301,9 +306,18 @@ class array_binary_property(AbstractBinaryProperty):
     """
     Defines binary serializable property of Array type
     """
-    def __init__(self, element_type, fget = None, fset = None):
+    def __init__(self, qualifier, fget = None, fset = None):
         super(array_binary_property, self).__init__(DATA_TYPE_ARRAY, fget, fset)
-        self.element_type = element_type
+        self.qualifier = qualifier
+
+
+class object_binary_property(AbstractBinaryProperty):
+    """
+    Defines complex object property
+    """
+    def __init__(self, qualifier, fget = None, fset = None):
+        super(object_binary_property, self).__init__(DATA_TYPE_OBJECT, fget, fset)
+        self.qualifier = qualifier
 
 
 class BinaryFormatterError(Exception):
@@ -337,6 +351,28 @@ class BinaryFormatter(object) :
                           DATA_TYPE_SINGLE: ('f', 4),
                           DATA_TYPE_DOUBLE: ('d', 8),
                           DATA_TYPE_BOOL: ('?', 1)}
+    
+    __json_type_map__ = {'bool': DATA_TYPE_BOOL,
+                         'u8': DATA_TYPE_BYTE, 'uint8': DATA_TYPE_BYTE,
+                         'i8': DATA_TYPE_SBYTE, 'int8': DATA_TYPE_SBYTE,
+                         'u16': DATA_TYPE_WORD, 'uint16': DATA_TYPE_WORD,
+                         'i16': DATA_TYPE_SWORD, 'int16': DATA_TYPE_SWORD,
+                         'u32': DATA_TYPE_DWORD, 'uint32': DATA_TYPE_DWORD,
+                         'i32': DATA_TYPE_SDWORD, 'int32': DATA_TYPE_SDWORD,
+                         'u64': DATA_TYPE_QWORD, 'uint64': DATA_TYPE_QWORD,
+                         'i64': DATA_TYPE_SQWORD, 'int64': DATA_TYPE_SQWORD,
+                         'f': DATA_TYPE_SINGLE, 'single': DATA_TYPE_SINGLE,
+                         'ff': DATA_TYPE_DOUBLE, 'double': DATA_TYPE_DOUBLE,
+                         'uuid': DATA_TYPE_GUID, 'guid': DATA_TYPE_GUID,
+                         's': DATA_TYPE_STRING, 'str': DATA_TYPE_STRING, 'string': DATA_TYPE_STRING,
+                         'b': DATA_TYPE_BINARY, 'bin': DATA_TYPE_BINARY, 'binary': DATA_TYPE_BINARY}
+    
+    def __class_counter():
+        i = 0
+        while True :
+            yield 'AutoClass{0}'.format(i)
+            i += 1
+    __class_counter = __class_counter()
     
     @staticmethod
     def serialize(obj) :
@@ -430,7 +466,7 @@ class BinaryFormatter(object) :
                         offset += 2
                         value = []
                         for i in range(0, arrlen) :
-                            subobj, offset = _deserialize(data, prop.element_type, offset)
+                            subobj, offset = _deserialize(data, prop.qualifier, offset)
                             value.append(subobj)
                         prop.__set__(obj, list(value))
                     else :
@@ -442,6 +478,142 @@ class BinaryFormatter(object) :
         data = array.array('B', data)
         obj, offset = _deserialize(data, cls)
         return obj
+    
+    @staticmethod
+    def deserialize_json_basic_definition(json) :
+        return BinaryFormatter.__json_type_map__[json]
+    
+    @staticmethod
+    def deserialize_json_object_definition(json) :
+        """
+        Converts json object @value into BinarySerializable
+        """
+        if not isinstance(value, dict) :
+            raise TypeError('dict expected')
+        
+        members = {'__binary_struct__': []}
+        for prop_name in value :
+            prop = BinaryFormatter.deserialize_json_definition(value[prop_name])
+            members[property_name] = prop
+            members['__binary_struct__'].append(prop)
+        
+        return type(BinaryFormatter.__class_counter.next(), (object,), members)
+    
+    @staticmethod
+    def deserialize_json_array_definition(json):
+        if not (isinstance(json, list) or isinstance(json, tuple)) or len(json) != 1 :
+            raise TypeError('List or tuple type expected. Got {0}.'.format(type(json)))
+        etype = json[0]
+        if isinstance(etype, dict) :
+            return BinaryFormatter.deserialize_json_object_definition(etype)
+        elif (isinstance(etype, tuple) or isinstance(etype, list)) and len(etype) == 1 :
+            return array_binary_property(BinaryFormatter.deserialize_json_array_definition(etype))
+        elif etype in BinaryFormatter.__json_type_map__ :
+            return BinaryFormatter.__json_type_map__[etype]
+        else :
+            raise BinaryDeserializationError('Unsupported json array element {0}.'.format(etype))
+    
+    @staticmethod
+    def deserialize_json_definition(json) :
+        """
+        Method returns binary_property, object_binary_property or array_binary_property
+        """
+        if isinstance(json, dict) :
+            return object_binary_property( BinaryFormatter.deserialize_json_object_definition(json) )
+        elif isinstance(json, list) or isinstance(json, tuple) :
+            return array_binary_property( BinaryFormatter.deserialize_json_array_definition(json) )
+        elif json in BinaryFormatter.__json_type_map__ :
+            return binary_property( BinaryFormatter.deserialize_json_basic_definition(json) )
+        else :
+            raise BinaryDeserializationError('Unsupported json definition {0}.'.format(json))
+    
+    @staticmethod
+    def deserialize_json_parameters(params) :
+        """
+        Method converts list of json parameter definitions into BinarySerializable structure
+        """
+        res = []
+        for param_name in params :
+            param_type = params[param_name]
+            #
+            param = Parameter()
+            param.name = param_name
+            # Determine parameter type
+            if isinstance(param_type, dict) :
+                param.type = DATA_TYPE_OBJECT
+            elif isinstance(param_type, list) or isinstance(param_type, tuple) :
+                param.type = DATA_TYPE_ARRAY
+            elif param_type in BinaryFormatter.__json_type_map__ :
+                param.type = BinaryFormatter.__json_type_map__[param_type]
+            else :
+                raise BinaryDeserializationError('JSON parameter {0} has unsupported type {1}.'.format(param_name, param_type))
+            # Apply parameter type qualifier if neccessary. For basic type qualifier would be equal to None
+            if param.type == DATA_TYPE_OBJECT :
+                param.qualifier = BinaryFormatter.deserialize_json_object_definition(param_type)
+            elif param.type == DATA_TYPE_ARRAY :
+                param.qualifier = BinaryFormatter.deserialize_json_array_definition(param_type)
+            else :
+                param.qualifier = None
+            res.append(param)
+        return res
+    
+    @staticmethod
+    def deserialize_register2(str_payload):
+        """
+        Method is dedicated to register2 payload. This code should not be used anywhere else.
+        """
+        def _deserialize_register2(val) :
+            obj = RegistrationPayload()
+            if 'id' in val :
+                obj.device_id = uuid.UUID(val['id'])
+            if 'key' in val :
+                obj.device_key = val['key']
+            if 'name' in val :
+                obj.device_name = val['name']
+            if 'deviceClass' in val and isinstance(val['deviceClass'], dict) :
+                if 'name' in val['deviceClass'] :
+                    obj.device_class_name = val['deviceClass']['name']
+                if 'version' in val['deviceClass'] :
+                    obj.device_class_version = val['deviceClass']['version']
+            if 'equipment' in val and isinstance(val['equipment'], Iterable) :
+                eqlst = []
+                for eqval in val['equipment'] :
+                    eqobj = Equipment()
+                    if 'name' in eqval :
+                        eqobj.name = eqval['name']
+                    if 'code' in eqval :
+                        eqobj.code = eqval['code']
+                    if 'type' in eqval :
+                        eqobj.typename = eqval['type']
+                    eqlst.append(eqobj)
+                obj.equipment = eqlst
+            if 'commands' in val and isinstance(val['commands'], Iterable) :
+                cmdlst = []
+                for cmdval in val['commands'] :
+                    cmdobj = Command()
+                    if 'intent' in cmdval :
+                        cmdobj.intent = int(cmdval['intent'])
+                    if 'name' in cmdval :
+                        cmdobj.name = cmdval['name']
+                    if 'params' in cmdval and isinstance(cmdval['params'], dict) :
+                        cmdobj.parameters = BinaryFormatter.deserialize_json_parameters(cmdval['params'])
+                    cmdlst.append(cmdobj)
+                obj.commands = cmdlst
+            if 'notifications' in val and isinstance(val['notifications'], Iterable) :
+                noflst = []
+                for nofval in val['notifications'] :
+                    nofobj = Notification()
+                    if 'intent' in nofval :
+                        nofobj.intent = int(nofval['intent'])
+                    if 'name' in nofval :
+                        nofobj.name = nofval['name']
+                    if 'params' in nofval and isinstance(nofval['params'], dict) :
+                        nofobj.parameters = BinaryFormatter.deserialize_json_parameters(nofval['params'])
+                    noflst.append(nofobj)
+                obj.notifications = noflst
+            return obj
+        val = json.loads(str_payload)
+        return _deserialize_register2(val)
 
 
 def define_accessors(field):
@@ -452,16 +624,34 @@ def define_accessors(field):
     return (fget, fset)
 
 
-class Parameter(object):
-    def __init__(self, type = DATA_TYPE_NULL, name = ''):
+class Parameter(object) :
+    def __init__(self, type = DATA_TYPE_NULL, name = '') :
         self._type = type
         self._name = name
+        self._qualifier = None
+    
+    def qualifier() :
+        """
+        Qualifier is only applieble to complex types (ARRAY and OBJECT)
+        """
+        def fget(self) :
+            return self._qualifier
+        def fset(self, value) :
+            self._qualifier = value
+        return locals()
+    qualifier = property(**qualifier())
     
     type = binary_property(DATA_TYPE_BYTE, *define_accessors('_type'))
     
     name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
     __binary_struct__ = (type, name)
+    
+    def __str__(self) :
+        if self._type == DATA_TYPE_ARRAY or self._type == DATA_TYPE_OBJECT :
+            return '<{0}, name: {1}, type: {2}, qualifier: {3}>'.format(self.__class__.__name__, self._name, self._type, self._qualifier)
+        else :
+            return '<{0}, name: {1}, type: {2}>'.format(self.__class__.__name__, self._name, self._type)
 
 
 class Equipment(object):
@@ -602,6 +792,7 @@ class BinaryProtocol(Protocol):
 class AutoClassFactory(object):
     """
     Class is used to generate binary serializable classes
+    TODO: get rid of this class
     """
     def _generate_binary_property(self, paramtype, fieldname):
         def getter(self):
@@ -611,7 +802,7 @@ class AutoClassFactory(object):
         return binary_property(paramtype, fget = getter, fset = setter)
     
     def generate(self, command):
-        members = dict({'__binary_struct__': list()})
+        members = {'__binary_struct__': []}
         for param in command.parameters :
             fieldname = '_{0}'.format(param.name)
             paramtype = param.type
@@ -637,7 +828,7 @@ def binary_object_update(obj, value):
         if isinstance(prop[0], array_binary_property) :
             lst = []
             for i in prop[1] :
-                element = prop[0].element_type()
+                element = prop[0].qualifier()
                 binary_object_update(element, i)
                 lst.append(element)
             prop[0].__set__(obj, lst)
@@ -765,6 +956,8 @@ class BinaryFactory(ServerFactory):
         if packet.intent == SYS_INTENT_REGISTER :
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
+        elif packet.intent == SYS_INTENT_REGISTER2:
+            pass
         elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT :
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
             self.handle_notification_command_result(notifreq)
