@@ -616,6 +616,47 @@ class BinaryFormatter(object) :
         return _deserialize_register2(val)
 
 
+class BinaryConstructable(object):
+    """
+    This class states that subclass contains some metadata which could be used to produce
+    binary data descriptor.
+    """
+    
+    def __descriptor_counter() :
+        i = 0
+        while True :
+            yield 'Descriptor{0}Class'.format(i)
+            i += 1
+    __descriptor_counter = __descriptor_counter()
+    
+    def descriptor_data(self):
+        """
+        Method should be overridden in a subclass.
+        """
+        raise NotImplementedError()
+    
+    def descriptor(self):
+        data = self.descriptor_data()
+        
+        if not (isinstance(data, tuple) or isinstance(data, list)) :
+            raise TypeError('Method descriptor_data should returns a TUPLE or a LIST')
+        
+        members = {'__binary_struct__': []}
+        for field in data :
+            fieldname = field.name
+            fieldtype = field.type
+            prop = None
+            if fieldtype == DATA_TYPE_ARRAY :
+                prop = array_binary_property(field.qualifier)
+            elif fieldtype == DATA_TYPE_OBJECT :
+                prop = object_binary_property(field.qualifier)
+            else :
+                prop = binary_property(fieldtype)
+            members[fieldname] = prop
+            members['__binary_struct__'].append(prop)
+        return type(BinaryConstructable.__descriptor_counter.next(), (object,), members)
+
+
 def define_accessors(field):
     def fget(self):
         return getattr(self, field)
@@ -632,7 +673,8 @@ class Parameter(object) :
     
     def qualifier() :
         """
-        Qualifier is only applieble to complex types (ARRAY and OBJECT)
+        Qualifier holds complex data structure description. It is not used directly during serialization rather
+        it is used during auto-class-generation.
         """
         def fget(self) :
             return self._qualifier
@@ -646,12 +688,6 @@ class Parameter(object) :
     name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
     __binary_struct__ = (type, name)
-    
-    def __str__(self) :
-        if self._type == DATA_TYPE_ARRAY or self._type == DATA_TYPE_OBJECT :
-            return '<{0}, name: {1}, type: {2}, qualifier: {3}>'.format(self.__class__.__name__, self._name, self._type, self._qualifier)
-        else :
-            return '<{0}, name: {1}, type: {2}>'.format(self.__class__.__name__, self._name, self._type)
 
 
 class Equipment(object):
@@ -682,6 +718,9 @@ class Notification(object):
     parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
+    
+    def descriptor_data(self) :
+        return self._parameters
 
 
 class Command(object):
@@ -697,6 +736,9 @@ class Command(object):
     parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
+    
+    def descriptor_data(self) :
+        return self._parameters
 
 
 class RegistrationPayload(object):
