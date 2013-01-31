@@ -365,6 +365,69 @@ class DescriptorTest(unittest.TestCase):
         self.assertEquals(456, obj.arr_prop[1].sword_prop)
 
 
+class ToDictionaryTest(unittest.TestCase):
+    def setUp(self) :
+        class _Test(ToDictionary) :
+            class _SubTyp(ToDictionary) :
+                i8_prop = binary_property(DATA_TYPE_SBYTE)
+                __binary_struct__ = (i8_prop,)
+            u8_prop  = binary_property(DATA_TYPE_BYTE)
+            obj_prop = object_binary_property(_SubTyp)
+            ab_prop  = array_binary_property(DATA_TYPE_WORD)
+            ao_prop  = array_binary_property(_SubTyp)
+            aa_prop  = array_binary_property(array_binary_property(DATA_TYPE_BOOL))
+            __binary_struct__ = (u8_prop, obj_prop, ab_prop, ao_prop, aa_prop)
+        #
+        self.obj = _Test()
+        self.obj = _Test()
+        self.obj.u8_prop = 125
+        self.obj.obj_prop = _Test._SubTyp()
+        self.obj.obj_prop.i8_prop = 100
+        self.obj.ab_prop = (1, 2, 3, 4)
+        #
+        self.obj.ao_prop = (_Test._SubTyp(), _Test._SubTyp())
+        self.obj.ao_prop[0].i8_prop = 1
+        self.obj.ao_prop[1].i8_prop = 2
+        #
+        self.obj.aa_prop = ((True, False), (False, True))
+    
+    def test_basic_property(self) :
+        res = self.obj.to_dict()
+        self.assertTrue('u8_prop' in res)
+        self.assertEquals(125, res['u8_prop'])
+    
+    def test_object_property(self):
+        res = self.obj.to_dict()
+        self.assertTrue('obj_prop' in res)
+        self.assertTrue(isinstance(res['obj_prop'], dict))
+        self.assertTrue('i8_prop' in res['obj_prop'])
+        self.assertEquals(100, res['obj_prop']['i8_prop'])
+    
+    def test_array_of_basics_property(self):
+        res = self.obj.to_dict()
+        self.assertTrue('ab_prop' in res)
+        self.assertTrue(isinstance(res['ab_prop'], list))
+        self.assertEquals(4, len(res['ab_prop']))
+        self.assertEquals([1, 2, 3, 4], res['ab_prop'])
+    
+    def test_array_of_objects_property(self):
+        res = self.obj.to_dict()
+        self.assertTrue('ao_prop' in res)
+        self.assertTrue(isinstance(res['ao_prop'], list))
+        self.assertEquals(2, len(res['ao_prop']))
+        self.assertTrue( all([isinstance(i, dict) for i in res['ao_prop']]) )
+        self.assertEquals(1, res['ao_prop'][0]['i8_prop'])
+        self.assertEquals(2, res['ao_prop'][1]['i8_prop'])
+    
+    def test_array_of_array_of_basics_property(self):
+        res = self.obj.to_dict()
+        self.assertTrue('aa_prop' in res)
+        self.assertTrue(isinstance(res['aa_prop'], list))
+        self.assertTrue( all([isinstance(i, list) for i in res['aa_prop']]) )
+        self.assertEquals(2, len(res['aa_prop']))
+        self.assertEquals(2, len(res['aa_prop'][0]))
+
+
 class BinaryFactoryTests(unittest.TestCase):
     class _GatewayMock(object):
         reg_has_been_received = False

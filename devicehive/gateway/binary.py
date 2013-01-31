@@ -270,7 +270,8 @@ class AbstractBinaryProperty(property):
                          DATA_TYPE_GUID: uuid.uuid1(),
                          DATA_TYPE_STRING: '',
                          DATA_TYPE_BINARY: bytearray(),
-                         DATA_TYPE_ARRAY: []}
+                         DATA_TYPE_ARRAY: [],
+                         DATA_TYPE_OBJECT: None}
     
     def __prop_counter():
         i = 0
@@ -850,7 +851,8 @@ class ToDictionary(object):
                         lst.append(o)
                 elif isinstance(prop.qualifier, array_binary_property) :
                     for o in prop.__get__(obj) :
-                        lst.append(_array_to_dict(o))
+                        v = _array_to_dict(o, prop.qualifier)
+                        lst.append(v)
                 else :
                     for o in prop.__get__(obj) :
                         lst.append(_to_dict(o))
