@@ -705,11 +705,32 @@ class Equipment(object):
     __binary_struct__ = (name, code, typename)
 
 
-class Notification(object):
+class Notification(BinaryConstructable):
     def __init__(self, intent = 0, name = '', parameters = list()):
         self._intent = intent
         self._name = name
         self._parameters = parameters
+    
+    def descriptor_data(self) :
+        return self._parameters
+    
+    intent = binary_property(DATA_TYPE_WORD, *define_accessors('_intent'))
+    
+    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
+    
+    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
+    
+    __binary_struct__ = (intent, name, parameters)
+
+
+class Command(BinaryConstructable):
+    def __init__(self, intent = 0, name = '', parameters = list()):
+        self._intent = intent
+        self._name = name
+        self._parameters = parameters
+    
+    def descriptor_data(self) :
+        return self._parameters
     
     intent = binary_property(DATA_TYPE_WORD, *define_accessors('_intent'))
     
@@ -719,26 +740,6 @@ class Notification(object):
     
     __binary_struct__ = (intent, name, parameters)
     
-    def descriptor_data(self) :
-        return self._parameters
-
-
-class Command(object):
-    def __init__(self, intent = 0, name = '', parameters = list()):
-        self._intent = intent
-        self._name = name
-        self._parameters = parameters
-    
-    intent = binary_property(DATA_TYPE_WORD, *define_accessors('_intent'))
-    
-    name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
-    
-    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
-    
-    __binary_struct__ = (intent, name, parameters)
-    
-    def descriptor_data(self) :
-        return self._parameters
 
 
 class RegistrationPayload(object):
@@ -829,32 +830,6 @@ class BinaryProtocol(Protocol):
         """
         pkt = RegistrationRequestPacket()
         self.transport.write(pkt.to_binary())
-
-
-class AutoClassFactory(object):
-    """
-    Class is used to generate binary serializable classes
-    TODO: get rid of this class
-    """
-    def _generate_binary_property(self, paramtype, fieldname):
-        def getter(self):
-            return getattr(self, fieldname)
-        def setter(self, value):
-            setattr(self, fieldname, value)
-        return binary_property(paramtype, fget = getter, fset = setter)
-    
-    def generate(self, command):
-        members = {'__binary_struct__': []}
-        for param in command.parameters :
-            fieldname = '_{0}'.format(param.name)
-            paramtype = param.type
-            if paramtype == DATA_TYPE_ARRAY :
-                raise NotImplementedError('Array properties in automatic classes are not supported.')
-            else :
-                members[fieldname]  = None
-                members[param.name] = prop = self._generate_binary_property(param.type, fieldname)
-                members['__binary_struct__'].append(prop)
-        return type('{0}Class'.format(command.name), (object,), members)
 
 
 def binary_object_update(obj, value):
@@ -960,22 +935,17 @@ class BinaryFactory(ServerFactory):
                                 devcls_name = reg.device_class_name, \
                                 devcls_version = reg.device_class_version, \
                                 equipment = [devicehive.Equipment(e.name, e.code, e.typename) for e in reg.equipment])
-        #
-        autoclass_factory = AutoClassFactory()
-        for command in reg.commands:
-            if not command.name in self.command_descriptors :
-                cls = autoclass_factory.generate(command)
-                self.command_descriptors[command.name] = BinaryFactory._DescrItem(command.intent, cls, info)
-            else :
-                self.command_descriptors[command.name].intent = command.intent
-                self.command_descriptors[command.name].info = command.info
-        for notification in reg.notifications :
-            if not notification.name in self.notification_descriptors :
-                cls = autoclass_factory.generate(notification)
-                self.notification_descriptors[notification.name] = BinaryFactory._DescrItem(notification.intent, cls, info)
-            else :
-                self.notification_descriptors[notification.name].intent = notification.intent
-                self.notification_descriptors[notification.name].info = info
+        def fill_descriptors(objs, out, info) :
+            for obj in objs :
+                objname = obj.name
+                if not objname in out :
+                    cls = obj.descriptor()
+                    out[objname] = BinaryFactory._DescrItem(obj.intent, cls, info)
+                else :
+                    out[objname].intent = obj.intent
+                    out[objname].info   = obj.info
+        fill_descriptors(reg.commands, self.command_descriptors, info)
+        fill_descriptors(reg.notifications, self.notification_descriptors, info)
         self.gateway.registration_received(info)
     
     def handle_notification_command_result(self, notification):

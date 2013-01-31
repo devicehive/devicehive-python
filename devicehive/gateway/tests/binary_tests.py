@@ -19,9 +19,6 @@ finally :
     __name__ = orig_name
 
 
-__all__ = ['PacketTests', 'BinaryPacketBufferTests', 'BinaryFormatterTest', 'AutoClassFactoryTest', 'BinaryFactoryTests']
-
-
 class PacketTests(unittest.TestCase):
     def setUp(self):
         self.pkt = Packet(PACKET_SIGNATURE, 2, 3, 4, bytearray('123'))
@@ -318,13 +315,12 @@ class BinaryFormatterTest(unittest.TestCase):
         self.assertEquals(DATA_TYPE_STRING, subarray.qualifier.array_prop.qualifier)
 
 
-class AutoClassFactoryTest(unittest.TestCase):
-    def test_auto_class(self):
+class DescriptorTest(unittest.TestCase):
+    def test_descriptor(self):
         params = (Parameter(DATA_TYPE_WORD, 'property1'), Parameter(DATA_TYPE_BYTE, 'property2'))
         cmd = Command(intent = 100, name = 'CommandName', parameters = params)
         #
-        factory = AutoClassFactory()
-        cls = factory.generate(cmd)
+        cls = cmd.descriptor()
         self.assertTrue(hasattr(cls, 'property1'))
         self.assertTrue(isinstance(cls.property1, AbstractBinaryProperty))
         self.assertTrue(hasattr(cls, 'property2'))
