@@ -832,6 +832,49 @@ class BinaryProtocol(Protocol):
         self.transport.write(pkt.to_binary())
 
 
+class ToDictionary(object):
+    """
+    Converts binary serializable class into dictionary
+    """
+    
+    __simple_types__ = (DATA_TYPE_NULL, DATA_TYPE_BYTE, DATA_TYPE_WORD, DATA_TYPE_DWORD, DATA_TYPE_QWORD, DATA_TYPE_SBYTE,
+                        DATA_TYPE_SWORD, DATA_TYPE_SDWORD, DATA_TYPE_SQWORD, DATA_TYPE_SINGLE, DATA_TYPE_DOUBLE,
+                        DATA_TYPE_BOOL, DATA_TYPE_GUID, DATA_TYPE_STRING, DATA_TYPE_BINARY)
+    
+    def to_dict(self) :
+        def _to_dict(obj) :
+            def _array_to_dict(obj, prop) :
+                lst = []
+                if any([prop.qualifier == s for s in ToDictionary.__simple_types__]) :
+                    for o in prop.__get__(obj) :
+                        lst.append(o)
+                elif isinstance(prop.qualifier, array_binary_property) :
+                    for o in prop.__get__(obj) :
+                        lst.append(_array_to_dict(o))
+                else :
+                    for o in prop.__get__(obj) :
+                        lst.append(_to_dict(o))
+                return lst
+            props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
+                                                    if isinstance(prop[0], AbstractBinaryProperty) and
+                                                    prop[0] in obj.__binary_struct__]
+            res = {}
+            for i in props :
+                prop, propname = i
+                if isinstance(prop, object_binary_property) :
+                    res[propname] = _to_dict(prop.__get__(obj))
+                elif isinstance(prop, array_binary_property) :
+                    if prop.qualifier != DATA_TYPE_NULL :
+                        res[propname] = _array_to_dict(obj, prop)
+                    pass
+                elif isinstance(prop, binary_property) :
+                    res[propname] = prop.__get__(obj)
+                else :
+                    raise TypeError('Upsupported type.')
+            return res
+        return _to_dict(self)
+
+
 def binary_object_update(obj, value):
     """
     Applies dictionary values to corresponding object properties.
