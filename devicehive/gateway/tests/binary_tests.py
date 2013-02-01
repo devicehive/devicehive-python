@@ -590,7 +590,28 @@ class AbstractBinaryPropertyTests(unittest.TestCase):
         self.assertEquals(13, t.prop2)
 
 
+
+def test_complex_object() :
+    class _Tmp(object):
+        class _SubTmp(object) :
+            sub_byte_property = binary_property(DATA_TYPE_BYTE)
+            __binary_struct__ = (sub_byte_property,)
+        byte_property = binary_property(DATA_TYPE_BYTE)
+        obj_property = object_binary_property(_SubTmp)
+        a1_property = array_binary_property(ArrayQualifier(DATA_TYPE_BYTE))
+        __binary_struct__ = (byte_property, obj_property, a1_property)
+    # initialize class properties
+    t = _Tmp()
+    t.byte_property = 125
+    t.obj_property = _Tmp._SubTmp()
+    t.obj_property.sub_byte_property = 100
+    t.a1_property = (1, 2, 3)
+    # serialize into binary form and test
+    bin = BinaryFormatter.serialize(t)
+    self.assertEquals(bytearray([125, 100, 0x03, 0x00, 0x01, 0x02, 0x03]), bin)
+
 if __name__ == '__main__':
-    unittest.main()
+    test_complex_object()
+    # unittest.main()
 
 

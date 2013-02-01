@@ -417,53 +417,79 @@ class BinaryFormatter(object) :
     __class_counter = __class_counter()
     
     @staticmethod
-    def serialize(obj) :
-        """
-        Serializes python object into binary form
-        
-        @param obj may be a python object or an array (list or tuple)
-        """
+    def serialize_scalar(type, value):
         result = bytearray()
-        if isinstance(obj, list) or isinstance(obj, tuple) :
-            array_len = len(obj)
-            result.extend(struct.pack('<H', array_len))
-            for element in obj :
-                result.extend(BinaryFormatter.serialize(element))
-        elif hasattr(obj, '__binary_struct__') :
-            for prop in obj.__binary_struct__ :
-                if not isinstance(prop, AbstractBinaryProperty) :
-                    raise BinarySerializationError('property {0} should be of AbstractBinaryProperty type'.format(prop))
-                if prop.type == DATA_TYPE_NULL :
-                    pass
-                elif prop.type in BinaryFormatter.__basic_type_map__ :
-                    packstr = BinaryFormatter.__basic_type_map__[prop.type][0]
-                    propval = prop.__get__(obj)
-                    result.extend(struct.pack(packstr, propval))
-                elif prop.type == DATA_TYPE_GUID :
-                    guid = prop.__get__(obj)
-                    if isinstance(guid, uuid.UUID) :
-                        guid = guid.bytes
-                    elif len(guid) != 16 :
-                        raise BinarySerializationError('guid property should of uuid.UUID type or be an array of 16 elements')
-                    result.extend(guid)
-                elif prop.type == DATA_TYPE_STRING :
-                    str = prop.__get__(obj)
-                    bstr = array.array('B', str)
-                    bstr_len = len(bstr)
-                    result.extend(struct.pack('<H', bstr_len))
-                    result.extend(bstr)
-                elif prop.type == DATA_TYPE_BINARY :
-                    str = prop.__get__(obj)
-                    str_len = len(str)
-                    result.extend(struct.pack('<H', str_len))
-                    result.extend(str)
-                elif prop.type == DATA_TYPE_ARRAY :
-                    result.extend(BinaryFormatter.serialize(prop.__get__(obj)))
-                else :
-                    BinarySerializationError('unsupported property type {0}({1})'.format( type(prop.type), prop.type))
+        if type == DATA_TYPE_NULL :
+            pass
+        elif type in BinaryFormatter.__basic_type_map__ :
+            packstr = BinaryFormatter.__basic_type_map__[type][0]
+            result.extend(struct.pack(packstr, value))
+        elif type == DATA_TYPE_GUID :
+            if isinstance(value, uuid.UUID) :
+                value = value.bytes
+            elif len(value) != 16 :
+                raise BinarySerializationError('guid property should of uuid.UUID type or be an array of 16 elements')
+            result.extend(value)
+        elif type == DATA_TYPE_STRING :
+            bstr = array.array('B', value)
+            bstr_len = len(bstr)
+            result.extend(struct.pack('<H', bstr_len))
+            result.extend(bstr)
+        elif type == DATA_TYPE_BINARY :
+            str_len = len(value)
+            result.extend(struct.pack('<H', str_len))
+            result.extend(value)
         else :
-            raise BinarySerializationError('unsupported type {0}.'.format(type(obj)))
+            BinarySerializationError('unsupported property basic type {0} <{1} = {2}>'.format(type, type(value), value))
         return result
+    
+    @staticmethod
+    def serialize_array(array_qualifier, value):
+        result = bytearray()
+        result.extend(struct.pack('<H', len(value)))
+        if array_qualifier.is_basic() :
+            for i in value :
+                result.extend(array_qualifier.data_type, BinaryFormatter.serialize_scalar(i))
+        elif array_qualifier.is_array() :
+            sub_array_qualifier = array_qualifier.data_type
+            for a in value :
+                result.extend(BinaryFormatter.serialize_array(sub_array_qualifier, a.array.__get__(a)))
+        else :
+            for o in value :
+                result.extend(BinaryFormatter.serialize_object(o))
+        return result
+    
+    @staticmethod
+    def serialize_object(obj) :
+        if not hasattr(obj, '__binary_struct__') :
+            raise BinarySerializationError('object {0} does not have conform to __binary_struct__ protocol'.format(obj))
+        result = bytearray()
+        for prop in obj.__binary_struct__ :
+            if isinstance(prop, binary_property) :
+                result.extend(BinaryFormatter.serialize_scalar(prop.type, prop.__get__(obj)))
+            if isinstance(prop, object_binary_property) :
+                result.extend(BinaryFormatter.serialize(prop.__get__(obj)))
+            elif isinstance(prop, array_binary_property) :
+                result.extend(BinaryFormatter.serialize_array(prop.qualifier, prop.__get__(obj)))
+            else :
+                raise BinarySerializationError('unsupported property type {0}'.format(type(prop)))
+        return result
+    
+    @staticmethod
+    def serialize(value) :
+        """
+        Serializes object, array or scalar type into binary form.
+        Is it much better to call concrete serialize_* method directly rather call this one.
+        """
+        if isinstance(value, list) or isinstance(value, tuple) :
+            result = bytearray()
+            for i in value :
+                result.extend(BinaryFormatter.serialize(i))
+            return result
+        elif hasattr(value, '__binary_struct__') :
+            return BinaryFormatter.serialize_object(value)
+        else :
+            return BinaryFormatter.serialize_scalar(DATA_TYPE_STRING, str(value))
     
     @staticmethod
     def deserialize(data, cls):
