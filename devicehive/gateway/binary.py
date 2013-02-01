@@ -941,22 +941,6 @@ def binary_object_update(obj, value):
     return obj
 
 
-def binary_object_to_dict(obj):
-    props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
-                                            if isinstance(prop[0], AbstractBinaryProperty) and
-                                            prop[0] in obj.__binary_struct__]
-    result = {}
-    for prop in props :
-        if isinstance(prop[0], array_binary_property) :
-            lst = []
-            for o in prop[0].__get__(obj) :
-                lst.append(binary_object_to_dict(o))
-            result[prop[1]] = lst
-        else :
-            result[prop[1]] = prop[0].__get__(obj)
-    return result
-
-
 class BinaryFactory(ServerFactory):
     class _DeviceInfo(object):
         implements(IDeviceInfo)
@@ -1047,7 +1031,7 @@ class BinaryFactory(ServerFactory):
     def handle_pass_notification(self, pkt):
         for (notif,nname) in [(self.notification_descriptors[nname], nname) for nname in self.notification_descriptors if self.notification_descriptors[nname].intent == pkt.intent] :
             obj = BinaryFormatter.deserialize(pkt.data, notif.cls)
-            params = binary_object_to_dict(obj)
+            params = obj.to_dict()
             self.gateway.notification_received(notif.info, BinaryFactory._Notification(nname, params))
     
     def packet_received(self, packet):
