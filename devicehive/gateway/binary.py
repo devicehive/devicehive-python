@@ -703,6 +703,48 @@ class ToDictionary(object):
         return _to_dict(self)
 
 
+class Updateable(object):
+    """
+    Updates binary serializable object from supplied json dictionary.
+    """
+    
+    @staticmethod
+    def update_array (array_qualifier, value) :
+        if array_qualifier.is_basic() :
+            return list(value)
+        elif array_qualifier.is_array() :
+            lst = []
+            subqualifier = array_qualifier.data_type
+            for i in value :
+                lst.append(ArrayContainer(subqualifier, Updateable.update_array(subqualifier, i)))
+            return lst
+        elif array_qualifier.is_object() :
+            lst = []
+            for i in value :
+                o = array_qualifier.data_type()
+                Updateable.update_object(o, i)
+                lst.append(o)
+            return lst
+    
+    @staticmethod
+    def update_object(obj, value) :
+        cls = obj.__class__
+        # iterate over AbstractBinaryProperties which names are present in value dictionary
+        for prop, pname in [x for x in [(getattr(cls, pname), pname) for pname in dir(cls) if value.has_key(pname)] if isinstance(x[0], AbstractBinaryProperty) and x[0] in cls.__binary_struct__] :
+            if prop.type == DATA_TYPE_OBJECT :
+                o = prop.qualifier()
+                Updateable.update_object(o, value[pname])
+                prop.__set__(obj, o)
+            elif prop.type == DATA_TYPE_ARRAY :
+                prop.__set__(obj, Updateable.update_array(prop.qualifier, value[pname]))
+            else :
+                prop.__set__(obj, value[pname])
+        pass
+    
+    def update(self, value) :
+        Updateable.update_object(self, value)
+
+
 class BinaryConstructable(object):
     """
     This class states that subclass contains some metadata which could be used to produce

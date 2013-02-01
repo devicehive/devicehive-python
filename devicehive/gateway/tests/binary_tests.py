@@ -427,6 +427,71 @@ class ToDictionaryTest(unittest.TestCase):
         self.assertEquals(4, res['aa_prop'][1][1])
 
 
+class UpdateableTest(unittest.TestCase) :
+    class _Test(Updateable) :
+        class _SubTest(object) :
+            sub_property = binary_property(DATA_TYPE_SBYTE)
+            __binary_struct__ = (sub_property,)
+        
+        class _Element(object) :
+            element = binary_property(DATA_TYPE_BYTE)
+            __binary_struct__ = (element,)
+        
+        property1 = binary_property(DATA_TYPE_BYTE)
+        property2 = object_binary_property(_SubTest)
+        property3 = array_binary_property(ArrayQualifier(DATA_TYPE_BYTE))
+        property4 = array_binary_property(ArrayQualifier(_Element))
+        property5 = array_binary_property(ArrayQualifier(ArrayQualifier(DATA_TYPE_WORD)))
+        __binary_struct__ = (property1, property2, property3, property4, property5)
+    
+    def test_update(self) :
+        obj = UpdateableTest._Test()
+        obj.update({'property1': 123,
+                    'property2': {'sub_property': 321},
+                    'property3': [1, 2, 3],
+                    'property4': [ {'element':2}, {'element':1}, {'element':0}],
+                    'property5': [ [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 2, 1], [3, 1, 2] ] })
+        #
+        self.assertEquals(123, obj.property1)
+        self.assertTrue(hasattr(obj, 'property2'))
+        self.assertTrue(isinstance(obj.property2, UpdateableTest._Test._SubTest))
+        self.assertEquals(321, obj.property2.sub_property)
+        #
+        self.assertTrue(hasattr(obj, 'property3'))
+        self.assertEquals([1,2,3], obj.property3)
+        #
+        self.assertTrue(hasattr(obj, 'property4'))
+        self.assertEquals(3, len(obj.property4))
+        self.assertTrue( all([isinstance(o, UpdateableTest._Test._Element) for o in obj.property4]) )
+        self.assertEquals(2, obj.property4[0].element)
+        self.assertEquals(1, obj.property4[1].element)
+        self.assertEquals(0, obj.property4[2].element)
+        #
+        self.assertTrue(hasattr(obj, 'property5'))
+        self.assertEquals(6, len(obj.property5))
+        self.assertTrue( all([isinstance(o, ArrayContainer) for o in obj.property5]) )
+        self.assertTrue( all([o.array.qualifier.data_type == DATA_TYPE_WORD for o in obj.property5]) )
+        self.assertTrue( all([3 == len(o) for o in obj.property5]) )
+        self.assertEquals(1, obj.property5[0][0])
+        self.assertEquals(2, obj.property5[0][1])
+        self.assertEquals(3, obj.property5[0][2])
+        self.assertEquals(1, obj.property5[1][0])
+        self.assertEquals(3, obj.property5[1][1])
+        self.assertEquals(2, obj.property5[1][2])
+        self.assertEquals(2, obj.property5[2][0])
+        self.assertEquals(1, obj.property5[2][1])
+        self.assertEquals(3, obj.property5[2][2])
+        self.assertEquals(2, obj.property5[3][0])
+        self.assertEquals(3, obj.property5[3][1])
+        self.assertEquals(1, obj.property5[3][2])
+        self.assertEquals(3, obj.property5[4][0])
+        self.assertEquals(2, obj.property5[4][1])
+        self.assertEquals(1, obj.property5[4][2])
+        self.assertEquals(3, obj.property5[5][0])
+        self.assertEquals(1, obj.property5[5][1])
+        self.assertEquals(2, obj.property5[5][2])
+
+
 class BinaryFactoryTests(unittest.TestCase):
     class _GatewayMock(object):
         reg_has_been_received = False
