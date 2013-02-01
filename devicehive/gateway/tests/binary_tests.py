@@ -321,20 +321,37 @@ class BinaryFormatterTest(unittest.TestCase):
 
 
 class BinaryConstructableTest(unittest.TestCase):
+    class _ElementType(object) :
+        sub_property1 = binary_property(DATA_TYPE_BOOL)
+        __binary_struct__ = (sub_property1, )
+    
+    def setUp(self):
+        params = (Parameter(DATA_TYPE_WORD, 'property1'),
+                  Parameter(DATA_TYPE_BYTE, 'property2'),
+                  Parameter(DATA_TYPE_ARRAY, 'property3', ArrayQualifier(DATA_TYPE_BYTE)),
+                  Parameter(DATA_TYPE_OBJECT, 'property4', BinaryConstructableTest._ElementType))
+        self.cmd = Command(intent = 100, name = 'CommandName', parameters = params)
+    
     def test_descriptor(self):
-        params = (Parameter(DATA_TYPE_WORD, 'property1'), Parameter(DATA_TYPE_BYTE, 'property2'))
-        cmd = Command(intent = 100, name = 'CommandName', parameters = params)
-        #
-        cls = cmd.descriptor()
+        cls = self.cmd.descriptor()
+        
+        self.assertTrue(issubclass(cls, ToDictionary))
+        
         self.assertTrue(hasattr(cls, 'property1'))
-        self.assertTrue(isinstance(cls.property1, AbstractBinaryProperty))
+        self.assertTrue(isinstance(cls.property1, binary_property))
+        
         self.assertTrue(hasattr(cls, 'property2'))
-        self.assertTrue(isinstance(cls.property2, AbstractBinaryProperty))
-        #
-        obj = cls()
-        binary_object_update(obj, {'property1': 123, 'property2': 321})
-        self.assertEquals(123, obj.property1)
-        self.assertEquals(321, obj.property2)
+        self.assertTrue(isinstance(cls.property2, binary_property))
+        
+        self.assertTrue(hasattr(cls, 'property3'))
+        self.assertTrue(isinstance(cls.property3, array_binary_property))
+        self.assertTrue(isinstance(cls.property3.qualifier, ArrayQualifier))
+        self.assertEquals(DATA_TYPE_BYTE, cls.property3.qualifier.data_type)
+        
+        self.assertTrue(hasattr(cls, 'property4'))
+        self.assertTrue(isinstance(cls.property4, object_binary_property))
+        self.assertEquals(BinaryConstructableTest._ElementType, cls.property4.qualifier)
+        self.assertTrue(hasattr(cls.property4.qualifier, 'sub_property1'))
     
     def test_binary_object_update_array(self):
         obj = _TestObject()

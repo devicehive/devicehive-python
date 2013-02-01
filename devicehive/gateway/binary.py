@@ -659,6 +659,50 @@ class BinaryFormatter(object) :
         return _deserialize_register2(val)
 
 
+class ToDictionary(object):
+    """
+    Converts binary serializable class into dictionary
+    """
+    
+    def to_dict(self) :
+        def _to_dict(obj) :
+            def _array_to_dict(obj, prop) :
+                lst = []
+                if prop.qualifier.is_basic() :
+                    for o in prop.__get__(obj) :
+                        lst.append(o)
+                elif prop.qualifier.is_array() :
+                    items = prop.__get__(obj)
+                    if not all([isinstance(o, ArrayContainer) for o in items if not o is None]) :
+                        raise BinaryDeserializationError('Elements of sub array should be of ArrayContainer type')
+                    for o in [item for item in items if not item is None] :
+                        if o.array.qualifier.data_type != prop.qualifier.data_type.data_type :
+                            raise BinaryDeserializationError('Element type {0} is not consistent with property type {1}.'.format(o.array.qualifier, prop.qualifier.data_type))
+                        lst.append( _array_to_dict(o, o.array) )
+                else :
+                    for o in prop.__get__(obj) :
+                        lst.append(_to_dict(o))
+                return lst
+            props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
+                                                    if isinstance(prop[0], AbstractBinaryProperty) and prop[0] in obj.__binary_struct__]
+            res = {}
+            for i in props :
+                prop, propname = i
+                if isinstance(prop, object_binary_property) :
+                    subo = prop.__get__(obj)
+                    if not subo is None :
+                        res[propname] = _to_dict( subo )
+                elif isinstance(prop, array_binary_property) :
+                    if prop.qualifier.data_type != DATA_TYPE_NULL :
+                        res[propname] = _array_to_dict(obj, prop)
+                elif isinstance(prop, binary_property) :
+                    res[propname] = prop.__get__(obj)
+                else :
+                    raise TypeError('Upsupported type.')
+            return res
+        return _to_dict(self)
+
+
 class BinaryConstructable(object):
     """
     This class states that subclass contains some metadata which could be used to produce
@@ -697,7 +741,7 @@ class BinaryConstructable(object):
                 prop = binary_property(fieldtype)
             members[fieldname] = prop
             members['__binary_struct__'].append(prop)
-        return type(BinaryConstructable.__descriptor_counter.next(), (object,), members)
+        return type(BinaryConstructable.__descriptor_counter.next(), (ToDictionary,), members)
 
 
 def define_accessors(field):
@@ -709,10 +753,10 @@ def define_accessors(field):
 
 
 class Parameter(object) :
-    def __init__(self, type = DATA_TYPE_NULL, name = '') :
+    def __init__(self, type = DATA_TYPE_NULL, name = '', qualifier = None) :
         self._type = type
         self._name = name
-        self._qualifier = None
+        self._qualifier = qualifier
     
     def qualifier() :
         """
@@ -873,50 +917,6 @@ class BinaryProtocol(Protocol):
         """
         pkt = RegistrationRequestPacket()
         self.transport.write(pkt.to_binary())
-
-
-class ToDictionary(object):
-    """
-    Converts binary serializable class into dictionary
-    """
-    
-    def to_dict(self) :
-        def _to_dict(obj) :
-            def _array_to_dict(obj, prop) :
-                lst = []
-                if prop.qualifier.is_basic() :
-                    for o in prop.__get__(obj) :
-                        lst.append(o)
-                elif prop.qualifier.is_array() :
-                    items = prop.__get__(obj)
-                    if not all([isinstance(o, ArrayContainer) for o in items if not o is None]) :
-                        raise BinaryDeserializationError('Elements of sub array should be of ArrayContainer type')
-                    for o in [item for item in items if not item is None] :
-                        if o.array.qualifier.data_type != prop.qualifier.data_type.data_type :
-                            raise BinaryDeserializationError('Element type {0} is not consistent with property type {1}.'.format(o.array.qualifier, prop.qualifier.data_type))
-                        lst.append( _array_to_dict(o, o.array) )
-                else :
-                    for o in prop.__get__(obj) :
-                        lst.append(_to_dict(o))
-                return lst
-            props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
-                                                    if isinstance(prop[0], AbstractBinaryProperty) and prop[0] in obj.__binary_struct__]
-            res = {}
-            for i in props :
-                prop, propname = i
-                if isinstance(prop, object_binary_property) :
-                    subo = prop.__get__(obj)
-                    if not subo is None :
-                        res[propname] = _to_dict( subo )
-                elif isinstance(prop, array_binary_property) :
-                    if prop.qualifier.data_type != DATA_TYPE_NULL :
-                        res[propname] = _array_to_dict(obj, prop)
-                elif isinstance(prop, binary_property) :
-                    res[propname] = prop.__get__(obj)
-                else :
-                    raise TypeError('Upsupported type.')
-            return res
-        return _to_dict(self)
 
 
 def binary_object_update(obj, value):
