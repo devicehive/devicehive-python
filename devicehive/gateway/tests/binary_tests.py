@@ -277,7 +277,8 @@ class BinaryFormatterTest(unittest.TestCase):
         # test array property
         prop = obj.notifications[0].parameters[0]
         self.assertEquals(DATA_TYPE_ARRAY, prop.type)
-        self.assertEquals(DATA_TYPE_STRING, prop.qualifier)
+        self.assertTrue(isinstance(prop.qualifier, ArrayQualifier))
+        self.assertEquals(DATA_TYPE_STRING, prop.qualifier.data_type)
     
     def test_deserialize_complex_obj(self) :
         payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"obj_prop":{"str_prop":"str"}}}]}'
@@ -296,10 +297,11 @@ class BinaryFormatterTest(unittest.TestCase):
         prop = obj.notifications[0].parameters[0]
         self.assertEquals(u'array_prop', prop.name)
         self.assertEquals(DATA_TYPE_ARRAY, prop.type)
-        self.assertFalse(prop.qualifier is None)
-        self.assertTrue(hasattr(prop.qualifier, 'str_prop'))
-        self.assertTrue(isinstance(prop.qualifier.str_prop, binary_property))
-        self.assertEquals(DATA_TYPE_STRING, prop.qualifier.str_prop.type)
+        self.assertTrue( isinstance(prop.qualifier, ArrayQualifier) )
+        self.assertFalse(prop.qualifier.data_type is None)
+        self.assertTrue(hasattr(prop.qualifier.data_type, 'str_prop'))
+        self.assertTrue(isinstance(prop.qualifier.data_type.str_prop, binary_property))
+        self.assertEquals(DATA_TYPE_STRING, prop.qualifier.data_type.str_prop.type)
     
     def test_deserialize_complex_array_array_obj_array(self) :
         payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"1","name":"2","deviceClass":{"name":"3","version":"4"},"equipment":[{"code":"5","name":"6","type":"7"}],"commands":[{"intent":257,"name":"7","params":{"e":"str","state":"bool"}}],"notifications":[{"intent":300,"name":"equipment","params":{"array_prop":[[{"array_prop":["str"]}]]}}]}'
@@ -307,12 +309,15 @@ class BinaryFormatterTest(unittest.TestCase):
         prop = obj.notifications[0].parameters[0]
         self.assertEquals(u'array_prop', prop.name)
         self.assertEquals(DATA_TYPE_ARRAY, prop.type)
-        self.assertTrue(isinstance(prop.qualifier, array_binary_property))
+        self.assertTrue(isinstance(prop.qualifier, ArrayQualifier))
+        self.assertTrue(isinstance(prop.qualifier.data_type, ArrayQualifier))
+        self.assertTrue(prop.qualifier.data_type.is_object())
         #
-        subarray = prop.qualifier
-        self.assertTrue(hasattr(subarray.qualifier, 'array_prop'))
-        self.assertEquals(DATA_TYPE_ARRAY, subarray.qualifier.array_prop.type)
-        self.assertEquals(DATA_TYPE_STRING, subarray.qualifier.array_prop.qualifier)
+        objdescr = prop.qualifier.data_type.data_type
+        self.assertTrue (hasattr(objdescr, 'array_prop'))
+        self.assertEquals(DATA_TYPE_ARRAY, objdescr.array_prop.type)
+        self.assertTrue( isinstance(objdescr.array_prop.qualifier, ArrayQualifier) )
+        self.assertEquals(DATA_TYPE_STRING, objdescr.array_prop.qualifier.data_type)
 
 
 class DescriptorTest(unittest.TestCase):
@@ -373,9 +378,9 @@ class ToDictionaryTest(unittest.TestCase):
                 __binary_struct__ = (i8_prop,)
             u8_prop  = binary_property(DATA_TYPE_BYTE)
             obj_prop = object_binary_property(_SubTyp)
-            ab_prop  = array_binary_property(DATA_TYPE_WORD)
-            ao_prop  = array_binary_property(_SubTyp)
-            aa_prop  = array_binary_property(array_binary_property(DATA_TYPE_BOOL))
+            ab_prop  = array_binary_property( ArrayQualifier(DATA_TYPE_WORD) )
+            ao_prop  = array_binary_property( ArrayQualifier(_SubTyp) )
+            aa_prop  = array_binary_property( ArrayQualifier(ArrayQualifier(DATA_TYPE_BYTE)) )
             __binary_struct__ = (u8_prop, obj_prop, ab_prop, ao_prop, aa_prop)
         #
         self.obj = _Test()
@@ -389,7 +394,8 @@ class ToDictionaryTest(unittest.TestCase):
         self.obj.ao_prop[0].i8_prop = 1
         self.obj.ao_prop[1].i8_prop = 2
         #
-        self.obj.aa_prop = ((True, False), (False, True))
+        element_data_type = _Test.aa_prop.qualifier.data_type
+        self.obj.aa_prop = (ArrayContainer(element_data_type, [1, 2]), ArrayContainer(element_data_type, [3, 4]))
     
     def test_basic_property(self) :
         res = self.obj.to_dict()
@@ -423,9 +429,10 @@ class ToDictionaryTest(unittest.TestCase):
         res = self.obj.to_dict()
         self.assertTrue('aa_prop' in res)
         self.assertTrue(isinstance(res['aa_prop'], list))
-        self.assertTrue( all([isinstance(i, list) for i in res['aa_prop']]) )
-        self.assertEquals(2, len(res['aa_prop']))
-        self.assertEquals(2, len(res['aa_prop'][0]))
+        self.assertEquals(1, res['aa_prop'][0][0])
+        self.assertEquals(2, res['aa_prop'][0][1])
+        self.assertEquals(3, res['aa_prop'][1][0])
+        self.assertEquals(4, res['aa_prop'][1][1])
 
 
 class BinaryFactoryTests(unittest.TestCase):

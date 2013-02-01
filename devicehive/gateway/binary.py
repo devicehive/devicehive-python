@@ -312,6 +312,47 @@ class array_binary_property(AbstractBinaryProperty):
         self.qualifier = qualifier
 
 
+class ArrayContainer(object):
+    """
+    Object of this type is used to store array of data and metadata which describes
+        type of elements of this array.
+    """
+    
+    def __init__(self, data_type, data = [], fget = None, fset = None):
+        self.array = array_binary_property(data_type, fget, fset)
+        self.array.__set__(self, data)
+    
+    def __getitem__(self, key) :
+        return self.array.__get__(self).__getitem__(key)
+    
+    def __setitem__(self, key, value) :
+        self.array.__get__(self).__setitem__(key, value)
+    
+    def __len__(self):
+        return len(self.array.__get__(self))
+
+
+class ArrayQualifier(object):
+    """
+    Specify type of elemets in array
+    """
+    __basic_types__ = (DATA_TYPE_NULL, DATA_TYPE_BYTE, DATA_TYPE_WORD, DATA_TYPE_DWORD, DATA_TYPE_QWORD, DATA_TYPE_SBYTE,
+                       DATA_TYPE_SWORD, DATA_TYPE_SDWORD, DATA_TYPE_SQWORD, DATA_TYPE_SINGLE, DATA_TYPE_DOUBLE,
+                       DATA_TYPE_BOOL, DATA_TYPE_GUID, DATA_TYPE_STRING, DATA_TYPE_BINARY)
+    
+    def __init__(self, data_type) :
+        self.data_type = data_type
+    
+    def is_basic(self) :
+        return any([bt == self.data_type for bt in ArrayQualifier.__basic_types__])
+    
+    def is_array(self) :
+        return isinstance(self.data_type, ArrayQualifier)
+    
+    def is_object(self) :
+        return (not self.is_basic()) and (not self.is_array())
+
+
 class object_binary_property(AbstractBinaryProperty):
     """
     Defines complex object property
@@ -504,13 +545,14 @@ class BinaryFormatter(object) :
     def deserialize_json_array_definition(json):
         if not (isinstance(json, list) or isinstance(json, tuple)) or len(json) != 1 :
             raise TypeError('List or tuple type expected. Got {0}.'.format(type(json)))
+        
         etype = json[0]
         if isinstance(etype, dict) :
-            return BinaryFormatter.deserialize_json_object_definition(etype)
+            return ArrayQualifier( BinaryFormatter.deserialize_json_object_definition(etype) )
         elif (isinstance(etype, tuple) or isinstance(etype, list)) and len(etype) == 1 :
-            return array_binary_property(BinaryFormatter.deserialize_json_array_definition(etype))
+            return ArrayQualifier( BinaryFormatter.deserialize_json_array_definition(etype) )
         elif etype in BinaryFormatter.__json_type_map__ :
-            return BinaryFormatter.__json_type_map__[etype]
+            return ArrayQualifier( BinaryFormatter.__json_type_map__[etype] )
         else :
             raise BinaryDeserializationError('Unsupported json array element {0}.'.format(etype))
     
@@ -838,37 +880,37 @@ class ToDictionary(object):
     Converts binary serializable class into dictionary
     """
     
-    __simple_types__ = (DATA_TYPE_NULL, DATA_TYPE_BYTE, DATA_TYPE_WORD, DATA_TYPE_DWORD, DATA_TYPE_QWORD, DATA_TYPE_SBYTE,
-                        DATA_TYPE_SWORD, DATA_TYPE_SDWORD, DATA_TYPE_SQWORD, DATA_TYPE_SINGLE, DATA_TYPE_DOUBLE,
-                        DATA_TYPE_BOOL, DATA_TYPE_GUID, DATA_TYPE_STRING, DATA_TYPE_BINARY)
-    
     def to_dict(self) :
         def _to_dict(obj) :
             def _array_to_dict(obj, prop) :
                 lst = []
-                if any([prop.qualifier == s for s in ToDictionary.__simple_types__]) :
+                if prop.qualifier.is_basic() :
                     for o in prop.__get__(obj) :
                         lst.append(o)
-                elif isinstance(prop.qualifier, array_binary_property) :
-                    for o in prop.__get__(obj) :
-                        v = _array_to_dict(o, prop.qualifier)
-                        lst.append(v)
+                elif prop.qualifier.is_array() :
+                    items = prop.__get__(obj)
+                    if not all([isinstance(o, ArrayContainer) for o in items if not o is None]) :
+                        raise BinaryDeserializationError('Elements of sub array should be of ArrayContainer type')
+                    for o in [item for item in items if not item is None] :
+                        if o.array.qualifier.data_type != prop.qualifier.data_type.data_type :
+                            raise BinaryDeserializationError('Element type {0} is not consistent with property type {1}.'.format(o.array.qualifier, prop.qualifier.data_type))
+                        lst.append( _array_to_dict(o, o.array) )
                 else :
                     for o in prop.__get__(obj) :
                         lst.append(_to_dict(o))
                 return lst
             props = [(prop[0], prop[1]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
-                                                    if isinstance(prop[0], AbstractBinaryProperty) and
-                                                    prop[0] in obj.__binary_struct__]
+                                                    if isinstance(prop[0], AbstractBinaryProperty) and prop[0] in obj.__binary_struct__]
             res = {}
             for i in props :
                 prop, propname = i
                 if isinstance(prop, object_binary_property) :
-                    res[propname] = _to_dict(prop.__get__(obj))
+                    subo = prop.__get__(obj)
+                    if not subo is None :
+                        res[propname] = _to_dict( subo )
                 elif isinstance(prop, array_binary_property) :
-                    if prop.qualifier != DATA_TYPE_NULL :
+                    if prop.qualifier.data_type != DATA_TYPE_NULL :
                         res[propname] = _array_to_dict(obj, prop)
-                    pass
                 elif isinstance(prop, binary_property) :
                     res[propname] = prop.__get__(obj)
                 else :
