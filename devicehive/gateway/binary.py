@@ -783,7 +783,7 @@ class BinaryConstructable(object):
                 prop = binary_property(fieldtype)
             members[fieldname] = prop
             members['__binary_struct__'].append(prop)
-        return type(BinaryConstructable.__descriptor_counter.next(), (ToDictionary,), members)
+        return type(BinaryConstructable.__descriptor_counter.next(), (ToDictionary, Updateable), members)
 
 
 def define_accessors(field):
@@ -961,27 +961,6 @@ class BinaryProtocol(Protocol):
         self.transport.write(pkt.to_binary())
 
 
-def binary_object_update(obj, value):
-    """
-    Applies dictionary values to corresponding object properties.
-    @param value - should be a dictionary
-    """
-    props = [(prop[0], value[prop[1]]) for prop in [(getattr(obj.__class__, pname), pname) for pname in dir(obj.__class__)]
-                                            if isinstance(prop[0], AbstractBinaryProperty) and
-                                            prop[0] in obj.__binary_struct__ and
-                                            value.has_key(prop[1])]
-    for prop in props :
-        if isinstance(prop[0], array_binary_property) :
-            lst = []
-            for i in prop[1] :
-                element = prop[0].qualifier()
-                binary_object_update(element, i)
-                lst.append(element)
-            prop[0].__set__(obj, lst)
-        else :
-            prop[0].__set__(obj, prop[1])
-    return obj
-
 
 class BinaryFactory(ServerFactory):
     class _DeviceInfo(object):
@@ -1100,7 +1079,7 @@ class BinaryFactory(ServerFactory):
         if command_name in self.command_descriptors :
             command_desc = self.command_descriptors[command_name]
             command_obj = command_desc.cls()
-            autoclass_update_properties(command_obj, parameters)
+            command_obj.update( command['parameters'] )
             self.pending_results[command_id] = finish_deferred
             #
             self.protocol.send_command(command_desc.intent, command_bin)

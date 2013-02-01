@@ -352,14 +352,6 @@ class BinaryConstructableTest(unittest.TestCase):
         self.assertTrue(isinstance(cls.property4, object_binary_property))
         self.assertEquals(BinaryConstructableTest._ElementType, cls.property4.qualifier)
         self.assertTrue(hasattr(cls.property4.qualifier, 'sub_property1'))
-    
-    def test_binary_object_update_array(self):
-        obj = _TestObject()
-        obj.arr_prop = (_TestObject._SubObject(1), _TestObject._SubObject(2))
-        newval = {'arr_prop': ({'sword_prop': 123}, {'sword_prop': 456})}
-        binary_object_update(obj, newval)
-        self.assertEquals(123, obj.arr_prop[0].sword_prop)
-        self.assertEquals(456, obj.arr_prop[1].sword_prop)
 
 
 class ToDictionaryTest(unittest.TestCase):
