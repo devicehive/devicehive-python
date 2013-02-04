@@ -449,7 +449,7 @@ class BinaryFormatter(object) :
         result.extend(struct.pack('<H', len(value)))
         if array_qualifier.is_basic() :
             for i in value :
-                result.extend(array_qualifier.data_type, BinaryFormatter.serialize_scalar(i))
+                result.extend(BinaryFormatter.serialize_scalar(array_qualifier.data_type, i))
         elif array_qualifier.is_array() :
             sub_array_qualifier = array_qualifier.data_type
             for a in value :
@@ -465,12 +465,12 @@ class BinaryFormatter(object) :
             raise BinarySerializationError('object {0} does not have conform to __binary_struct__ protocol'.format(obj))
         result = bytearray()
         for prop in obj.__binary_struct__ :
-            if isinstance(prop, binary_property) :
-                result.extend(BinaryFormatter.serialize_scalar(prop.type, prop.__get__(obj)))
-            if isinstance(prop, object_binary_property) :
+            if prop.type == DATA_TYPE_OBJECT :
                 result.extend(BinaryFormatter.serialize(prop.__get__(obj)))
-            elif isinstance(prop, array_binary_property) :
+            elif prop.type == DATA_TYPE_ARRAY :
                 result.extend(BinaryFormatter.serialize_array(prop.qualifier, prop.__get__(obj)))
+            elif isinstance(prop, binary_property) :
+                result.extend(BinaryFormatter.serialize_scalar(prop.type, prop.__get__(obj)))
             else :
                 raise BinarySerializationError('unsupported property type {0}'.format(type(prop)))
         return result
@@ -492,59 +492,83 @@ class BinaryFormatter(object) :
             return BinaryFormatter.serialize_scalar(DATA_TYPE_STRING, str(value))
     
     @staticmethod
+    def deserialize_scalar(data, offset, type) :
+        if type in BinaryFormatter.__basic_type_map__ :
+            packstr, datalen = BinaryFormatter.__basic_type_map__[type]
+            value = struct.unpack_from(packstr, data, offset)[0]
+            offset += datalen
+            return (value, offset)
+        elif type == DATA_TYPE_GUID :
+            value = struct.unpack_from('B' * 16, data, offset)
+            fields = ((value[0] << 24) | (value[1] << 16) | (value[2] << 8) | (value[3]),
+             (value[4] << 8) | value[5], (value[6] << 8) | value[7], value[8], value[9], (value[10] << 40) | (value[11] << 32) | (value[12] << 24) | (value[13] << 16) | (value[14] << 8) | value[15])
+            offset += 16
+            return (uuid.UUID(fields = fields), offset)
+        elif type == DATA_TYPE_STRING :
+            strlen = struct.unpack_from('<H', data, offset)[0]
+            offset += 2
+            bstr = bytearray(data[offset:offset + strlen])
+            offset += strlen
+            return (bstr.decode('utf-8'), offset)
+        elif prop.type == DATA_TYPE_BINARY :
+            binlen = struct.unpack_from('<H', data, offset)[0]
+            offset += 2
+            bin = data[offset:offset + binlen]
+            offset += binlen
+            return (bin, offset)
+        else :
+            raise BinaryDeserializationError("unsupported scalar type {0}", type)
+    
+    @staticmethod
+    def deserialize_array(data, offset, array_qualifier) :
+        arrlen = struct.unpack_from('<H', data, offset)[0]
+        offset += 2
+        value = []
+        if array_qualifier.is_basic() :
+            for i in range(arrlen) :
+                val, offset = BinaryFormatter.deserialize_scalar(data, offset, array_qualifier.data_type)
+                value.append(val)
+        elif array_qualifier.is_array() :
+            for i in range(arrlen) :
+                val, offset = BinaryFormatter.deserialize_array(data, offset, array_qualifier.data_type)
+                value.append(val)
+        else :
+            for i in range(arrlen) :
+                val, offset = BinaryFormatter.deserialize_object(data, offset, array_qualifier.data_type)
+                value.append(val)
+        return (value, offset)
+    
+    @staticmethod
+    def deserialize_object(data, offset, cls) :
+        if hasattr(cls, '__binary_struct__') :
+            obj = cls()
+            for prop in obj.__binary_struct__ :
+                if prop.type == DATA_TYPE_NULL :
+                    pass
+                if (prop.type in BinaryFormatter.__basic_type_map__) or (prop.type == DATA_TYPE_GUID) or (prop.type == DATA_TYPE_STRING) or (prop.type == DATA_TYPE_BINARY) :
+                    value, offset = BinaryFormatter.deserialize_scalar(data, offset, prop.type)
+                    prop.__set__(obj, value)
+                elif prop.type == DATA_TYPE_OBJECT and isinstance(prop, object_binary_property) :
+                    subobj, offset = _deserialize(data, prop.qualifier, offset)
+                    prop.__set__(obj, subobj)
+                elif prop.type == DATA_TYPE_ARRAY and isinstance(prop, array_binary_property) :
+                    value, offset = BinaryFormatter.deserialize_array(data, offset, prop.qualifier)
+                    prop.__set__(obj, value)
+                else :
+                    raise BinaryDeserializationError('unsupported property type {0}'.format(type(prop)))
+            return (obj, offset)
+        else :
+            raise BinaryDeserializationError('unsupported type {0}'.format(cls))
+    
+    @staticmethod
     def deserialize(data, cls):
         """
         Deserilizes @data array into object of type @type
         @param data - binary string/constant byte array/tuple or list
         @type  type - type in which binary string would be deserialized
         """
-        def _deserialize(data, cls, offset = 0):
-            if hasattr(cls, '__binary_struct__') :
-                obj = cls()
-                for prop in obj.__binary_struct__ :
-                    if prop.type == DATA_TYPE_NULL :
-                        pass
-                    elif prop.type in BinaryFormatter.__basic_type_map__ :
-                        packstr, datalen = BinaryFormatter.__basic_type_map__[prop.type]
-                        value = struct.unpack_from(packstr, data, offset)[0]
-                        prop.__set__(obj, value)
-                        offset += datalen
-                    elif prop.type == DATA_TYPE_GUID :
-                        value = struct.unpack_from('B' * 16, data, offset)
-                        fields = ((value[0] << 24) | (value[1] << 16) | (value[2] << 8) | (value[3]),
-                         (value[4] << 8) | value[5], (value[6] << 8) | value[7], value[8], value[9], (value[10] << 40) | (value[11] << 32) | (value[12] << 24) | (value[13] << 16) | (value[14] << 8) | value[15])
-                        prop.__set__(obj, uuid.UUID(fields = fields))
-                        offset += 16
-                    elif prop.type == DATA_TYPE_STRING :
-                        strlen = struct.unpack_from('<H', data, offset)[0]
-                        offset += 2
-                        bstr = bytearray(data[offset:offset + strlen])
-                        offset += strlen
-                        prop.__set__(obj, bstr.decode('utf-8'))
-                    elif prop.type == DATA_TYPE_BINARY :
-                        binlen = struct.unpack_from('<H', data, offset)[0]
-                        offset += 2
-                        bin = data[offset:offset + binlen]
-                        offset += binlen
-                        prop.__set__(obj, bin)
-                    elif prop.type == DATA_TYPE_ARRAY :
-                        if not isinstance(prop, array_binary_property) :
-                            raise BinaryDeserializationError('Failed to deserialize array property {0}. Reason: property must be defined using array_binary_property function.'.format(prop))
-                        arrlen = struct.unpack_from('<H', data, offset)[0]
-                        offset += 2
-                        value = []
-                        for i in range(0, arrlen) :
-                            subobj, offset = _deserialize(data, prop.qualifier, offset)
-                            value.append(subobj)
-                        prop.__set__(obj, list(value))
-                    else :
-                        raise BinaryDeserializationError('Failed to deserialize property {0} in object {1}. Reason: unsupported property type {2} ({3}).'.format(prop, obj, type(prop.type), prop.type))
-                return (obj, offset)
-            else :
-                raise BinaryDeserializationError('Failed to deserialize an object. Reason: unsupported type {0}.'.format(cls))
-            return None
         data = array.array('B', data)
-        obj, offset = _deserialize(data, cls)
+        obj, offset = BinaryFormatter.deserialize_object(data, 0, cls)
         return obj
     
     @staticmethod
@@ -873,7 +897,7 @@ class Notification(BinaryConstructable):
     
     name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
-    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
+    parameters = array_binary_property(ArrayQualifier(Parameter), *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
 
@@ -891,7 +915,7 @@ class Command(BinaryConstructable):
     
     name = binary_property(DATA_TYPE_STRING, *define_accessors('_name'))
     
-    parameters = array_binary_property(Parameter, *define_accessors('_parameters'))
+    parameters = array_binary_property( ArrayQualifier(Parameter), *define_accessors('_parameters'))
     
     __binary_struct__ = (intent, name, parameters)
     
@@ -922,11 +946,11 @@ class RegistrationPayload(object):
     
     device_class_version = binary_property(DATA_TYPE_STRING, *define_accessors('_device_class_version'))
     
-    equipment = array_binary_property(Equipment, *define_accessors('_equipment'))
+    equipment = array_binary_property( ArrayQualifier(Equipment) )
     
-    notifications = array_binary_property(Notification, *define_accessors('_notification'))
+    notifications = array_binary_property( ArrayQualifier(Notification) )
     
-    commands = array_binary_property(Command, *define_accessors('_commands'))
+    commands = array_binary_property( ArrayQualifier(Command) )
     
     __binary_struct__ = (device_id, device_key, device_name, device_class_name, device_class_version, equipment, notifications, commands)
 
