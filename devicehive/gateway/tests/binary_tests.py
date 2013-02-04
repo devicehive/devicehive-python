@@ -168,7 +168,7 @@ class _TestObject(object):
     bool_prop  = binary_property(DATA_TYPE_BOOL, **gen_props('_bool_prop'))
     false_prop = binary_property(DATA_TYPE_BOOL, **gen_props('_false_prop'))
     str_prop   = binary_property(DATA_TYPE_STRING, **gen_props('_str_prop'))
-    arr_prop   = array_binary_property(_SubObject, **gen_props('_arr_prop'))
+    arr_prop   = array_binary_property(ArrayQualifier(_SubObject), **gen_props('_arr_prop'))
     guid_prop  = binary_property(DATA_TYPE_GUID, **gen_props('_guid_prop'))
     aguid_prop = binary_property(DATA_TYPE_GUID, **gen_props('_aguid_prop'))
     __binary_struct__ = (byte_prop, word_prop, dword_prop, bool_prop, false_prop, str_prop, arr_prop, guid_prop, aguid_prop)
@@ -318,6 +318,33 @@ class BinaryFormatterTest(unittest.TestCase):
         self.assertEquals(DATA_TYPE_ARRAY, objdescr.array_prop.type)
         self.assertTrue( isinstance(objdescr.array_prop.qualifier, ArrayQualifier) )
         self.assertEquals(DATA_TYPE_STRING, objdescr.array_prop.qualifier.data_type)
+    
+    def test_complex_object(self) :
+        class _Tmp(object):
+            class _SubTmp(object) :
+                sub_byte_property = binary_property(DATA_TYPE_BYTE)
+                __binary_struct__ = (sub_byte_property,)
+            byte_property = binary_property(DATA_TYPE_BYTE)
+            obj_property = object_binary_property(_SubTmp)
+            a1_property = array_binary_property(ArrayQualifier( DATA_TYPE_BYTE ))
+            a2_property = array_binary_property(ArrayQualifier( _SubTmp ))
+            a3_property = array_binary_property(ArrayQualifier( ArrayQualifier(DATA_TYPE_BYTE) ))
+            a4_property = array_binary_property(ArrayQualifier( ArrayQualifier(_SubTmp) ))
+            __binary_struct__ = (byte_property, obj_property, a1_property, a2_property, a3_property, a4_property)
+        # initialize class properties
+        t = _Tmp()
+        t.byte_property = 125
+        t.obj_property = _Tmp._SubTmp()
+        t.obj_property.sub_byte_property = 100
+        t.a1_property = (1, 2, 3)
+        t.a2_property = (_Tmp._SubTmp(), _Tmp._SubTmp())
+        t.a2_property[0].sub_byte_property = 50
+        t.a2_property[1].sub_byte_property = 60
+        t.a3_property = (ArrayContainer(DATA_TYPE_BYTE, [1, 2]), ArrayContainer(DATA_TYPE_BYTE, [3, 4]))
+        t.a4_property = (ArrayContainer(_Tmp._SubTmp, [_Tmp._SubTmp()]),)
+        t.a4_property[0][0].sub_byte_property = 70
+        bin = BinaryFormatter.serialize(t)
+        self.assertEquals(bytearray([125, 100, 0x03, 0x00, 0x01, 0x02, 0x03, 0x02, 0x00, 50, 60, 0x02, 0x00, 0x02, 0x00, 1, 2, 0x02, 0x00, 3, 4, 0x01, 0x00, 0x01, 0x00, 70]), bin)
 
 
 class BinaryConstructableTest(unittest.TestCase):
@@ -590,28 +617,7 @@ class AbstractBinaryPropertyTests(unittest.TestCase):
         self.assertEquals(13, t.prop2)
 
 
-
-def test_complex_object() :
-    class _Tmp(object):
-        class _SubTmp(object) :
-            sub_byte_property = binary_property(DATA_TYPE_BYTE)
-            __binary_struct__ = (sub_byte_property,)
-        byte_property = binary_property(DATA_TYPE_BYTE)
-        obj_property = object_binary_property(_SubTmp)
-        a1_property = array_binary_property(ArrayQualifier(DATA_TYPE_BYTE))
-        __binary_struct__ = (byte_property, obj_property, a1_property)
-    # initialize class properties
-    t = _Tmp()
-    t.byte_property = 125
-    t.obj_property = _Tmp._SubTmp()
-    t.obj_property.sub_byte_property = 100
-    t.a1_property = (1, 2, 3)
-    # serialize into binary form and test
-    bin = BinaryFormatter.serialize(t)
-    self.assertEquals(bytearray([125, 100, 0x03, 0x00, 0x01, 0x02, 0x03]), bin)
-
 if __name__ == '__main__':
-    test_complex_object()
-    # unittest.main()
+    unittest.main()
 
 
