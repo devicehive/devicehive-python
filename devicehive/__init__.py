@@ -8,7 +8,8 @@ import uuid
 import sha
 from functools import partial
 from datetime import datetime
-from zope.interface import implements
+import struct
+from zope.interface import implements, Interface
 from twisted.python import log
 from twisted.python.constants import Values, ValueConstant
 from twisted.internet.protocol import ClientFactory, Protocol
@@ -621,60 +622,9 @@ class _SingleRequestHTTP11DeviceHiveFactory(BaseHTTP11ClientFactory):
             raise NotImplementedError('Unsupported factory state <{0}>.'.format(self.state.value))
 
 
-class WebSocketState(Values) :
-    Status = ValueConstant(0)
-    Header = ValueConstant(1)
-    Body   = ValueConstant(2)
-
-
-class WebSocketParser(LineReceiver) :
-    def __init__(self, proto):
-        self.state = WebSocketState.Status
-        self.proto = proto
-        self._header_buff = None
-        self._data_frame = None
-    
-    def lineReceived(self, line):
-        if line[-1:] == '\r':
-            line = line[:-1]
-        
-        if self.state == WebSocketState.Status :
-            self.status_received(line)
-            self.state = WebSocketState.Header
-        elif self.state == WebSocketState.Header :
-            if not line or line[0] not in ' \t':
-                if self._header_buff is not None:
-                    header = ''.join(self._header_buff)
-                    name, value = header.split(':', 1)
-                    value = value.strip()
-                    self.header_received(name, value)
-                
-                if not line:
-                    self.headers_received()
-                else:
-                    self._header_buff = [line]
-            else:
-                self._header_buff.append(line)
-    
-    def status_received(self, line) :
-        if self.proto is not None and hasattr(self.proto, 'status_received') and callable(self.proto.status_received) :
-            proto_version, status, result = line.split(' ', 2)
-            self.proto.status_received(proto_version, int(status, 10), result)
-    
-    def header_received(self, name, value):
-        """
-        Allows earlier termination of the protocol.
-        """
-        if self.proto is not None and hasattr(self.proto, 'header_received') and callable(self.proto.header_received) :
-            self.proto.header_received(name, value)
-    
-    def headers_received(self) :
-        if (self.proto is not None) and hasattr(self.proto, 'headers_received') and callable(self.proto.headers_received) :
-            self.proto.headers_received()
-        self.setRawMode()
-    
-    def rawDataReceived(self, data):
-        log.msg('rawDataReceived {0}'.format(data))
+class WebSocketError(Exception):
+    def __init__(self, msg = '') :
+        super(WebSocketError, self).__init__('WebSocket error. Reason: {0}.'.format(msg))
 
 
 WS_OPCODE_CONTINUATION = 0
@@ -686,29 +636,165 @@ WS_OPCODE_PONG = 10
 
 WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
-class WebSocketFrame(object):
-    final = False
-    payload = b''
-    opcode = WS_OPCODE_PING
+
+class WebSocketState(Values) :
+    Status     = ValueConstant(0)
+    Header     = ValueConstant(1)
+    WsHeader   = ValueConstant(2)
+    WsLength7  = ValueConstant(3)
+    WsLength16 = ValueConstant(4)
+    WsLength64 = ValueConstant(5)
+    WsPayload  = ValueConstant(6)
+
+
+class IWebSocketHandler(Interface) :
+    def status_received(self, proto_version, code, status) :
+        pass
     
-    def to_binary(self):
-        frame = struct.pack('B', (0x80 if self.final else 0x00) | self.opcode)
-        payload_len = len(self.payload)
-        if payload_len < 126:
-            frame += struct.pack('B', payload_len)
-        elif payload_len <= 0xffff:
-            frame += struct.pack('!BH', 126, payload_len)
-        else:
-            frame += struct.pack('!BQ', 127, payload_len)
-        frame += data
-        return frame
+    def header_received(self, name, value):
+        pass
+    
+    def headers_received(self) :
+        pass
+    
+    def frame_received(self, opcode, payload):
+        pass
+
+
+class WebSocketParser(LineReceiver) :
+    """
+    Class parses incoming byte stream and extracts HTTP headers and WebSocket frames.
+    """
+    
+    def __init__(self, handler):
+        self.state = WebSocketState.Status
+        self.handler = handler
+        # attribute to store header
+        self._header_buf = None
+        # attributes which store frame
+        # data and parameters
+        self._frame_buf = b''
+        self._frame_fin = False
+        self._frame_opcode = 0
+        self._frame_len = 0
+        self._frame_data = b''
+    
+    def lineReceived(self, line):
+        if line[-1:] == '\r':
+            line = line[:-1]
+        
+        if self.state == WebSocketState.Status :
+            self.status_received(line)
+            self.state = WebSocketState.Header
+        elif self.state == WebSocketState.Header :
+            if not line or line[0] not in ' \t':
+                if self._header_buf is not None:
+                    header = ''.join(self._header_buf)
+                    name, value = header.split(':', 1)
+                    value = value.strip()
+                    self.header_received(name, value)
+                
+                if not line:
+                    self.headers_received()
+                else:
+                    self._header_buf = [line]
+            else:
+                self._header_buf.append(line)
+    
+    def status_received(self, line) :
+        if (self.handler is not None) and IWebSocketHandler.implementedBy(self.handler.__class__) :
+            proto_version, code, status = line.split(' ', 2)
+            self.handler.status_received(proto_version, int(code, 10), status)
+    
+    def header_received(self, name, value):
+        if (self.handler is not None) and IWebSocketHandler.implementedBy(self.handler.__class__) :
+            self.handler.header_received(name, value)
+    
+    def headers_received(self) :
+        if (self.handler is not None) and IWebSocketHandler.implementedBy(self.handler.__class__) :
+            self.handler.headers_received()
+        self.state = WebSocketState.WsHeader
+        self.setRawMode()
+    
+    def frame_received(self, opcode, payload):
+        if (self.handler is not None) and IWebSocketHandler.implementedBy(self.handler.__class__) :
+            self.handler.frame_received(opcode, payload)
+    
+    def rawDataReceived(self, data):
+        self._frame_buf += data
+        #
+        while True :
+            if self.state == WebSocketState.WsHeader :
+                if len(self._frame_buf) > 0 :
+                    hdr = struct.unpack('B', self._frame_buf[:1])[0]
+                    self._frame_buf = self._frame_buf[1:]
+                    self._frame_fin = (hdr & 0x80)
+                    self._frame_opcode = (hdr & 0x0f)
+                    self.state = WebSocketState.WsLength7
+                else :
+                    break
+            elif self.state == WebSocketState.WsLength7 :
+                if len(self._frame_buf) > 0 :
+                    len7 = struct.unpack('B', self._frame_buf[:1])[0]
+                    self._frame_buf = self._frame_buf[1:]
+                    if len7 & 0x80 :
+                        raise WebSocketError('Server should not mask websocket frames.')
+                    else :
+                        len7 = len7 & 0x7f
+                        if len7 == 126 :
+                            self._frame_len = 0
+                            self.state = WebSocketState.WsLength16
+                        elif len7 == 127 :
+                            self._frame_len = 0
+                            self.state = WebSocketState.WsLength64
+                        else :
+                            self._frame_len = len7
+                            self.state = WebSocketState.WsPayload
+                else :
+                    break
+            elif self.state == WebSocketState.WsLength16 :
+                if len(self._frame_buf) > 1 :
+                    len16 = struct.unpack('!H', self._frame_buf[:2])[0]
+                    self._frame_buf = self._frame_buf[2:]
+                    self._frame_len = len16
+                    self.state = WebSocketState.WsPayload
+                else :
+                    break
+            elif self.state == WebSocketState.WsLength64 :
+                if len(self._frame_buf) > 7 :
+                    len64 = struct.unpack('!Q', self._frame_buf[:8])[0]
+                    self._frame_buf = self._frame_buf[8:]
+                    self._frame_len = len64
+                    self.state = WebSocketState.WsPayload
+                else :
+                    break
+            elif self.state == WebSocketState.WsPayload :
+                if self._frame_len == 0 :
+                    if self._frame_fin :
+                        self.frame_received(self._frame_opcode, self._frame_data)
+                        self._frame_data = b''
+                        self._frame_opcode = 0
+                    self.state = WebSocketState.WsHeader
+                elif len(self._frame_buf) == 0 :
+                    break
+                else :
+                    bytes_to_read = min(self._frame_len, len(self._frame_buf))
+                    self._frame_data += self._frame_buf[:bytes_to_read]
+                    self._frame_buf = self._frame_buf[bytes_to_read:]
+                    self._frame_len -= bytes_to_read
+            elif self.state == WebSocketState.WsError :
+                break
+        pass
 
 
 class WebSocketProtocol13(Protocol):
+    implements(IWebSocketHandler)
+    
     def __init__(self, factory):
         self.parser  = WebSocketParser(self)
         self.factory = factory
         self.security_key = base64.b64encode((uuid.uuid4()).bytes)
+        self.handshaked = False
     
     def connectionLost(self, reason):
         pass
@@ -720,17 +806,67 @@ class WebSocketProtocol13(Protocol):
         pass
     
     def dataReceived(self, data):
-        self.parser.dataReceived(data)
+        self.parser.dataReceived(data)    
+    
+    def status_received(self, proto_version, code, status) :
+        if proto_version != 'HTTP/1.1' :
+            pass # TODO: terminate
+        if code != 101 :
+            pass # TODO: terminate
+        pass
+    
+    def header_received(self, name, value):
+        """
+        Verifies headers on the fly. If there is an error connection would be aborted.
+        """
+        loname = name.lower()
+        if loname == 'sec-websocket-accept' :
+            if not self.validate_security_answer(value) :
+                log.err('Terminating WebSocket protocol. Reason: WebSocket server returned invalid security key {0} in response to {1}.'.format(value, self.security_key))
+                # TODO: terminate
+        elif loname == 'connection' :
+            if value.lower() != 'upgrade' :
+                log.err('Terminating WebSocket protocol. Reason: WebSocket server failed to upgrade connection, status = {0}.'.format(value))
+                # TODO: terminate
+        elif loname == 'upgrade' :
+            if value.lower() != 'websocket' :
+                log.err('Terminating WebSocket protocol. Reason: WebSocket server upgraded protocol to invalid state {0}.'.format(value))
+                # TODO: terminate
+        pass
+    
+    def headers_received(self) :
+        pass
+    
+    def frame_received(self, opcode, payload):
+        if opcode == WS_OPCODE_PING :
+            self.send_frame(1, WS_OPCODE_PONG, payload)
+        elif opcode == WS_OPCODE_PONG :
+            pass # do nothing
+        else :
+            raise NotImplementedError()
     
     def validate_security_answer(self, answer):
         skey = sha.new(self.security_key + WS_GUID)
         key = base64.b64encode(skey.digest())
         return answer == key
     
+    def send_headers(self) :
+        header = 'GET /device HTTP/1.1\r\n' + \
+                  'Host: {0}\r\n' + \
+                  'Auth-DeviceID: {1}\r\n' + \
+                  'Auth-DeviceKey: {2}\r\n' + \
+                  'Upgrade: websocket\r\n' + \
+                  'Connection: Upgrade\r\n' + \
+                  'Sec-WebSocket-Key: {3}' + \
+                  'Origin: http://{0}\r\n' + \
+                  'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
+                  'Sec-WebSocket-Version: 13\r\n\r\n'
+        return header.format(self.factory.host,
+            self.factory.device_delegate.device_id(),
+            self.factory.device_delegate.device_key(),
+            self.security_key).encode('utf-8')
+    
     def send_frame(self, fin, opcode, data) :
-        """
-        Client must mask all frames.
-        """
         frame = struct.pack('B', (0x80 if fin else 0x00) | opcode)
         l = len(data)
         if l < 126:
@@ -794,23 +930,6 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
         elif code != 101 :
             log.err('Terminating WebSocket protocol. Reason: server returned status code {0}.'.format(code))
     
-    def header_received(self, name, value) :
-        """
-        Verifies headers on the fly. If there is an error connection would be aborted.
-        """
-        loname = name.lower()
-        if loname == 'sec-websocket-accept' :
-            skey = sha.new(self.security_key + WebSocketDeviceHiveProtocol.WS_GUID)
-            key  = base64.b64encode(skey.digest())
-            if value != key :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server returned invalid security key {0} in response to {1}.'.format(value, self.security_key))
-        elif loname == 'connection' :
-            if value.lower() != 'upgrade' :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server failed to upgrade connection, status = {0}.'.format(value))
-        elif loname == 'upgrade' :
-            if value.lower() != 'websocket' :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server upgraded protocol to invalid state {0}.'.format(value))
-    
     def headers_received(self) :
         """
         All headers have been received.
@@ -823,21 +942,6 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
         else :
             self.parser.dataReceived(bytes)
     
-    def default_headers(self) :
-        header = 'GET /device HTTP/1.1\r\n' + \
-                  'Host: {0}\r\n' + \
-                  'Auth-DeviceID: {1}\r\n' + \
-                  'Auth-DeviceKey: {2}\r\n' + \
-                  'Upgrade: websocket\r\n' + \
-                  'Connection: Upgrade\r\n' + \
-                  'Sec-WebSocket-Key: {3}' + \
-                  'Origin: http://{0}\r\n' + \
-                  'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
-                  'Sec-WebSocket-Version: 13\r\n'
-        return header.format(self.factory.host,
-            self.factory.device_delegate.device_id(),
-            self.factory.device_delegate.device_key(),
-            self.security_key).encode('utf-8')
     
     def _apimetadata_done(self, response) :
         log.msg('ApiInfo respond: {0}.'.format( response ))
