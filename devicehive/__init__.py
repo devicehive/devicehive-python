@@ -9,6 +9,9 @@ import sha
 from functools import partial
 from datetime import datetime
 import struct
+from time import time
+from random import Random
+from array import array
 from zope.interface import implements, Interface
 from twisted.python import log
 from twisted.python.constants import Values, ValueConstant
@@ -634,6 +637,7 @@ WS_OPCODE_CONNECTION_CLOSE = 8
 WS_OPCODE_PING = 9
 WS_OPCODE_PONG = 10
 
+
 WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 
@@ -795,12 +799,11 @@ class WebSocketProtocol13(Protocol):
         self.factory = factory
         self.security_key = base64.b64encode((uuid.uuid4()).bytes)
         self.handshaked = False
+        self.rand = Random(long(time()))
+        self.mask = b'\x00\x00\x00\x00'
     
     def connectionLost(self, reason):
         pass
-    
-    def makeConnection(self, transport):
-        self.transport = transport
     
     def connectionMade(self):
         pass
@@ -810,10 +813,9 @@ class WebSocketProtocol13(Protocol):
     
     def status_received(self, proto_version, code, status) :
         if proto_version != 'HTTP/1.1' :
-            pass # TODO: terminate
+            raise WebSocketError('unsupported protocol {0}'.format(proto_version))
         if code != 101 :
-            pass # TODO: terminate
-        pass
+            raise WebSocketError('websocket server rejected protocol upgrade with code {0}'.format(code))
     
     def header_received(self, name, value):
         """
@@ -822,17 +824,13 @@ class WebSocketProtocol13(Protocol):
         loname = name.lower()
         if loname == 'sec-websocket-accept' :
             if not self.validate_security_answer(value) :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server returned invalid security key {0} in response to {1}.'.format(value, self.security_key))
-                # TODO: terminate
+                raise WebSocketError('websocket server returned invalid security key {0} in response to {1}'.format(value, self.security_key))
         elif loname == 'connection' :
             if value.lower() != 'upgrade' :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server failed to upgrade connection, status = {0}.'.format(value))
-                # TODO: terminate
+                raise WebSocketError('websocket server failed to upgrade connection, status = {0}'.format(value))
         elif loname == 'upgrade' :
             if value.lower() != 'websocket' :
-                log.err('Terminating WebSocket protocol. Reason: WebSocket server upgraded protocol to invalid state {0}.'.format(value))
-                # TODO: terminate
-        pass
+                raise WebSocketError('websocket server upgraded protocol to invalid state {0}'.format(value))
     
     def headers_received(self) :
         pass
@@ -862,20 +860,22 @@ class WebSocketProtocol13(Protocol):
                   'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
                   'Sec-WebSocket-Version: 13\r\n\r\n'
         return header.format(self.factory.host,
-            self.factory.device_delegate.device_id(),
-            self.factory.device_delegate.device_key(),
-            self.security_key).encode('utf-8')
+                             self.factory.device_delegate.device_id(),
+                             self.factory.device_delegate.device_key(),
+                             self.security_key).encode('utf-8')
     
     def send_frame(self, fin, opcode, data) :
-        frame = struct.pack('B', (0x80 if fin else 0x00) | opcode)
+        frame = struct.pack('B', (0x80 if fin else 0x00) | opcode)[0]
         l = len(data)
         if l < 126:
-            frame += struct.pack('B', l & 0x80)
+            frame += struct.pack('B', l | 0x80)[0]
         elif l <= 0xFFFF:
-            frame += struct.pack('!BH', 126 & 0x80, l)
+            frame += struct.pack('!BH', 126 | 0x80, l)[0]
         else:
-            frame += struct.pack('!BQ', 127 & 0x80, l)
-        frame += data
+            frame += struct.pack('!BQ', 127 | 0x80, l)[0]
+        self.mask  = chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff))
+        frame += self.mask
+        frame += array('B', [ord(data[i]) ^ ord(self.mask[i % 4]) for i in range(len(data))]).tostring()
         self.transport.write(frame)
 
 
