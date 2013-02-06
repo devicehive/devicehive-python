@@ -14,6 +14,8 @@ orig_path = list(sys.path)
 sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..')))
 try :
     devicehive = __import__('devicehive')
+    __import__('devicehive.ws')
+    ws = devicehive.ws
 finally :
     sys.path[:] = orig_path
     __name__ = orig_name
@@ -22,8 +24,7 @@ finally :
 class WebSocketProtocol13Test(unittest.TestCase):
     def test_send_frame(self):
         trans = StringTransport()
-        proto = devicehive.WebSocketProtocol13(None)
-        proto.makeConnection(trans)
+        proto = ws.WebSocketProtocol13(None, None, trans)
         proto.send_frame(True, 2, b'1234')
         data = trans.value()
         self.assertEquals(0x82, ord(data[0:1]))

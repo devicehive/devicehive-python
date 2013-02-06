@@ -12,13 +12,15 @@ orig_path = list(sys.path)
 sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..')))
 try :
     devicehive = __import__('devicehive')
+    __import__('devicehive.ws')
+    ws = devicehive.ws
 finally :
     sys.path[:] = orig_path
     __name__ = orig_name
 
 
 class WsHandler(object):
-    implements(devicehive.IWebSocketHandler)
+    implements(ws.IWebSocketHandler)
     
     def __init__(self):
         self.proto_version = ''
@@ -46,7 +48,7 @@ class WebSocketParserTest(unittest.TestCase) :
     def test_headers(self):
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         parser.dataReceived(data)
         self.assertEquals('HTTP/1.1', handler.proto_version)
         self.assertEquals(101, handler.code)
@@ -57,7 +59,7 @@ class WebSocketParserTest(unittest.TestCase) :
         data += b'\x83\x03\x01\x02\x03'
         #
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         parser.dataReceived(data)
         #
         self.assertEquals('HTTP/1.1', handler.proto_version)
@@ -69,7 +71,7 @@ class WebSocketParserTest(unittest.TestCase) :
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x83\x7e\x00\x03\x01\x02\x03'
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         parser.dataReceived(data)
         self.assertEquals(101, handler.code)
         self.assertEquals(3, handler.frame[0])
@@ -79,7 +81,7 @@ class WebSocketParserTest(unittest.TestCase) :
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x82\x7f\x00\x00\x00\x00\x00\x00\x00\x04\x00\x01\x02\x03'
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         parser.dataReceived(data)
         self.assertEquals(101, handler.code)
         self.assertEquals(2, handler.frame[0])
@@ -89,11 +91,11 @@ class WebSocketParserTest(unittest.TestCase) :
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x83\x83\x01\x02\x03'
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         try :
             parser.dataReceived(data)
             self.fail('Websocket server is not allowed to mask data')
-        except devicehive.WebSocketError :
+        except ws.WebSocketError :
             pass
     
     def test_framing(self):
@@ -101,7 +103,7 @@ class WebSocketParserTest(unittest.TestCase) :
         data1 += b'\x03\x03\x01\x02\x03'
         data2  = b'\x83\x03\x04\x05\x06'
         handler = WsHandler()
-        parser = devicehive.WebSocketParser(handler)
+        parser = ws.WebSocketParser(handler)
         parser.dataReceived(data1)
         self.assertEquals(None, handler.frame)
         parser.dataReceived(data2)
