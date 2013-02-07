@@ -20,7 +20,7 @@ finally :
 
 
 class WsHandler(object):
-    implements(ws.IWebSocketHandler)
+    implements(ws.IWebSocketParserCallback)
     
     def __init__(self):
         self.proto_version = ''

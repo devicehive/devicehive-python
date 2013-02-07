@@ -3,15 +3,9 @@
 
 
 import json
-import base64
-import uuid
-import sha
 from functools import partial
-from datetime import datetime
 import struct
 from time import time
-from random import Random
-from array import array
 from zope.interface import implements, Interface
 from twisted.python import log
 from twisted.python.constants import Values, ValueConstant
@@ -20,33 +14,13 @@ from twisted.web.client import HTTP11ClientProtocol, Request
 from twisted.internet.defer import Deferred
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
-from twisted.protocols.basic import LineReceiver
 from twisted.internet import reactor
 from urlparse import urlsplit, urljoin
+from interfaces import *
+from utils import *
 
 
-__all__ = ['HTTP11DeviceHiveFactory', 'DeviceDelegate', 'Equipment', 'CommandResult', 'BaseHTTP11ClientFactory']
-
-
-def parse_url(device_hive_url) :
-    if not device_hive_url.endswith('/'):
-        device_hive_url += '/'
-    url = urlsplit(device_hive_url)
-    netloc_split = url.netloc.split(':')
-    port = 80
-    host = netloc_split[0]
-    if url.scheme == 'https':
-        port = 443
-    if len(netloc_split) == 2:
-        port = int(netloc_split[1], 10)
-    return (device_hive_url, host, port)
-
-
-def parse_date(date_str) :
-    if len(date_str) > 19:
-        return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
-    else :
-        return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
+__all__ = ['utils', 'HTTP11DeviceHiveFactory', 'DeviceDelegate', 'Equipment', 'CommandResult', 'BaseHTTP11ClientFactory']
 
 
 def connectDeviceHive(device_hive_url, factory):
@@ -176,14 +150,6 @@ class NotifyRequest(BaseRequest):
             'POST',
             'device/{0}/notification'.format(factory.device_delegate.device_id()),
             JsonDataProducer({'notification': notification, 'parameters': parameters}))
-
-
-class ApiMetadataRequest(BaseRequest):
-    def __init__(self, factory):
-        super(ApiMetadataRequest, self).__init__(factory,
-            'GET',
-            'info'.format(factory.device_delegate.device_id()),
-            JsonDataProducer( dict() ))
 
 
 class ProtocolState(Values) :
