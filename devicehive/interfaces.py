@@ -1,8 +1,18 @@
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
 
 from zope.interface import Interface, Attribute
+
+
+class INotification(Interface):
+    name = Attribute('Notification Name')
+    parameters = Attribute('Dictionary of Notification Parameters')
+    
+    def to_dict(self):
+        """
+        @return dict representation of the object
+        """
 
 
 class ICommand(Interface):
@@ -33,10 +43,19 @@ class ICommandResult(Interface):
 
 class INetwork(Interface):
     id = Attribute('Network identifier')
-    key = Attribute('Optional key that is used to protect the network from unauthorized device registrations')
-    name = Attribute('Network display name')
-    description = Attribute('Network description')
-    
+    name = Attribute('Network Name')
+    description = Attribute('Network Description')
+    key = Attribute('Network Key')
+    def to_dict(self):
+        """
+        @return dict representation of the object
+        """
+
+
+class IDeviceClass(Interface):
+    name = Attribute('Device Class Name')
+    version = Attribute('Device Class Version')
+    is_permanent = Attribute('Whether Device Class is Permanent')
     def to_dict(self):
         """
         @return dict representation of the object
@@ -46,7 +65,7 @@ class INetwork(Interface):
 class IEquipment(Interface):
     name = Attribute('Equipment display name')
     code = Attribute('Equipment code')
-    type = Attribute('Equipment type')
+    typename = Attribute('Equipment type')
     data = Attribute('Equipment data, a dict object with an arbitrary structure')
     
     def to_dict(self):
@@ -55,21 +74,14 @@ class IEquipment(Interface):
         """
 
 
-class IDeviceClass(Interface):
-    def to_dict(self):
-        """
-        @return dict representation of the object
-        """        
-
-
 class IDeviceInfo(Interface):
     id = Attribute('Device ID')
     key = Attribute('Device Key')
     name = Attribute('Device Name')
     status = Attribute('Device Status')
     data = Attribute('Device data, a dict object with an arbitrary structure')
-    network = Attribute('Network identifier or Network object')
-    device_class = Attribute('device class identifier or device cass object')
+    network = Attribute('Network identifier or Network object which implements INetwork interface')
+    device_class = Attribute('device class identifier or device class object which implements IDeviceClass interface')
     equipment = Attribute('List of IEquipment objects')
     
     def to_dict(self):
@@ -144,6 +156,12 @@ class IProtoFactory(Interface):
         """
         Subscribes a device to commands.
         
+        @type device_id: C{str}
+        @param device_id: device identifier (GUID)
+        
+        @type device_key: C{str}
+        @param device_key: A device key. Optional parameter.
+        
         @return deferred
         """ 
     
@@ -151,15 +169,23 @@ class IProtoFactory(Interface):
         """
         Unsubscribe a device from commands reception.
         
+        @type device_id: C{str}
+        @param device_id: device identifier (GUID)
+        
+        @type device_key: C{str}
+        @param device_key: device name
+        
         @return deferred
         """
     
-    def device_save(self, deviec_info):
+    def device_save(self, info):
         """
         Registers or updates a device. A valid device key is required in the deviceKey parameter
         in order to update an existing device.
         
-        @param device_info - object which implements IDeviceInfo interface
+        @type info: C{object}
+        @param info: object which implements C{IDeviceInfo} interface
+        
         @return deferred
         """
 

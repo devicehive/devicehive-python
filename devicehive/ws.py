@@ -1,5 +1,5 @@
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
 import json
 import base64
@@ -472,6 +472,11 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
 
 
 class WebSocketDeviceHiveFactory(ClientFactory):
+    """
+    TODO: rename into WebSocketFactory because it is already included
+    into devicehive module
+    """
+    
     implements(IWebSocketProtocolCallback, IProtoFactory)
     
     uri = 'localhost'

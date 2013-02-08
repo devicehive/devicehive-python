@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
+
 import unittest
 import json
 from twisted.internet import reactor
@@ -30,6 +33,7 @@ class TestRegisterRequest(unittest.TestCase):
 		def __init__(self, device_delegate):
 			self.device_delegate = device_delegate
 			self.uri = 'http://localhost/'
+			self.host = 'localhost'
 	def setUp(self):
 		self.device_delegate = TestRegisterRequest.FakeDeviceDelegate()
 		self.factory = TestRegisterRequest.FakeFactory(self.device_delegate)

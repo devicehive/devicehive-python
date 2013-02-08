@@ -1,10 +1,14 @@
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
 from twisted.internet import reactor
 from twisted.python import log
 import devicehive
-from zope.interface import Interface, Attribute
+from devicehive.interfaces import IProtoHandler
+from zope.interface import Interface, Attribute, implements
+
+
+__all__ = ['GatewayError', 'IGateway', 'BaseGateway']
 
 
 class GatewayError(Exception):
@@ -12,24 +16,41 @@ class GatewayError(Exception):
         super(GatewayError, self).__init__('Got gateway error. Reason: {0}.'.format(msg))
 
 
-class IDeviceInfo(Interface):
-    device_id = Attribute('Device ID')
-    device_key = Attribute('Device Key')
-    device_name = Attribute('Device Name')
-    device_status = Attribute('Device Status')
-    network_name = Attribute('Network Name')
-    network_description = Attribute('Network Description')
-    network_key = Attribute('Network Key')
-    device_class_name = Attribute('Device Class Name')
-    device_class_version = Attribute('Device Class Version')
-    device_class_is_permanent = Attribute('Whether Device Class is Permanent')
-    offline_timeout = Attribute('Offline Timeout')
-    equipment = Attribute('Device Equipment List') 
-
-
-class INotification(Interface):
-    name = Attribute('Notification Name')
-    parameters = Attribute('Dictionary of Notification Parameters')
+class IGateway(Interface):
+    def registration_received(self, info):
+        """
+        Method is called when new registration request comes from device(es).
+        Method could be overridden in subclass to change device registration behaviour
+        or device registration information.
+        
+        @type info: C{object}
+        @param info: A device registration information. It should implemet C{IDeviceInfo} interface.
+        """
+    
+    def notification_received(self, device_info, notification):
+        """
+        Method is called when a device sends notification. Gateway can handle it at this point.
+        
+        @type device_info: C{object}
+        @param device_info: A device information which implements C{IDeviceInfo} interface.
+        
+        @type notification: C{object}
+        @param notification: A notification which was sent. It implements C{INotification} interface.
+        """
+    
+    def do_command(self, sender, command, finish_deferred):
+        """
+        Method is called when devicehive sends a command to a device.
+        
+        @type sender: C{object}
+        @param sender: C{IProtoHandler} object which reseived a command from a protocol-factory. 
+        
+        @type command: C{object}
+        @param command: 
+        
+        @type finish_deferred: C{Deferred}
+        @param finish_deferred:
+        """
 
 
 class BaseGateway(object):
@@ -37,50 +58,33 @@ class BaseGateway(object):
     Base implementation of gateway object.
     """
     
-    class _DeviceDelegate(devicehive.DeviceDelegate):
-        def __init__(self, gateway, info):
-            super(BaseGateway._DeviceDelegate, self).__init__()
+    implements(IGateway)
+    
+    class _ProtoHandler(object):
+        """
+        This class holds implementation of application logic.
+        """
+        
+        implements(IProtoHandler)
+        
+        def __init__(self, gateway):
             self.gateway = gateway
-            self.info = info
+            self.factory = None
         
-        def device_id(self):
-            return self.info.device_id if not self.info is None else None
+        def on_failure(self, reason):
+            pass
         
-        def device_key(self):
-            return self.info.device_key if not self.info is None else None
+        def on_apimeta(self, websocket_server, server_time):
+            pass
         
-        def device_name(self):
-            return self.info.device_name if not self.info is None else None
+        def on_connected(self):
+            pass
         
-        def device_status(self):
-            return self.info.device_status if not self.info is None else None
+        def on_closing_connection(self):
+            pass
         
-        def network_name(self):
-            return self.info.network_name if not self.info is None else None
-        
-        def network_description(self):
-            return self.info.network_description if not self.info is None else None
-        
-        def network_key(self):
-            return self.info.network_key if not self.info is None else None
-        
-        def device_class_name(self):
-            return self.info.device_class_name if not self.info is None else None
-        
-        def device_class_version(self):
-            return self.info.device_class_version if not self.info is None else None
-        
-        def device_class_is_permanent(self):
-            return self.info.device_class_is_permanent if not self.info is None else None
-        
-        def offline_timeout(self):
-            return self.info.offline_timeout if not self.info is None else None
-        
-        def equipment(self):
-            return self.info.equipment if not self.info is None else None
-        
-        def do_command(self, command, finish_deferred):
-            self.gateway.do_command(self, command, finish_deferred)
+        def on_command(self, deviceguid, command, finished):
+            pass
     
     class _Item(object):
         def __init__(self, device = None, factory = None):
@@ -95,36 +99,17 @@ class BaseGateway(object):
         self.factory_cls = factory_cls
     
     def registration_received(self, device_info):
-        """
-        Method is called when new registration request comes from device(es).
-        Method could be overridden in subclass to change device registration behaviour
-        or device registration information.
-        """
         log.msg('Device {0} has sent registration information.'.format(device_info))
         device = BaseGateway._DeviceDelegate(self, device_info)
-        factory = self.factory_cls(device_delegate = device)
-        factory.on_failure = self.on_proto_failure
-        factory.on_registration_finished = self.on_proto_registered
-        self.connect(device, factory)
-    
-    def connect(self, device, factory):
-        """
-        Connects device to DeviceHive server using ProtocolClientFactory passed into
-        Gateway constructor.
-        """
-        id = device.info.device_id
-        if not id in self.devices :
-            self.devices[id] = BaseGateway._Item(device, factory)
-            reactor.connectDeviceHive(self.url, factory)
-        else :
-            raise NotImplementedError('TODO: device tries to reconnect to device-hive.')
+        factory = self.factory_cls(handler = device)
+        self.connect(device, factory)    
     
     def notification_received(self, device_info, notification):
         """
         Method is called by the device.
         """
         log.msg('Device {0} has sent notification {1}.'.format(device_info, notification))
-        id = device_info.device_id
+        id = device_info.id
         if id in self.devices :
             self.devices[id].device.notify(notification.name, **notification.parameters)
     
@@ -133,7 +118,7 @@ class BaseGateway(object):
         Method is called when devicehive calls command on device.
         """
         if not self.device_factory is None :
-            id = sender.info.device_id
+            id = sender.info.id
             if id in self.devices :
                 self.device_factory.do_command(sender.info, command, finish_deferred)
             else :
@@ -141,11 +126,17 @@ class BaseGateway(object):
         else :
             raise GatewayError('channel to device is not established')
     
-    def on_proto_failure(self, *args):
-        log.msg('Device-Hive protocol failure. Terminating reactors. Arguments: {0}'.format(args))
-    
-    def on_proto_registered(sef, *args):
-        log.msg('Device-Hive protocol has registered a device. Reason: {0}.'.format(args))
+    def connect(self, device, factory):
+        """
+        Connects device to DeviceHive server using ProtocolClientFactory passed into
+        Gateway constructor.
+        """
+        id = device.info.id
+        if not id in self.devices :
+            self.devices[id] = BaseGateway._Item(device, factory)
+            reactor.connectDeviceHive(self.url, factory)
+        else :
+            raise NotImplementedError('TODO: device tries to reconnect to device-hive.')
     
     def run(self, transport_endpoint, device_factory):
         """
@@ -153,8 +144,4 @@ class BaseGateway(object):
         """
         self.device_factory = device_factory
         transport_endpoint.listen(device_factory)
-
-
-__all__ = ['IDeviceInfo', 'INotification', 'BaseGateway']
-
 

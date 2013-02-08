@@ -1,14 +1,18 @@
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
 from datetime import datetime
 from urlparse import urlsplit, urljoin
+from twisted.internet.protocol import Protocol
+from twisted.internet.defer import Deferred
+from twisted.web.iweb import IBodyProducer
+from zope.interface import implements
 
 
-__all__ = ['parse_url', 'parse_date']
+__all__ = ['parse_url', 'parse_date', 'url_path', 'TextDataConsumer', 'EmptyDataProducer']
 
 
-def parse_url(device_hive_url) :
+def parse_url(device_hive_url):
     if not device_hive_url.endswith('/'):
         device_hive_url += '/'
     url = urlsplit(device_hive_url)
@@ -22,10 +26,45 @@ def parse_url(device_hive_url) :
     return (device_hive_url, host, port)
 
 
+def url_path(base_uri, api_uri):
+    uri = urlsplit(urljoin(base_uri, api_uri))
+    path = uri.path
+    if len(uri.query) > 0 :
+        path += '?' + uri.query
+    return path
+
+
 def parse_date(date_str) :
     if len(date_str) > 19:
         return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
     else :
         return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
 
+
+class TextDataConsumer(Protocol):
+    def __init__(self, deferred):
+        self.deferred = deferred
+        self.text = ''
+    
+    def dataReceived(self, data):
+        self.text += data
+    
+    def connectionLost(self, reason):
+        self.deferred.callback(self.text)
+
+
+class EmptyDataProducer(object):
+    
+    implements(IBodyProducer)
+    
+    def __init__(self):
+        self.finish = Deferred()
+        self.length = 1
+    
+    def startProducing(self, consumer):
+        consumer.write(' ')
+        return self.finish
+    
+    def stopProducing(self):
+        pass
 

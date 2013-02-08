@@ -1,5 +1,5 @@
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf-8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
 import struct
 import array
@@ -7,8 +7,10 @@ import uuid
 import devicehive
 import json
 from collections import Iterable
-from devicehive.gateway import IDeviceInfo, INotification
 from zope.interface import Interface, implements, Attribute
+from devicehive.interfaces import IDeviceInfo, INetwork, IDeviceClass, INotification 
+from devicehive.gateway import IGateway
+from devicehive.common import DeviceInfo as CDeviceInfo, Network as CNetwork, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
 from twisted.internet import interfaces, defer
 import twisted.internet.serialport
 from twisted.python import log
@@ -1013,26 +1015,6 @@ class BinaryProtocol(Protocol):
 
 
 class BinaryFactory(ServerFactory):
-    class _DeviceInfo(object):
-        implements(IDeviceInfo)
-        def __init__(self, device_id = '', device_key = '', device_name = '', device_status = '', \
-                     network_name = None, network_descr = None, network_key = None, devcls_name = '', \
-                     devcls_version = '', devcls_is_permanent = False, offline_timeout = None, equipment = []):
-            self.device_id = device_id
-            self.device_key = device_key
-            self.device_name = device_name
-            self.device_status = device_status
-            self.network_name = network_name
-            self.network_description = network_descr
-            self.network_key = network_key
-            self.device_class_name = devcls_name
-            self.device_class_version = devcls_version
-            self.device_class_is_permanent = devcls_is_permanent
-            self.offline_timeout = offline_timeout
-            self.equipment = equipment
-        def __str__(self):
-            return '{{device_id: "{0}", device_key: "{1}", network_name: "{2}", ... }}'.format(self.device_id, self.device_key, self.network_name)
-    
     class _Notification(object):
         implements(INotification)
         def __init__(self, name, parameters):
@@ -1070,13 +1052,11 @@ class BinaryFactory(ServerFactory):
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
         """
-        info = BinaryFactory._DeviceInfo(device_id = str(reg.device_id), \
-                                device_key = reg.device_key, \
-                                device_name = reg.device_name, \
-                                device_status = 'Online', \
-                                devcls_name = reg.device_class_name, \
-                                devcls_version = reg.device_class_version, \
-                                equipment = [devicehive.Equipment(e.name, e.code, e.typename) for e in reg.equipment])
+        info = CDeviceInfo(id = str(reg.device_id), \
+                           key = reg.device_key, \
+                           name = reg.device_name, \
+                           device_class = CDeviceClass(name = reg.device_class_name, version = reg.device_class_version), \
+                           equipment = [CEquipment(name = e.name, code = e.code, typename = e.typename) for e in reg.equipment])
         def fill_descriptors(objs, out, info) :
             for obj in objs :
                 objname = obj.name
@@ -1103,7 +1083,7 @@ class BinaryFactory(ServerFactory):
         for (notif,nname) in [(self.notification_descriptors[nname], nname) for nname in self.notification_descriptors if self.notification_descriptors[nname].intent == pkt.intent] :
             obj = BinaryFormatter.deserialize(pkt.data, notif.cls)
             params = obj.to_dict()
-            self.gateway.notification_received(notif.info, BinaryFactory._Notification(nname, params))
+            self.gateway.notification_received(notif.info, CNotification(nname, params))
     
     def packet_received(self, packet):
         log.msg('Data packet {0} has been received from device channel'.format(packet))
