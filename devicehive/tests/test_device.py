@@ -82,6 +82,23 @@ class LogicHandler(object):
     
     def on_command(self, deviceguid, command, finished):
         finished.errback(NotImplementedError())
+    
+    def notify1(self, name, **kwargs):
+        dev = self.device_info()[0]
+        self.factory.notify(name, kwargs, device_id = dev.id)
+    
+    def notify2(self, name, **kwargs):
+        dev = self.device_info()[1]
+        self.factory.notify(name, kwargs, device_id = dev.id)
+
+
+i = 0
+def looping_call(hnd):
+    global i
+    print ('Sending looping notification {0}.'.format(i))
+    hnd.notify1('looping_notification_dev1', count = i, one_more_parameter = 'parameter_value')
+    hnd.notify2('looping_notification_dev2', count = i, one_more_parameter = 'parameter_value')
+    i += 1
 
 
 def main():
@@ -89,6 +106,10 @@ def main():
     handler = LogicHandler()
     factory = devicehive.poll.PollFactory(handler)
     reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi8/', factory)
+    #
+    lc = task.LoopingCall(looping_call, handler)
+    lc.start(10)
+    #
     reactor.run()
 
 

@@ -439,9 +439,6 @@ class BaseHTTP11ClientFactory(ClientFactory):
             self.state.do_retry = True
         if (not self.started) and (connector is not None) and (connector.state == 'disconnected') :
             self.handleConnectionLost(connector)
-    
-    def notify(self, notification, kwargs):
-        raise NotImplementedError()
 
 
 class _SingleRequestHTTP11DeviceHiveFactory(BaseHTTP11ClientFactory):
