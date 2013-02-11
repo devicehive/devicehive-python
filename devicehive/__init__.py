@@ -158,7 +158,8 @@ class Notification(object):
 
 class ApiInfoRequest(Request):
     def __init__(self, url, host):
-        super(ApiInfoRequest, self).__init__('GET', url_path(url, 'info'), ApiInfoRequest.headers(host), EmptyDataProducer())
+        u = url_path(url, 'info')
+        super(ApiInfoRequest, self).__init__('GET', u, ApiInfoRequest.headers(host), EmptyDataProducer())
     
     @staticmethod
     def headers(host):

@@ -56,12 +56,14 @@ class LogicHandler(object):
         di1 = devicehive.DeviceInfo(id = '22345678-9012-3456-7890-123456789012',
                                    key = 'net11dev1',
                                    name = 'PyExample1',
+                                   status = 'Online',
                                    network = net,
                                    device_class = dec,
                                    equipment = eqp)
         di2 = devicehive.DeviceInfo(id = '13456789-0123-4567-8901-234567890123',
                                    key = 'net11dev2',
                                    name = 'PythonExample2',
+                                   status = 'Online',
                                    network = net,
                                    device_class = dec,
                                    equipment = eqp)
@@ -86,7 +88,7 @@ def main():
     log.startLogging(sys.stdout)
     handler = LogicHandler()
     factory = devicehive.poll.PollFactory(handler)
-    reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi7/', factory)
+    reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi8/', factory)
     reactor.run()
 
 

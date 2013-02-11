@@ -16,7 +16,7 @@ from twisted.web.http_headers import Headers
 from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
 from interfaces import IProtoFactory, IProtoHandler
-from devicehive import ApiInfoRequest, DhError
+from devicehive import ApiInfoRequest, DhError, CommandResult
 from devicehive.utils import TextDataConsumer
 
 
@@ -378,7 +378,6 @@ class ApiInfoProtocol(HTTP11ClientProtocol):
         self.factory = factory
     
     def connectionMade(self):
-        log.msg('Make request to {0}, host {0}.'.format(self.factory.url, self.factory.host))
         self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.on_ok, self.on_fail)
     
     def on_ok(self, response):
@@ -528,7 +527,7 @@ class DevicePollFactory(BaseHTTP11ClientFactory):
     
     def single_request(self, state):
         subfactory = _SingleRequestHTTP11DeviceHiveFactory(self, state, self.retries)
-        reactor.connectTCP(self.host, self.port, subfactory)
+        reactor.connectTCP(self.owner.host, self.owner.port, subfactory)
     
     def on_failure(self):
         log.msg('Protocol failure. Stopping reactor.')
@@ -578,7 +577,7 @@ class PollFactory(ClientFactory):
     # begin IPollOwner implementation
     def on_command(self, info, cmd, finish):
         if (info.id in self.devices) and self.test_handler() :
-            self.on_command(info.id, commad, finish)
+            self.handler.on_command(info.id, cmd, finish)
     # end IPollOwner
     
     # begin IProtoFactory implementation
