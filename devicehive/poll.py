@@ -17,6 +17,7 @@ from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
 from interfaces import IProtoFactory, IProtoHandler
 from devicehive import ApiInfoRequest, DhError
+from devicehive.utils import TextDataConsumer
 
 
 __all__ = ['JsonDataProducer', 'JsonDataConsumer', 'BaseRequest', 'RegisterRequest', 'NotifyRequest', 'ReportRequest', 'CommandRequest', 'PollFactory']
@@ -98,15 +99,15 @@ class BaseRequest(Request):
     def __init__(self, factory, method, api, body_producer = None):
         headers = BaseRequest.headers(factory.host, factory.info.id, factory.info.key)
         path = url_path(factory.url, api)
-        super(BaseRequest, self).__init__(method, '/ecapi7/device', headers, body_producer)
+        super(BaseRequest, self).__init__(method, path, headers, body_producer)
     
     @staticmethod
     def headers(host, device_id, device_key):
-        headers = Headers({'Host': ['http://ecloud.dataart.com',],
+        headers = Headers({'Host': [host],
                            'Content-Type': ['application/json',],
-                           'Auth-DeviceID': [device_id,],
-                           'Auth-DeviceKey': [device_key,],
-                           'Accept': ['application/json',]})
+                           'Auth-DeviceID': [device_id],
+                           'Auth-DeviceKey': [device_key],
+                           'Accept': ['application/json']})
         return headers
 
 
@@ -289,9 +290,9 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
 
     def connectionMade(self):
         if self.factory.state.value == ProtocolState.Register :
-            res = self.request(ApiInfoRequest(self.factory.url, self.factory.host)) #  RegisterRequest(self.factory))
-            res.addCallbacks(self._register_done, self._critical_error)
+            self.request(RegisterRequest(self.factory)).addCallbacks(self._register_done, self._critical_error)
         elif self.factory.state.value == ProtocolState.Command :
+            log.msg('Polling')
             res = self.request(CommandRequest(self.factory))
             res.addCallbacks(self._command_done, self._critical_error)
         else :
@@ -299,7 +300,7 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
             if callable(self.factory.on_failure) :
                 self.factory.on_failure()
             pass
-
+    
     def _critical_error(self, reason):
         """
         Any critical error will stop reactor.
@@ -317,17 +318,13 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         if response.code == 200:
             log.msg('Registration has been done.')
             self.factory.registered = True
-            if callable(self.factory.on_registration_finished) :
-                self.factory.on_registration_finished(response)
             self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
         else :
             def get_response_text(reason):
-                log.err('Registration failed. Response: <{0}>. Code <{1}>. Reason: <{2}>.'.format(response, response.code, reason))
+                log.err('Registration failed. Response code {0}. Reason: {1}.'.format(response.code, reason))
             response_defer = Deferred()
             response_defer.addCallbacks(get_response_text, get_response_text)
             response.deliverBody(TextDataConsumer(response_defer))
-            if callable(self.factory.on_registration_finished) :
-                self.factory.on_registration_finished(response)
             self.factory.retry(self.transport.connector)
     
     def _command_done(self, response):
@@ -380,8 +377,8 @@ class ApiInfoProtocol(HTTP11ClientProtocol):
         self.factory = factory
     
     def connectionMade(self):
-        log.msg('Make request to {0} host'.format(self.factory.host))
-        self.request(ApiInfoRequest(self.factory.uri, self.factory.host)).addCallbacks(self.on_ok, self.on_fail)
+        log.msg('Make request to {0}, host {0}.'.format(self.factory.url, self.factory.host))
+        self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.on_ok, self.on_fail)
     
     def on_ok(self, response):
         if response.code == 200:
@@ -532,14 +529,10 @@ class DevicePollFactory(BaseHTTP11ClientFactory):
         subfactory = _SingleRequestHTTP11DeviceHiveFactory(self, state, self.retries)
         reactor.connectTCP(self.host, self.port, subfactory)
     
-    def on_registration_finished(self, reason=None):
-        log.msg('Registration finished for reason: {0}.'.format(reason))
-    
     def on_failure(self):
         log.msg('Protocol failure. Stopping reactor.')
     
     def do_command(self, cmd, finished):
-        log.msg('GOT COMMAND FROM SEVER: {0}'.format(cmd))
         self.owner.do_command(self.info, cmd, finished)
     
     def __repr__(self):
@@ -572,15 +565,11 @@ class PollFactory(ClientFactory):
     
     # begin callbacks
     def api_received(self, url, host, port, server_time):
-        log.msg('API Info <url: {0}, host: {1}, port: {2}, server-time: {3}>.'.format(url, host, port, server_time))
-        self.url = url
-        self.host = host
-        self.port = port
         self.time = server_time
         if self.test_handler() :
             # for long-polling api, "receiving api info" and "connection" events
             # mean the same.
-            self.handler.on_apimeta(self.uri, self.time)
+            self.handler.on_apimeta(self.url, self.time)
             self.handler.on_connected()
     # end callbacks
     

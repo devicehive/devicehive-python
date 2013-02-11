@@ -33,7 +33,7 @@ def connectDeviceHive(device_hive_url, factory):
     reactor.connectDeviceHive(device_hive_url, factory)
     """
     url, host, port = parse_url(device_hive_url)
-    factory.uri = url
+    factory.url  = url
     factory.host = host
     factory.port = port
     return reactor.connectTCP(host, port, factory)
@@ -60,9 +60,13 @@ class Network(object):
     implements(INetwork)
     
     def __init__(self, id = None, key = None, name = None, descr = None):
+        """
+        @type name: C{str}
+        @param name: Network name. In poll registration requst the network name property should not be null.
+        """
         self.id = id
         self.key = key
-        self.name = None
+        self.name = name
         self.description = descr
     
     def to_dict(self):
