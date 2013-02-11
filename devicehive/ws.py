@@ -24,11 +24,13 @@ from twisted.web.http_headers import Headers
 from twisted.protocols.basic import LineReceiver
 from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date
-from interfaces import IProtoFactory, IProtoHandler
+from devicehive import ApiInfoRequest, CommandResult
+from devicehive.utils import JsonDataConsumer
+from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass
 
 
 __all__ = ['WebSocketError', 'IWebSocketParserCallback', 'WebSocketParser', 'IWebSocketCallback', 'WebSocketProtocol13',
-           'IWebSocketProtocolCallback', 'IWebSocketMessanger', 'WebSocketDeviceHiveProtocol', 'WebSocketDeviceHiveFactory']
+           'IWebSocketProtocolCallback', 'IWebSocketMessanger', 'WebSocketDeviceHiveProtocol', 'WebSocketFactory']
 
 
 class WebSocketError(Exception):
@@ -264,6 +266,7 @@ class WebSocketProtocol13(object):
         if loname == 'sec-websocket-accept' :
             if not self.validate_security_answer(value) :
                 raise WebSocketError('websocket server returned invalid security key {0} in response to {1}'.format(value, self.security_key))
+            pass
         elif loname == 'connection' :
             if value.lower() != 'upgrade' :
                 raise WebSocketError('websocket server failed to upgrade connection, status = {0}'.format(value))
@@ -291,7 +294,7 @@ class WebSocketProtocol13(object):
             raise WebSocketError('opcode {0} is not supported'.format(opcode))
     
     def validate_security_answer(self, answer):
-        skey = sha.new(self.security_key + WS_GUID)
+        skey = sha.new(self.security_key + WS_GUID.encode('utf-8'))
         key = base64.b64encode(skey.digest())
         return answer == key
     
@@ -300,21 +303,22 @@ class WebSocketProtocol13(object):
                   'Host: {0}\r\n' + \
                   'Upgrade: websocket\r\n' + \
                   'Connection: Upgrade\r\n' + \
-                  'Sec-WebSocket-Key: {1}' + \
+                  'Sec-WebSocket-Key: {1}\r\n' + \
                   'Origin: http://{0}\r\n' + \
                   'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
                   'Sec-WebSocket-Version: 13\r\n\r\n'
-        return header.format(self.host, self.security_key).encode('utf-8')
+        self.transport.write(header.format(self.host, self.security_key).encode('utf-8'))
     
     def send_frame(self, fin, opcode, data) :
-        frame = struct.pack('B', (0x80 if fin else 0x00) | opcode)[0]
+        prefix = (0x80 if fin else 0x00) | opcode
+        frame = struct.pack('B', prefix )[0]
         l = len(data)
         if l < 126:
             frame += struct.pack('B', l | 0x80)[0]
         elif l <= 0xFFFF:
-            frame += struct.pack('!BH', 126 | 0x80, l)[0]
+            frame += struct.pack('!BH', 126 | 0x80, l)
         else:
-            frame += struct.pack('!BQ', 127 | 0x80, l)[0]
+            frame += struct.pack('!BQ', 127 | 0x80, l)
         mask  = chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff)) + chr(self.rand.randint(0, 0xff))
         frame += mask
         frame += array('B', [ord(data[i]) ^ ord(mask[i % 4]) for i in range(len(data))]).tostring()
@@ -377,15 +381,6 @@ class EmptyDataProducer(object):
         pass
 
 
-class ApiMetadataRequest(Request):
-    def __init__(self, host):
-        super(ApiMetadataRequest, self).__init__('GET', 'info', ApiMetadataRequest.headers(host), EmptyDataProducer())
-    
-    @staticmethod
-    def headers(host) :
-        return Headers({'Host': [host], 'Content-Type': ['application/json'], 'Accept': ['application/json']})
-
-
 class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
     
     implements(IWebSocketCallback, IWebSocketMessanger)
@@ -416,7 +411,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
     def connectionMade(self):
         if self.test_factory() :
             if self.factory.state == WS_STATE_APIMETA :
-                self.request(ApiMetadataRequest(self.factory.host)).addCallbacks(self.api_meta_done, self.critical_error)
+                self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.api_received, self.critical_error)
             elif self.factory.state == WS_STATE_WS_CONNECTING :
                 self.socket = WebSocketProtocol13(self, self.transport, self.factory.host)
                 self.socket.send_headers()
@@ -439,13 +434,13 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
             self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, json.dumps(message))
             return True
         else :
-            return False    
+            return False
     
-    def api_meta_done(self, response):
+    def api_received(self, response):
         if response.code == 200 :
             def get_response(resp, factory, connector):
-                url, host, port = parse_url(response['webSocketServerUrl'])
-                server_time = parse_date(response['serverTimestamp'])
+                url, host, port = parse_url(resp['webSocketServerUrl'])
+                server_time = parse_date(resp['serverTimestamp'])
                 factory.api_received(url, host, port, server_time, connector)
             
             def err_response(reason, connector):
@@ -471,11 +466,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
             self.factory.failure(reason, self.transport.connector)
 
 
-class WebSocketDeviceHiveFactory(ClientFactory):
-    """
-    TODO: rename into WebSocketFactory because it is already included
-    into devicehive module
-    """
+class WebSocketFactory(ClientFactory):
     
     implements(IWebSocketProtocolCallback, IProtoFactory)
     
@@ -492,12 +483,12 @@ class WebSocketDeviceHiveFactory(ClientFactory):
         @type handler: C{object}
         @param handler: handler has to implement C{IProtoHandler} interface
         """
-        ClientFactory.__init__(self)
         self.handler = handler
         if self.test_handler() :
             self.handler.factory = self
         else :
             raise TypeError('handler should implements IProtoHandler interface')
+        self.devices = {}
     
     def test_handler(self):
         return IProtoHandler.implementedBy(self.handler.__class__)
@@ -514,8 +505,9 @@ class WebSocketDeviceHiveFactory(ClientFactory):
         self.proto = WebSocketDeviceHiveProtocol(self)
         return self.proto
     
-    def handleConnectionLost(self, connector) :
+    def clientConnectionLost(self, connector, reason):
         if self.state == WS_STATE_WS_CONNECTING :
+            log.msg('WebSocket server {0}:{1}.'.format(self.host, self.port))
             reactor.connectTCP(self.host, self.port, self)
     
     def request_counter():
@@ -535,6 +527,8 @@ class WebSocketDeviceHiveFactory(ClientFactory):
             msgid = self.request_counter.next()
             message['requestId'] = msgid
             self.callbacks[msgid] = Deferred()
+            
+            log.msg('Sending message {0}.'.format(message))
             if self.proto.send_message(message) :
                 return self.callbacks[msgid]
             else :
@@ -547,10 +541,16 @@ class WebSocketDeviceHiveFactory(ClientFactory):
     
     # begin IWebSocketProtocolCallback implementation
     def failure(self, reason, connector):
+        """
+        TODO: determine which device has failed
+        """
         log.err('Critial error. Reason: {0}.'.format(reason))
+        if self.test_handler():
+            self.handler.on_failure(None, reason)
     
     def api_received(self, url, host, port, server_time, connector):
-        self.uri = url
+        # TODO register 'ws://' and 'wss://' protocol handlers in twisted
+        self.uri = url.replace('ws://', 'http://', 1).replace('wss://', 'https://')
         self.host = host
         self.port = port
         self.server_time = server_time
@@ -569,23 +569,42 @@ class WebSocketDeviceHiveFactory(ClientFactory):
             self.handler.on_closing_connection()
     
     def frame_received(self, message):
+        log.msg('message received {0}'.format(message))
         if ('requestId' in message) and (message['requestId'] in self.callbacks) :
             reqid = message['requestId']
             deferred = self.callbacks[reqid]
             del self.callbacks[reqid]
-            d.callback(message)
+            deferred.callback(message)
         elif ('action' in message) and (message['action'] == 'command/insert') :
             if self.test_handler() :
-                cmd = message['command']
+                msg = message
+                cmd = msg['command']
+                info = ( self.devices[msg['deviceGuid']] if ('deviceGuid' in msg) and (msg['deviceGuid'] in self.devices) else None)
+                device_id = (info.id if info is not None else None)
+                device_key = (info.key if info is not None else None)
                 def on_ok(result):
-                    raise NotImplementedError()
-                    self.update_command(self, cmd, (cmd['deviceId'] if 'deviceId' in cmd else None), (cmd['deviceKey'] if 'deviceKey' is cmd else None))
+                    res = {'id': cmd['id'], 'command': cmd}
+                    if isinstance(result, CommandResult) :
+                        res['command']['result'] = result.result
+                        res['command']['status'] = result.status
+                    else :
+                        res['command']['result'] = result
+                    self.update_command(cmd, device_id = device_id, device_key = device_key)
                 def on_err(reason):
-                    raise NotImplementedError()
-                    self.update_command(self, cmd, (cmd['deviceId'] if 'deviceId' in cmd else None), (cmd['deviceKey'] if 'deviceKey' is cmd else None))
+                    res = {'id': cmd['id'], 'command': cmd}
+                    if isinstance(reason, CommandResult) :
+                        res['command']['result'] = result.result if isinstance(result.result, dict) else str(result.result)
+                        res['command']['status'] = result.status if isinstance(result.status, dict) else str(result.status)
+                    else :
+                        res['command']['result'] = reason if isinstance(reason, dict) else str(reason) 
+                        res['command']['status'] = 'Failed'
+                    self.update_command(cmd, device_id = device_id, device_key = device_key)
                 finished = Deferred()
                 finished.addCallbacks(on_ok, on_err)
-                self.handler.on_command(message['deviceGuid'], message['command'], finished)
+                try :
+                    self.handler.on_command(message['deviceGuid'], message['command'], finished)
+                except ex:
+                    log.err('Failed to invoke command. Reason: {0}.'.format(ex))
             else :
                 raise WebSocketError('handler should be set')
     # end IWebSocketProtocolCallback    
@@ -599,13 +618,13 @@ class WebSocketDeviceHiveFactory(ClientFactory):
     
     def notify(self, notification, device_id = None, device_key = None):
         request = {'action': 'notification/insert', 'notification': {'notification': notification, 'parameters': params}}
-        if (device_id is not None) or (device_key is not None) :
+        if (device_id is not None) :
             request['deviceId'] = device_id
+        if (device_key is not None) :
             request['deviceKey'] = device_key
         return self.send_message(request)
     
     def update_command(self, command, device_id = None, device_key = None):
-        # TODO: strict type for command parameter. It has to implement ICommand interface
         request = {'action': 'command/update',
                    'commandId': command['id'],
                    'command': {'command': command['command'],
@@ -614,27 +633,32 @@ class WebSocketDeviceHiveFactory(ClientFactory):
                                'flags': command['flags'],
                                'status': command['status'],
                                'result': command['result']}}
-        if (device_id is not None) or (device_key is not None) :
+        if device_id is not None :
             request['deviceId'] = device_id
+        if device_key is not None :
             request['deviceKey'] = device_key
         return self.send_message(request)
     
     def subscribe(self, device_id = None, device_key = None):
+        log.msg('Subscribe device {0}.'.format(device_id))
         request = {'action': 'command/subscribe'}
-        if (device_id is not None) or (device_key is not None) :
-            request['device_id'] = device_id
-            request['device_key'] = device_key
+        if device_id is not None :
+            request['deviceId'] = device_id
+        if device_key is not None :
+            request['deviceKey'] = device_key
         return self.send_message(request)
     
     def unsubscribe(self, device_id = None, device_key = None):
         request = {'action': 'command/unsubscribe'}
-        if (device_id is not None) or (device_key is not None) :
+        if device_id is not None :
             request['deviceId'] = device_id
+        if device_key is not None :
             request['deviceKey'] = device_key
         return self.send_message(request)
     
     def device_save(self, info):
-        if not IDeviceInfo.implementedBy(device_info.__class__) :
+        log.msg('device_save {0}'.format(info))
+        if not IDeviceInfo.implementedBy(info.__class__) :
             raise WebSocketError('device_info has to implement IDeviceInfo interface')
         request = {'action': 'device/save',
                    'deviceId': info.id,
@@ -645,6 +669,8 @@ class WebSocketDeviceHiveFactory(ClientFactory):
                               'network': info.network.to_dict() if INetwork.implementedBy(info.network.__class__) else info.network,
                               'deviceClass': info.device_class.to_dict() if IDeviceClass.implementedBy(info.device_class.__class__) else info.device_class,
                               'equipment': [e.to_dict() for e in info.equipment]}}
-        return self.send_message(request)
+        def on_ok(result):
+            self.devices[info.id] = info
+        return self.send_message(request).addCallback(on_ok)
     # end IProtoFactory implementation
 

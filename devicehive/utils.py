@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
 
+import json
 from datetime import datetime
 from urlparse import urlsplit, urljoin
 from twisted.internet.protocol import Protocol
@@ -51,6 +52,23 @@ class TextDataConsumer(Protocol):
     
     def connectionLost(self, reason):
         self.deferred.callback(self.text)
+
+
+class JsonDataConsumer(Protocol):
+    """
+    L{JsonDataConsumer}
+    """
+    
+    def __init__(self, deferred):
+        self.deferred = deferred
+        self.data = []
+    
+    def dataReceived(self, data):
+        self.data.append(data)
+    
+    def connectionLost(self, reason):
+        data = json.loads(''.join(self.data))
+        self.deferred.callback(data)
 
 
 class EmptyDataProducer(object):

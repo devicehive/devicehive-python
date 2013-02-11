@@ -17,7 +17,7 @@ from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
 from interfaces import IProtoFactory, IProtoHandler
 from devicehive import ApiInfoRequest, DhError, CommandResult
-from devicehive.utils import TextDataConsumer
+from devicehive.utils import TextDataConsumer, JsonDataConsumer
 
 
 __all__ = ['JsonDataProducer', 'JsonDataConsumer', 'BaseRequest', 'RegisterRequest', 'NotifyRequest', 'ReportRequest', 'CommandRequest', 'PollFactory']
@@ -78,23 +78,6 @@ class JsonDataProducer(object):
 
     def stopProducing(self):
         pass
-
-
-class JsonDataConsumer(Protocol):
-    """
-    L{JsonDataConsumer}
-    """
-
-    def __init__(self, deferred):
-        self.deferred = deferred
-        self.data = []
-
-    def dataReceived(self, data):
-        self.data.append(data)
-
-    def connectionLost(self, reason):
-        data = json.loads(''.join(self.data))
-        self.deferred.callback(data)
 
 
 class BaseRequest(Request):
@@ -608,12 +591,9 @@ class PollFactory(ClientFactory):
             return fail(DhError('device_id parameter expected'))
     
     def update_command(self, command, device_id = None, device_key = None):
-        """
-        TODO: unify ws and poll interfaces
-        """
         if device_id in self.devices :
             factory = self.factories[device_id]
-            factory.next_state(ProtocolState.Report, ReportData(command, ''), self.transport.connector)
+            factory.next_state(ProtocolState.Report, ReportData(command, command['result']), self.transport.connector)
         else :
             return fail(DhError('device_id parameter expected'))
     

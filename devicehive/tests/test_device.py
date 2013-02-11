@@ -10,6 +10,7 @@ from zope.interface import implements
 sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..')))
 import devicehive
 import devicehive.poll
+import devicehive.ws
 import devicehive.interfaces
 
 
@@ -70,6 +71,7 @@ class LogicHandler(object):
         return (di1, di2)
     
     def on_connected(self):
+        log.msg('On connected')
         for info in self.device_info() :
             self.connect_device(info)
     
@@ -92,11 +94,11 @@ class LogicHandler(object):
     
     def notify1(self, name, **kwargs):
         dev = self.device_info()[0]
-        self.factory.notify(name, kwargs, device_id = dev.id)
+        # self.factory.notify(name, kwargs, device_id = dev.id)
     
     def notify2(self, name, **kwargs):
         dev = self.device_info()[1]
-        self.factory.notify(name, kwargs, device_id = dev.id)
+        # self.factory.notify(name, kwargs, device_id = dev.id)
 
 
 i = 0
@@ -108,14 +110,21 @@ def looping_call(hnd):
     i += 1
 
 
+
+def create_factory(use_ws, handler) :
+    if use_ws :
+        return devicehive.ws.WebSocketFactory(handler)
+    else :
+        return devicehive.poll.PollFactory(handler)
+
 def main():
     log.startLogging(sys.stdout)
     handler = LogicHandler()
-    factory = devicehive.poll.PollFactory(handler)
+    factory = create_factory(True, handler)
     reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi8/', factory)
     #
     lc = task.LoopingCall(looping_call, handler)
-    lc.start(10)
+    # lc.start(10)
     #
     reactor.run()
 
