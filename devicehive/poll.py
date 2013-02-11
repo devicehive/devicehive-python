@@ -609,10 +609,13 @@ class PollFactory(ClientFactory):
     
     def update_command(self, command, device_id = None, device_key = None):
         """
-        Updates an existing device command.
-        
-        @return deferred
+        TODO: unify ws and poll interfaces
         """
+        if device_id in self.devices :
+            factory = self.factories[device_id]
+            factory.next_state(ProtocolState.Report, ReportData(command, ''), self.transport.connector)
+        else :
+            return fail(DhError('device_id parameter expected'))
     
     def subscribe(self, device_id = None, device_key = None):
         if device_id in self.devices :
@@ -623,13 +626,10 @@ class PollFactory(ClientFactory):
             return fail(DhError('Failed to subscribe device "{0}".'.format(device_id)))
     
     def unsubscribe(self, device_id = None, device_key = None):
-        """
-        Unsubscribe a device from commands reception.
-        
-        @type device_id
-        
-        @return deferred
-        """
+        if (device_id is not None) and (device_id in self.devices) :
+            raise NotImplementedError('unsubscribe method is not immplemented')
+        else :
+            return fail(DhError('device_id parameter expected'))
     
     def device_save(self, info):
         self.devices[info.id] = info
