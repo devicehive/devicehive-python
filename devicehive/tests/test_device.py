@@ -43,25 +43,25 @@ class LogicHandler(object):
         pass
     
     def on_command(self, deviceguid, command, finished):
-        raise NotImplementedError()
+        raise NotImplementedError('COMMAND IS NOT IMPLEMENTED')
     
     def device_info(self):
         """
         Method returns a list of object each of which has to
         implement C{devicehive.interfaces.IDeviceInfo} interface.
         """
-        net = devicehive.Network(id = '1', key = 'network11', name = 'Network 1.1', descr = 'Network version 1.1')
+        net = devicehive.Network(key = 'network11', name = 'network11', descr = 'network11')
         dec = devicehive.DeviceClass(name = 'Example Device Class', version = 'Example Device Class 1.1')
         eqp = [devicehive.Equipment(name = 'Example Equipment', code = 'EXEQCO', type = 'ExampleType11'), ]
-        di1 = devicehive.DeviceInfo(id = '0204eede-2297-11e2-882c-e0cb4eb92129',
-                                   key = 'Exmaple Device 1 Key',
-                                   name = 'DeviceHive Python Example 1',
+        di1 = devicehive.DeviceInfo(id = '22345678-9012-3456-7890-123456789012',
+                                   key = 'net11dev1',
+                                   name = 'PyExample1',
                                    network = net,
                                    device_class = dec,
                                    equipment = eqp)
-        di2 = devicehive.DeviceInfo(id = '0304eede-2297-11e2-882c-e0cb4eb92129',
-                                   key = 'Exmaple Device 2 Key',
-                                   name = 'DeviceHive Python Example 2',
+        di2 = devicehive.DeviceInfo(id = '13456789-0123-4567-8901-234567890123',
+                                   key = 'net11dev2',
+                                   name = 'PythonExample2',
                                    network = net,
                                    device_class = dec,
                                    equipment = eqp)

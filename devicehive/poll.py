@@ -24,7 +24,7 @@ __all__ = ['JsonDataProducer', 'JsonDataConsumer', 'BaseRequest', 'RegisterReque
 
 
 class ICommandHandler(Interface):
-    def do_command(self, cmd, finish):
+    def on_command(self, cmd, finish):
         """
         @type cmd: C{dict}
         @param cmd: command
@@ -39,7 +39,7 @@ class IPollOwner(Interface):
     host = Attribute('devicehive host. it is used dring HTTP headers forming. TODO: consider to get rid of it.')
     port = Attribute('devicehive API port')
     
-    def do_command(self, info, cmd, finish):
+    def on_command(self, info, cmd, finish):
         """
         Processes devicehive command.
         
@@ -292,7 +292,6 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         if self.factory.state.value == ProtocolState.Register :
             self.request(RegisterRequest(self.factory)).addCallbacks(self._register_done, self._critical_error)
         elif self.factory.state.value == ProtocolState.Command :
-            log.msg('Polling')
             res = self.request(CommandRequest(self.factory))
             res.addCallbacks(self._command_done, self._critical_error)
         else :
@@ -316,7 +315,12 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         Method is called when the answer to registration request is received.
         """
         if response.code == 200:
-            log.msg('Registration has been done.')
+            def get_response_text(reason):
+                log.err('Registration succeed. Response code {0}. Reason: {1}.'.format(response.code, reason))
+            response_defer = Deferred()
+            response_defer.addCallbacks(get_response_text, get_response_text)
+            response.deliverBody(TextDataConsumer(response_defer))
+            
             self.factory.registered = True
             self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
         else :
@@ -343,17 +347,17 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
                     err_func = partial(__command_error, command = cmd)
                     # Obtain only new commands next time
                     if self.factory.timestamp is not None :
-                        self.factory.timestamp = max(self.factory.timestamp, self._parse_date(cmd['timestamp']))
+                        self.factory.timestamp = max(self.factory.timestamp, parse_date(cmd['timestamp']))
                     else :
-                        self.factory.timestamp = self._parse_date(cmd['timestamp'])
+                        self.factory.timestamp = parse_date(cmd['timestamp'])
                     # DeviceDelegate has to use this deferred object to notify us that command processing finished.
                     cmd_defer = Deferred()
                     cmd_defer.addCallbacks(ok_func, err_func)
                     # Actual run of command
                     try :
-                        self.factory.do_command(cmd, cmd_defer)
+                        self.factory.on_command(cmd, cmd_defer)
                     except Exception, err :
-                        log.err('Failed to execute device-delegate do_command. Reason: <{0}>.'.format(err))
+                        log.err('Failed to execute device-delegate on_command. Reason: <{0}>.'.format(err))
                         err_func(err)
                 self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
             def err_response(reason):
@@ -365,9 +369,6 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         else :
             log.err('Failed to get command request response. Response: <{0}>. Code: <{1}>.'.format(response, response.code))
             self.factory.retry(self.transport.connector)
-    
-    def _parse_date(self, date_str):
-        return parse_date(date_str)
 
 
 class ApiInfoProtocol(HTTP11ClientProtocol):
@@ -472,9 +473,9 @@ class DevicePollFactory(BaseHTTP11ClientFactory):
         self.poll_interval = poll_interval
         self.retries = retries
         # for internal usage
-        self.timestamp = None
         self.registered = False
         self.states_stack = []
+        self.timestamp = self.owner.timestamp
     
     url = property(fget = lambda self : self.owner.url)
     
@@ -532,8 +533,8 @@ class DevicePollFactory(BaseHTTP11ClientFactory):
     def on_failure(self):
         log.msg('Protocol failure. Stopping reactor.')
     
-    def do_command(self, cmd, finished):
-        self.owner.do_command(self.info, cmd, finished)
+    def on_command(self, cmd, finished):
+        self.owner.on_command(self.info, cmd, finished)
     
     def __repr__(self):
         return '<{0} for device {1}>'.format(self.__class__.__name__, self.info)
@@ -546,6 +547,7 @@ class PollFactory(ClientFactory):
     url  = 'http://localhost'
     host = 'localhost'
     port = 80
+    timestamp = None
     
     poll_interval = 1.0
     retries = 3
@@ -565,13 +567,19 @@ class PollFactory(ClientFactory):
     
     # begin callbacks
     def api_received(self, url, host, port, server_time):
-        self.time = server_time
+        self.timestamp = server_time
         if self.test_handler() :
             # for long-polling api, "receiving api info" and "connection" events
             # mean the same.
-            self.handler.on_apimeta(self.url, self.time)
+            self.handler.on_apimeta(self.url, self.timestamp)
             self.handler.on_connected()
     # end callbacks
+    
+    # begin IPollOwner implementation
+    def on_command(self, info, cmd, finish):
+        if (info.id in self.devices) and self.test_handler() :
+            self.on_command(info.id, commad, finish)
+    # end IPollOwner
     
     # begin IProtoFactory implementation
     def authenticate(self, device_id, device_key):
@@ -584,13 +592,12 @@ class PollFactory(ClientFactory):
         """
     
     def notify(self, notification, params, device_id = None, device_key = None):
-        """
-        Sends notification message to devicehive server.
-        
-        @param notification - notification identifier
-        @param param - dictionary of notification parameters
-        @return deferred
-        """
+        if (device_id is not None) and (device_id in self.factories) :
+            factory = self.factories[device_id]
+            factory.notify(notification, params)
+            return succeed(None)
+        else :
+            return fail(DhError('device_id parameter expected'))
     
     def update_command(self, command, device_id = None, device_key = None):
         """
