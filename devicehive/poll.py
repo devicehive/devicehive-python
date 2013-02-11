@@ -52,6 +52,12 @@ class IPollOwner(Interface):
         @type finish: C{Defer}
         @param finish: a user has to callback this deferred in order to signal to the library that commad has been processed.
         """
+    
+    def on_failure(self, device_id, reason):
+        """
+        @type device_id: C{str}
+        @param device_id: device guid
+        """
 
 
 class JsonDataProducer(object):
@@ -238,8 +244,7 @@ class _ReportHTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
     def _critical_error(self, reason):
         log.err("Device-hive report-request failure. Critical error: <{0}>".format(reason))
         if reactor.running :
-            if callable(self.factory.on_failure) :
-                self.factory.on_failure()
+            self.factory.on_failure(reason)
         pass
 
 
@@ -271,8 +276,7 @@ class _NotifyHTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
     def _critical_error(self, reason):
         log.err("Device-hive notify-request failure. Critical error: <{0}>".format(reason))
         if reactor.running :
-            if callable(self.factory.on_failure) :
-                self.factory.on_failure()
+            self.factory.on_failure(reason)
         pass
 
 
@@ -295,10 +299,7 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
             res = self.request(CommandRequest(self.factory))
             res.addCallbacks(self._command_done, self._critical_error)
         else :
-            log.err("Unsupported device-hive protocol state <{0}>.".format(self.factory.state.value))
-            if callable(self.factory.on_failure) :
-                self.factory.on_failure()
-            pass
+            self.factory.on_failure(DhError("Unsupported device-hive protocol state <{0}>.".format(self.factory.state.value)))
     
     def _critical_error(self, reason):
         """
@@ -435,6 +436,9 @@ class BaseHTTP11ClientFactory(ClientFactory):
         return False
     
     def retry(self, connector = None):
+        """
+        TODO: user logic need to decide where reconnection is required
+        """
         if self.state.retries > 0 :
             self.state.do_retry = True
         if (not self.started) and (connector is not None) and (connector.state == 'disconnected') :
@@ -456,6 +460,9 @@ class _SingleRequestHTTP11DeviceHiveFactory(BaseHTTP11ClientFactory):
             return _NotifyHTTP11DeviceHiveProtocol(self)
         else :
             raise NotImplementedError('Unsupported factory state <{0}>.'.format(self.state.value))
+    
+    def on_failure(self, reason):
+        self.owner.on_failure(reason)
 
 
 class DevicePollFactory(BaseHTTP11ClientFactory):
@@ -526,8 +533,9 @@ class DevicePollFactory(BaseHTTP11ClientFactory):
         subfactory = _SingleRequestHTTP11DeviceHiveFactory(self, state, self.retries)
         reactor.connectTCP(self.owner.host, self.owner.port, subfactory)
     
-    def on_failure(self):
-        log.msg('Protocol failure. Stopping reactor.')
+    def on_failure(self, reason = None):
+        if self.test_owner() :
+            self.owner.on_failure(self.info.id, reason)
     
     def on_command(self, cmd, finished):
         self.owner.on_command(self.info, cmd, finished)
@@ -575,6 +583,10 @@ class PollFactory(ClientFactory):
     def on_command(self, info, cmd, finish):
         if (info.id in self.devices) and self.test_handler() :
             self.handler.on_command(info.id, cmd, finish)
+    
+    def on_failure(self, device_id, reason):
+        if self.test_handler() and (device_id in self.devices) :
+            self.handler.on_failure(device_id, reason)
     # end IPollOwner
     
     # begin IProtoFactory implementation
@@ -621,6 +633,6 @@ class PollFactory(ClientFactory):
     
     def device_save(self, info):
         self.devices[info.id] = info
-        return succeed(info)
+        return succeed(info)    
     # end IProtoFactory implementation
 

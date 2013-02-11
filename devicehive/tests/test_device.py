@@ -31,7 +31,7 @@ class LogicHandler(object):
         pass
     
     def on_apimeta(self, websocket_server, server_time):
-        log.msg('API Info retrieved.')
+        log.msg('API Info. WebSocket server: {0}; server time: {1}.'.format(websocket_server, server_time))
     
     def on_connected(self):
         info = self.device_info()
@@ -72,6 +72,13 @@ class LogicHandler(object):
     def on_connected(self):
         for info in self.device_info() :
             self.connect_device(info)
+    
+    def on_failure(self, device_id, reason):
+        """
+        @type device_id: C{str}
+        @param device_id: device guid
+        """
+        log.err('Unhandled error. Device: {0}. Reason: {1}.'.format(device_id, reason))
     
     def connect_device(self, info):
         def on_subscribe(result) :

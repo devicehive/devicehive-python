@@ -124,6 +124,12 @@ class IProtoHandler(Interface):
         @param command - ICommand object.
         @param finished - deferred object. When command finishes its execution user has to call this deferred's callback.
         """
+    
+    def on_failure(self, device_id, reason):
+        """
+        @type device_id: C{str}
+        @param device_id: device guid
+        """
 
 
 class IProtoFactory(Interface):
