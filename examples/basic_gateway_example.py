@@ -1,12 +1,13 @@
 #!/usr/bin/env python
-# -*- encoding: utf8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8
+# -*- coding: utf8 -*-
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import sys
 import signal
 from twisted.python import log
 from twisted.internet import reactor
 import devicehive
+import devicehive.auto
 import devicehive.gateway
 import devicehive.gateway.binary
 from serial import PARITY_NONE
@@ -48,7 +49,7 @@ def install_signal_handlers():
 def main():
     log.startLogging(sys.stdout)
     install_signal_handlers()
-    gateway = Gateway('http://pg.devicehive.com/api/', devicehive.HTTP11DeviceHiveFactory)
+    gateway = Gateway('http://pg.devicehive.com/api/', devicehive.auto.AutoFactory)
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
                                                             'COM2', \

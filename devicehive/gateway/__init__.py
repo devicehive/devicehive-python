@@ -38,12 +38,12 @@ class IGateway(Interface):
         @param notification: A notification which was sent. It implements C{INotification} interface.
         """
     
-    def do_command(self, sender, command, finish_deferred):
+    def do_command(self, info, command, finish_deferred):
         """
         Method is called when devicehive sends a command to a device.
         
-        @type sender: C{object}
-        @param sender: C{IProtoHandler} object which reseived a command from a protocol-factory. 
+        @type info: C{object}
+        @param info: C{IDeviceInfo} object which reseived a command from a protocol-factory. 
         
         @type command: C{object}
         @param command: 
@@ -57,91 +57,74 @@ class BaseGateway(object):
     """
     Base implementation of gateway object.
     """
-    
     implements(IGateway)
     
+    device_factory = None
+    factory = None
+    connected = False
+    devices = {}
+    
     class _ProtoHandler(object):
-        """
-        This class holds implementation of application logic.
-        """
-        
         implements(IProtoHandler)
         
-        def __init__(self, gateway):
-            self.gateway = gateway
-            self.factory = None
+        factory = None
+        gateway = None
         
-        def on_failure(self, reason):
-            pass
+        def __init__(self, gateway):
+            self.gateway = self
         
         def on_apimeta(self, websocket_server, server_time):
             pass
         
         def on_connected(self):
+            self.gateway.on_connected()
+        
+        def on_connection_failed(self, reason):
             pass
         
         def on_closing_connection(self):
             pass
         
-        def on_command(self, deviceguid, command, finished):
+        def on_command(self, device_id, command, finished):
+            self.gateway.do_command(device_id, command, finished)
+        
+        def on_failure(self, device_id, reason):
             pass
-    
-    class _Item(object):
-        def __init__(self, device = None, factory = None):
-            self.device = device
-            self.factory = factory
     
     def __init__(self, url, factory_cls) :
         super(BaseGateway, self).__init__()
-        self.device_factory = None
-        self.devices = {}
-        self.url = url
-        self.factory_cls = factory_cls
+        self.factory = factory_cls(handler = BaseGateway._ProtoHandler(self))
+        reactor.connectDeviceHive(url, self.factory)
     
-    def registration_received(self, device_info):
-        log.msg('Device {0} has sent registration information.'.format(device_info))
-        device = BaseGateway._DeviceDelegate(self, device_info)
-        factory = self.factory_cls(handler = device)
-        self.connect(device, factory)    
+    def connect_device(self, info):
+        def on_subscribe(result) :
+            self.factory.subscribe(info.id, info.key)
+        def on_failed(reason) :
+            log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
+        self.factory.device_save(info).addCallbacks(on_subscribe, on_failed)
     
-    def notification_received(self, device_info, notification):
-        """
-        Method is called by the device.
-        """
-        log.msg('Device {0} has sent notification {1}.'.format(device_info, notification))
-        id = device_info.id
-        if id in self.devices :
-            self.devices[id].device.notify(notification.name, **notification.parameters)
+    def on_connected(self):
+        self.connected = True
+        for key in self.devices :
+            self.connect_device(self.devices[key])
     
-    def do_command(self, sender, command, finish_deferred):
-        """
-        Method is called when devicehive calls command on device.
-        """
-        if not self.device_factory is None :
-            id = sender.info.id
-            if id in self.devices :
-                self.device_factory.do_command(sender.info, command, finish_deferred)
-            else :
-                raise GatewayError('unknwon device {0}'.format(id))
-        else :
-            raise GatewayError('channel to device is not established')
+    def registration_received(self, info):
+        log.msg('Device {0} has sent registration information.'.format(info))
+        self.devices[info.id] = info
+        if self.connected :
+            self.connect_device(info)
     
-    def connect(self, device, factory):
-        """
-        Connects device to DeviceHive server using ProtocolClientFactory passed into
-        Gateway constructor.
-        """
-        id = device.info.id
-        if not id in self.devices :
-            self.devices[id] = BaseGateway._Item(device, factory)
-            reactor.connectDeviceHive(self.url, factory)
-        else :
-            raise NotImplementedError('TODO: device tries to reconnect to device-hive.')
+    def notification_received(self, info, notification):
+        log.msg('Device {0} has sent notification {1}.'.format(info, notification))
+        if self.connected :
+            self.factory.notify(notification.name, notification.parameters, info.id, info.key)
+    
+    def do_command(self, device_id, command, finish_deferred):
+        if device_id in self.devices :
+            info = self.devices[device_id]
+            self.device_factory.do_command(info, command, finish_deferred)
     
     def run(self, transport_endpoint, device_factory):
-        """
-        Establishes connection to device(es)
-        """
         self.device_factory = device_factory
         transport_endpoint.listen(device_factory)
 

@@ -79,7 +79,9 @@ class BaseCommand(object):
         """
         if not isinstance(key, str) :
             raise TypeError('str expected')
-        if key == 'command' :
+        if key == 'id' :
+            return self.id
+        elif key == 'command' :
             return self.command
         elif key == 'parameters' :
             return self.parameters

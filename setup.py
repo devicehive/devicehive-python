@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8 encoding=utf-8:
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 from os import path
 from sys import platform
