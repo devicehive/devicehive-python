@@ -93,11 +93,6 @@ class IDeviceInfo(Interface):
 class IProtoHandler(Interface):
     factory = Attribute('Reference to the owned factory/object which implements IProtoFactory')
     
-    def on_failure(self, reason):
-        """
-        Called as a reaction on any unhandled error
-        """
-    
     def on_apimeta(self, websocket_server, server_time):
         """
         Reaction on ApiMeta call.
@@ -109,6 +104,14 @@ class IProtoHandler(Interface):
     def on_connected(self):
         """
         This callback is called upon connection has been established.
+        """
+    
+    def on_connection_failed(self, reason) :
+        """
+        This handler is called when factory fails to make a connection.
+        
+        @type reason: C{object}
+        @param reason: reason
         """
     
     def on_closing_connection(self):
@@ -126,7 +129,8 @@ class IProtoHandler(Interface):
         @type command: C{object}
         @param command: object which implements C{ICommand} interface.
         
-        @return finished: A deferred object. When command finishes its execution user has to call this deferred's callback.
+        @type finished: C{Deferred}
+        @param finished: A deferred object. When command finishes its execution user has to call this deferred's callback.
         """
     
     def on_failure(self, device_id, reason):

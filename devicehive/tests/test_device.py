@@ -11,6 +11,7 @@ sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..')))
 import devicehive
 import devicehive.poll
 import devicehive.ws
+import devicehive.auto
 import devicehive.interfaces
 
 
@@ -33,6 +34,9 @@ class LogicHandler(object):
         log.msg('API Info. WebSocket server: {0}; server time: {1}.'.format(websocket_server, server_time))
     
     def on_closing_connection(self):
+        pass
+    
+    def on_connection_failed(self, reason):
         pass
     
     def on_command(self, deviceguid, command, finished):
@@ -113,7 +117,9 @@ def looping_call(hnd):
 
 
 def create_factory(use_ws, handler) :
-    if use_ws :
+    if use_ws is None :
+        return devicehive.auto.AutoFactory(handler)
+    elif use_ws :
         return devicehive.ws.WebSocketFactory(handler)
     else :
         return devicehive.poll.PollFactory(handler)
@@ -122,7 +128,7 @@ def create_factory(use_ws, handler) :
 def main():
     log.startLogging(sys.stdout)
     handler = LogicHandler()
-    factory = create_factory(True, handler)
+    factory = create_factory(None, handler)
     reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi8/', factory)
     #
     lc = task.LoopingCall(looping_call, handler)

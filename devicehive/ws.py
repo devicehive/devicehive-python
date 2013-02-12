@@ -426,9 +426,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
     def api_received(self, response):
         if response.code == 200 :
             def get_response(resp, factory, connector):
-                url, host, port = parse_url(resp['webSocketServerUrl'])
-                server_time = parse_date(resp['serverTimestamp'])
-                factory.api_received(url, host, port, server_time, connector)
+                factory.api_received(resp['webSocketServerUrl'], resp['serverTimestamp'])
             
             def err_response(reason, connector):
                 factory.failure(reason, connector)
@@ -497,7 +495,7 @@ class WebSocketFactory(ClientFactory):
     
     implements(IWebSocketProtocolCallback, IProtoFactory)
     
-    uri = 'localhost'
+    url = 'localhost'
     host = 'localhost'
     port = 80
     proto = None
@@ -532,9 +530,13 @@ class WebSocketFactory(ClientFactory):
         self.proto = WebSocketDeviceHiveProtocol(self)
         return self.proto
     
+    def clientConnectionFailed(self, connector, reason):
+        log.err('Failed to connect to {0}, host: {1}, port: {2}. Reason: {3}.'.format(self.url, self.host, self.port, reason))
+        if self.test_handler() :
+            self.handler.on_connection_failed(reason)
+    
     def clientConnectionLost(self, connector, reason):
         if self.state == WS_STATE_WS_CONNECTING :
-            log.msg('WebSocket server {0}:{1}.'.format(self.host, self.port))
             reactor.connectTCP(self.host, self.port, self)
     
     def request_counter():
@@ -572,11 +574,9 @@ class WebSocketFactory(ClientFactory):
         if self.test_handler():
             self.handler.on_failure(None, reason)
     
-    def api_received(self, url, host, port, server_time, connector):
-        self.uri = url.replace('ws://', 'http://', 1).replace('wss://', 'https://')
-        self.host = host
-        self.port = port
-        self.server_time = server_time
+    def api_received(self, url, server_time):
+        self.url, self.host, self.port  = parse_url(wsurl.replace('ws://', 'http://', 1).replace('wss://', 'https://'))
+        self.server_time = parse_date(server_time)
         self.state = WS_STATE_WS_CONNECTING
         if self.test_handler() :
             self.handler.on_apimeta(url, server_time)
