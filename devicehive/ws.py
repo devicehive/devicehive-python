@@ -3,9 +3,7 @@
 
 import json
 import base64
-import uuid
 import sha
-from functools import partial
 import struct
 from time import time
 from random import Random
@@ -15,14 +13,11 @@ from zope.interface import implements, Interface, Attribute
 from twisted.python import log
 from twisted.python.constants import Values, ValueConstant
 from twisted.internet import reactor
-from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.defer import Deferred, fail
-from twisted.web.iweb import IBodyProducer
+from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.protocols.basic import LineReceiver
-from urlparse import urlsplit, urljoin
-from utils import parse_url, parse_date
 from devicehive import ApiInfoRequest, CommandResult, DhError, BaseCommand
-from devicehive.utils import JsonDataConsumer
+from devicehive.utils import JsonDataConsumer, parse_url, parse_date
 from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 
 
@@ -282,8 +277,8 @@ class WebSocketProtocol13(object):
         self.handler = handler
         self.transport = transport
         self.host = host
-        self.security_key = base64.b64encode((uuid.uuid4()).bytes)
         self.rand = Random(long(time()))
+        self.security_key = base64.b64encode(array('B', [self.rand.randint(0, 0xff) for x in range(12)]).tostring())
         self.parser = WebSocketParser(self)
     
     def dataReceived(self, data):
