@@ -15,8 +15,8 @@ from twisted.web.client import HTTP11ClientProtocol, Request
 from twisted.web.http_headers import Headers
 from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
-from interfaces import IProtoFactory, IProtoHandler
-from devicehive import ApiInfoRequest, DhError, CommandResult
+from devicehive import ApiInfoRequest, DhError, CommandResult, BaseCommand
+from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer
 
 
@@ -78,6 +78,42 @@ class JsonDataProducer(object):
 
     def stopProducing(self):
         pass
+
+
+class PollCommand(BaseCommand) :
+    def to_dict(self):
+        """
+        @return dict representation of the object
+        """
+        res = {'id': self.id, 'command': self.command, 'parameters': self.parameters}
+        if self.timestamp is not None :
+            res['timestamp'] = self.timestamp
+        if self.user_id is not None :
+            res['userId'] = self.user_id
+        if self.lifetime is not None :
+            res['lifetime'] = self.lifetime
+        if self.flags is not None :
+            res['flags'] = self.flags
+        if self.status is not None :
+            res['status'] = self.status
+        if self.result is not None :
+            res['result'] = self.result
+        return res
+    
+    @staticmethod
+    def create(message) :
+        res = PollCommand()
+        res.id = message['id']
+        res.timestamp = message['timestamp'] if 'timestamp' in message else None
+        res.user_id = message['userId'] if 'userId' in message else None
+        res.command = message['command']
+        res.parameters = message['parameters'] if 'parameters' in message else []
+        res.lifetime = message['lifetime'] if 'lifetime' in message else None
+        res.flags = message['flags'] if 'flags' in message else None
+        res.status = message['status'] if 'status' in message else None
+        res.result = message['result'] if 'result' in message else None
+        return res
+
 
 
 class BaseRequest(Request):
@@ -565,7 +601,7 @@ class PollFactory(ClientFactory):
     # begin IPollOwner implementation
     def on_command(self, info, cmd, finish):
         if (info.id in self.devices) and self.test_handler() :
-            self.handler.on_command(info.id, cmd, finish)
+            self.handler.on_command(info.id, PollCommand.create(cmd), finish)
     
     def on_failure(self, device_id, reason):
         if self.test_handler() and (device_id in self.devices) :

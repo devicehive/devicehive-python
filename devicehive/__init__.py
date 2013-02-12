@@ -3,7 +3,7 @@
 
 from zope.interface import implements
 from twisted.internet import reactor
-from devicehive.interfaces import INetwork, IDeviceClass, IDeviceInfo, INotification, IEquipment, IProtoHandler
+from devicehive.interfaces import INetwork, IDeviceClass, IDeviceInfo, INotification, IEquipment, IProtoHandler, ICommand
 from devicehive.utils import parse_url, url_path, EmptyDataProducer
 from twisted.web.http_headers import Headers
 from twisted.web.client import Request
@@ -11,6 +11,7 @@ from twisted.web.client import Request
 
 __all__ = ['DhError',
            'connectDeviceHive', 
+           'BaseCommand',
            'CommandResult',
            'Network',
            'DeviceClass',
@@ -53,6 +54,40 @@ class CommandResult(object):
     
     status = property(fget = lambda self : self._status)
     result = property(fget = lambda self : self._result)
+
+
+class BaseCommand(object):
+    
+    implements(ICommand)
+    
+    id = 0
+    timestamp = None
+    user_id = None
+    command = ''
+    parameters = []
+    lifetime = None
+    flags = None
+    status = None
+    result = None
+    
+    def to_dict(self):
+        pass
+    
+    def __getitem__(self, key):
+        """
+        for backward compatibility
+        """
+        if not isinstance(key, str) :
+            raise TypeError('str expected')
+        if key == 'command' :
+            return self.command
+        elif key == 'parameters' :
+            return self.parameters
+        else :
+            raise IndexError('index {0} is out of range'.format(key))
+    
+    def __str__(self):
+        return '<ICommand: {0}; id: {1}>'.format(self.command, self.id)
 
 
 class Network(object):

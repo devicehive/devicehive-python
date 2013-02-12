@@ -23,7 +23,7 @@ from twisted.web.http_headers import Headers
 from twisted.protocols.basic import LineReceiver
 from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date
-from devicehive import ApiInfoRequest, CommandResult, DhError
+from devicehive import ApiInfoRequest, CommandResult, DhError, BaseCommand
 from devicehive.utils import JsonDataConsumer
 from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 
@@ -453,22 +453,9 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
             self.factory.failure(reason, self.transport.connector)
 
 
-class WsCommand(object):
-    
-    implements(ICommand)
-    
-    id = 0
-    timestamp = None
-    user_id = None
-    command = ''
-    parameters = []
-    lifetime = None
-    flags = None
-    status = None
-    result = None
-    
+class WsCommand(BaseCommand):
     @staticmethod
-    def create_from_ci(message):
+    def create(message):
         """
         Creates C{ICommand} instance from command/insert message dictionary
         
@@ -504,22 +491,6 @@ class WsCommand(object):
         if self.result is not None :
             cmd['result'] = self.result
         return cmd
-    
-    def __getitem__(self, key):
-        """
-        for backward compatibility
-        """
-        if not isinstance(key, str) :
-            raise TypeError('str expected')
-        if key == 'command' :
-            return self.command
-        elif key == 'parameters' :
-            return self.parameters
-        else :
-            raise IndexError('index {0} is out of range'.format(key))
-    
-    def __str__(self):
-        return '<ICommand: {0}; id: {1}>'.format(self.command, self.id)
 
 
 class WebSocketFactory(ClientFactory):
@@ -633,7 +604,7 @@ class WebSocketFactory(ClientFactory):
             else :
                 device_id = message['deviceGuid']
                 if device_id in self.devices :
-                    self.on_command_insert(WsCommand.create_from_ci(message), self.devices[device_id])
+                    self.on_command_insert(WsCommand.create(message), self.devices[device_id])
                 else :
                     log.err('Unable to process command {0}. Device {1} is not registered.'.format(message, device_id))
         else :
