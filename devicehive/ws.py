@@ -18,8 +18,6 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.defer import Deferred, fail
 from twisted.web.iweb import IBodyProducer
-from twisted.web.client import HTTP11ClientProtocol, Request
-from twisted.web.http_headers import Headers
 from twisted.protocols.basic import LineReceiver
 from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date
@@ -362,18 +360,16 @@ class WebSocketProtocol13(object):
 
 
 WS_STATE_UNKNOWN          = 0
-WS_STATE_APIMETA          = 1
-WS_STATE_WS_CONNECTING    = 2
-WS_STATE_WS_CONNECTED     = 3
-WS_STATE_WS_DISCONNECTING = 4
+WS_STATE_WS_CONNECTING    = 1
+WS_STATE_WS_CONNECTED     = 2
+WS_STATE_WS_DISCONNECTING = 3
 
 
-class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
+class WebSocketDeviceHiveProtocol(Protocol):
     
     implements(IWebSocketCallback, IWebSocketMessanger)
     
     def __init__(self, factory):
-        HTTP11ClientProtocol.__init__(self)
         self.factory = factory
         self.socket = None
     
@@ -397,9 +393,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
     
     def connectionMade(self):
         if self.test_factory() :
-            if self.factory.state == WS_STATE_APIMETA :
-                self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.api_received, self.critical_error)
-            elif self.factory.state == WS_STATE_WS_CONNECTING :
+            if self.factory.state == WS_STATE_WS_CONNECTING :
                 self.socket = WebSocketProtocol13(self, self.transport, self.factory.host)
                 self.socket.send_headers()
         else :
@@ -407,9 +401,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
     
     def dataReceived(self, data):
         if self.test_factory() :
-            if self.factory.state == WS_STATE_APIMETA :
-                HTTP11ClientProtocol.dataReceived(self, data)
-            elif self.socket is not None :
+            if self.socket is not None :
                 self.socket.dataReceived(data)
         else :
             raise WebSocketError('factory expected')
@@ -421,34 +413,7 @@ class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
             self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, json.dumps(message))
             return True
         else :
-            return False
-    
-    def api_received(self, response):
-        if response.code == 200 :
-            def get_response(resp, factory, connector):
-                factory.api_received(resp['webSocketServerUrl'], resp['serverTimestamp'])
-            
-            def err_response(reason, connector):
-                factory.failure(reason, connector)
-            
-            if self.test_factory() :
-                callback = partial(get_response, factory = self.factory, connector = self.transport.connector)
-                errback = partial(err_response, connector = self.transport.connector)
-                result_proto = Deferred()
-                result_proto.addCallbacks(callback, errback)
-                response.deliverBody(JsonDataConsumer(result_proto))
-        else :
-            def get_response_text(reason, connector):
-                factory.failure(reason, connector)
-            
-            callback = partial(get_response_text, connector = self.transport.connector)
-            response_defer = Deferred()
-            response_defer.addCallbacks(callback, callback)
-            response.deliverBody(TextDataConsumer(response_defer))
-    
-    def critical_error(self, reason):
-        if self.test_factory() :
-            self.factory.failure(reason, self.transport.connector)
+            return False    
 
 
 class WsCommand(BaseCommand):
@@ -523,7 +488,7 @@ class WebSocketFactory(ClientFactory):
     
     def doStart(self):
         if self.state == WS_STATE_UNKNOWN :
-            self.state = WS_STATE_APIMETA
+            self.state = WS_STATE_WS_CONNECTING
         ClientFactory.doStart(self)
     
     def buildProtocol(self, addr):
@@ -573,13 +538,6 @@ class WebSocketFactory(ClientFactory):
         log.err('Critial error. Reason: {0}.'.format(reason))
         if self.test_handler():
             self.handler.on_failure(None, reason)
-    
-    def api_received(self, url, server_time):
-        self.url, self.host, self.port  = parse_url(wsurl.replace('ws://', 'http://', 1).replace('wss://', 'https://'))
-        self.server_time = parse_date(server_time)
-        self.state = WS_STATE_WS_CONNECTING
-        if self.test_handler() :
-            self.handler.on_apimeta(url, server_time)
     
     def connected(self):
         self.state = WS_STATE_WS_CONNECTED

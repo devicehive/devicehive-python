@@ -10,7 +10,7 @@ from twisted.internet.protocol import ClientFactory, Protocol
 from devicehive import ApiInfoRequest
 from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer, parse_url, parse_date
-from devicehive.ws import WebSocketFactory, WS_STATE_WS_CONNECTING
+from devicehive.ws import WebSocketFactory
 from devicehive.poll import PollFactory
 
 
@@ -95,7 +95,6 @@ class AutoFactory(ClientFactory):
         factory.url  = self.ws_url
         factory.host = self.ws_host
         factory.port = self.ws_port
-        factory.state = WS_STATE_WS_CONNECTING
         reactor.connectTCP(factory.host, factory.port, factory)
     
     def connect_poll(self):
