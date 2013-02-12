@@ -6,7 +6,6 @@ import base64
 import uuid
 import sha
 from functools import partial
-from datetime import datetime
 import struct
 from time import time
 from random import Random
@@ -29,8 +28,9 @@ from devicehive.utils import JsonDataConsumer
 from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 
 
-__all__ = ['WebSocketError', 'IWebSocketParserCallback', 'WebSocketParser', 'IWebSocketCallback', 'WebSocketProtocol13',
-           'IWebSocketProtocolCallback', 'IWebSocketMessanger', 'WebSocketDeviceHiveProtocol', 'WebSocketFactory']
+__all__ = ['WebSocketError', 'WebSocketState', 'WebSocketParser', 'WebSocketProtocol13',
+           'WebSocketDeviceHiveProtocol', 'WsCommand', 'WebSocketFactory',
+           'IWebSocketParserCallback', 'IWebSocketProtocolCallback', 'IWebSocketMessanger', 'IWebSocketCallback']
 
 
 class WebSocketError(Exception):
@@ -65,6 +65,59 @@ class IWebSocketParserCallback(Interface) :
     def frame_received(self, opcode, payload):
         """
         Method passes opcode and payload of newly received websocket frame
+        """
+
+
+class IWebSocketProtocolCallback(Interface):
+    state = Attribute('Stores protocol state')
+    
+    def failure(self, reason, connector):
+        """
+        Callback signals about critial error
+        """
+    
+    def api_received(self, url, host, port, server_time, connector):
+        """
+        Callback is called after api matedata has been received
+        """
+    
+    def connected(self):
+        """
+        Callback is called after websocket connection has been established.
+        """
+    
+    def closing_connection(self):
+        """
+        Callback is called in response to connection_close websocket frame.
+        """
+    
+    def frame_received(self, message):
+        """
+        Callback is called when a new text or binary websocket frame is received.
+        """
+
+
+class IWebSocketMessanger(Interface):
+    def send_message(self, message):
+        """
+        Sends text message
+        """
+
+
+class IWebSocketCallback(Interface):
+    def headers_received(self):
+        """
+        Called when all headers have been received
+        """
+    
+    def closing_connection(self):
+        """
+        Called when server going to close connection
+        """
+    
+    def frame_received(self, payload):
+        """
+        Called when a new text or binary frame has been received
         """
 
 
@@ -217,23 +270,6 @@ class WebSocketParser(LineReceiver) :
         pass
 
 
-class IWebSocketCallback(Interface):
-    def headers_received(self):
-        """
-        Called when all headers have been received
-        """
-    
-    def closing_connection(self):
-        """
-        Called when server going to close connection
-        """
-    
-    def frame_received(self, payload):
-        """
-        Called when a new text or binary frame has been received
-        """
-
-
 class WebSocketProtocol13(object):
     implements(IWebSocketParserCallback)
     
@@ -330,42 +366,6 @@ WS_STATE_APIMETA          = 1
 WS_STATE_WS_CONNECTING    = 2
 WS_STATE_WS_CONNECTED     = 3
 WS_STATE_WS_DISCONNECTING = 4
-
-
-class IWebSocketProtocolCallback(Interface):
-    state = Attribute('Stores protocol state')
-    
-    def failure(self, reason, connector):
-        """
-        Callback signals about critial error
-        """
-    
-    def api_received(self, url, host, port, server_time, connector):
-        """
-        Callback is called after api matedata has been received
-        """
-    
-    def connected(self):
-        """
-        Callback is called after websocket connection has been established.
-        """
-    
-    def closing_connection(self):
-        """
-        Callback is called in response to connection_close websocket frame.
-        """
-    
-    def frame_received(self, message):
-        """
-        Callback is called when a new text or binary websocket frame is received.
-        """
-
-
-class IWebSocketMessanger(Interface):
-    def send_message(self, message):
-        """
-        Sends text message
-        """
 
 
 class WebSocketDeviceHiveProtocol(HTTP11ClientProtocol):
@@ -515,7 +515,7 @@ class WsCommand(object):
             return self.command
         elif key == 'parameters' :
             return self.parameters
-        else
+        else :
             raise IndexError('index {0} is out of range'.format(key))
     
     def __str__(self):
@@ -689,7 +689,7 @@ class WebSocketFactory(ClientFactory):
                    'deviceKey': device_key}
         return self.send_message(request)
     
-    def notify(self, notification, device_id = None, device_key = None):
+    def notify(self, notification, params, device_id = None, device_key = None):
         request = {'action': 'notification/insert', 'notification': {'notification': notification, 'parameters': params}}
         if (device_id is not None) :
             request['deviceId'] = device_id

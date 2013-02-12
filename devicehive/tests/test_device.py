@@ -14,7 +14,6 @@ import devicehive.ws
 import devicehive.interfaces
 
 
-
 class LogicHandler(object):
     """
     Abstract implementation of IProtoHandler. Handles only one device.
@@ -24,21 +23,14 @@ class LogicHandler(object):
     
     def __init__(self):
         self.factory = None
-
+        self.dev1_connected = False
+        self.dev2_connected = False
+    
     def test_factory(self):
         return IProtoFactory.implementedBy(self.factory.__class__)
     
-    def on_failure(self, reason):
-        pass
-    
     def on_apimeta(self, websocket_server, server_time):
         log.msg('API Info. WebSocket server: {0}; server time: {1}.'.format(websocket_server, server_time))
-    
-    def on_connected(self):
-        info = self.device_info()
-        def do_subscribe() :
-            self.factory.subscribe(info.id, info.key)
-        self.factory.device_save(info).addCallback(do_subscribe)
     
     def on_closing_connection(self):
         pass
@@ -46,10 +38,45 @@ class LogicHandler(object):
     def on_command(self, deviceguid, command, finished):
         raise NotImplementedError('COMMAND IS NOT IMPLEMENTED')
     
-    def device_info(self):
+    def on_connected(self):
+        log.msg('Connected to devicehive.')
+        for info in self.DEVICES :
+            self.connect_device(info)
+    
+    def on_failure(self, device_id, reason):
         """
-        Method returns a list of object each of which has to
-        implement C{devicehive.interfaces.IDeviceInfo} interface.
+        @type device_id: C{str}
+        @param device_id: device guid
+        """
+        log.err('Unhandled error. Device: {0}. Reason: {1}.'.format(device_id, reason))
+    
+    def connect_device(self, info):
+        def on_subscribe(result) :
+            if info.name == 'PyExample1' :
+                self.dev1_connected = True
+            elif info.name == 'PythonExample2' :
+                self.dev2_connected = True
+            self.factory.subscribe(info.id, info.key)
+        def on_failed(reason) :
+            log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
+        self.factory.device_save(info).addCallbacks(on_subscribe, on_failed)
+    
+    def on_command(self, deviceguid, command, finished):
+        finished.errback(NotImplementedError())
+    
+    def notify1(self, name, **kwargs):
+        if self.dev1_connected :
+            dev = self.DEVICES[0]
+            self.factory.notify(name, kwargs, dev.id, dev.key)
+    
+    def notify2(self, name, **kwargs):
+        if self.dev2_connected :
+            dev = self.DEVICES[1]
+            self.factory.notify(name, kwargs,  dev.id, dev.key)
+    
+    def generate_devices():
+        """
+        Method returns a list of object each of which has to implement C{devicehive.interfaces.IDeviceInfo} interface.
         """
         net = devicehive.Network(key = 'network11', name = 'network11', descr = 'network11')
         dec = devicehive.DeviceClass(name = 'Example Device Class', version = 'Example Device Class 1.1')
@@ -70,35 +97,7 @@ class LogicHandler(object):
                                    equipment = eqp)
         return (di1, di2)
     
-    def on_connected(self):
-        log.msg('On connected')
-        for info in self.device_info() :
-            self.connect_device(info)
-    
-    def on_failure(self, device_id, reason):
-        """
-        @type device_id: C{str}
-        @param device_id: device guid
-        """
-        log.err('Unhandled error. Device: {0}. Reason: {1}.'.format(device_id, reason))
-    
-    def connect_device(self, info):
-        def on_subscribe(result) :
-            self.factory.subscribe(info.id, info.key)
-        def on_failed(reason) :
-            log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
-        self.factory.device_save(info).addCallbacks(on_subscribe, on_failed)
-    
-    def on_command(self, deviceguid, command, finished):
-        finished.errback(NotImplementedError())
-    
-    def notify1(self, name, **kwargs):
-        dev = self.device_info()[0]
-        # self.factory.notify(name, kwargs, device_id = dev.id)
-    
-    def notify2(self, name, **kwargs):
-        dev = self.device_info()[1]
-        # self.factory.notify(name, kwargs, device_id = dev.id)
+    DEVICES = generate_devices()
 
 
 i = 0
