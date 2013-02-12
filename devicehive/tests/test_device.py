@@ -61,8 +61,11 @@ class LogicHandler(object):
             log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
         self.factory.device_save(info).addCallbacks(on_subscribe, on_failed)
     
-    def on_command(self, deviceguid, command, finished):
-        finished.errback(NotImplementedError())
+    def on_command(self, device_id, command, finished):
+        if command.command == 'test_cmd' :
+            finished.callback("Good news everyone! I'm still technically alive.")
+        else :
+            finished.errback(NotImplementedError())
     
     def notify1(self, name, **kwargs):
         if self.dev1_connected :

@@ -468,7 +468,7 @@ class WsCommand(object):
     result = None
     
     @staticmethod
-    def create_from_ci(self, message):
+    def create_from_ci(message):
         """
         Creates C{ICommand} instance from command/insert message dictionary
         
@@ -509,7 +509,7 @@ class WsCommand(object):
         """
         for backward compatibility
         """
-        if isinstance(key, str) :
+        if not isinstance(key, str) :
             raise TypeError('str expected')
         if key == 'command' :
             return self.command
@@ -657,7 +657,7 @@ class WebSocketFactory(ClientFactory):
                 else :
                     cmd.result = result if isinstance(result, dict) else str(result)
                     cmd.status = 'Succeed'
-                self.update_command(cmd, device_id = info.device_id, device_key = info.device_key)
+                self.update_command(cmd, device_id = info.id, device_key = info.key)
             #
             def on_err(reason):
                 if isinstance(reason, CommandResult) :
@@ -669,7 +669,7 @@ class WebSocketFactory(ClientFactory):
                 else :
                     cmd.result = reason if isinstance(reason, dict) else str(reason)
                     cmd.status = 'Failed' 
-                self.update_command(cmd, device_id = info.device_id, device_key = info.device_key)
+                self.update_command(cmd, device_id = info.id, device_key = info.key)
             #
             finished = Deferred()
             finished.addCallbacks(on_ok, on_err)
