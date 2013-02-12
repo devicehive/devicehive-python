@@ -116,19 +116,23 @@ class IProtoHandler(Interface):
         Called when server wants to close transport connection.
         """
     
-    def on_command(self, deviceguid, command, finished):
+    def on_command(self, device_id, command, finished):
         """
         Is called in reaction to command/insert received from devicehive server.
         
-        @param deviceguid - Device unique identifier.
-        @param command - ICommand object.
-        @param finished - deferred object. When command finishes its execution user has to call this deferred's callback.
+        @type device_id: C{str}
+        @param device_id: device unique identifier.
+        
+        @type command: C{object}
+        @param command: object which implements C{ICommand} interface.
+        
+        @return finished: A deferred object. When command finishes its execution user has to call this deferred's callback.
         """
     
     def on_failure(self, device_id, reason):
         """
         @type device_id: C{str}
-        @param device_id: device guid
+        @param device_id: device guid. device_id may be None what means general system failure.
         """
 
 
@@ -154,6 +158,9 @@ class IProtoFactory(Interface):
     def update_command(self, command, device_id = None, device_key = None):
         """
         Updates an existing device command.
+        
+        @type command: C{obj}
+        @param command: object which implements C{ICommand}
         
         @return deferred
         """

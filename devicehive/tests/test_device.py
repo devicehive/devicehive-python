@@ -110,12 +110,12 @@ def looping_call(hnd):
     i += 1
 
 
-
 def create_factory(use_ws, handler) :
     if use_ws :
         return devicehive.ws.WebSocketFactory(handler)
     else :
         return devicehive.poll.PollFactory(handler)
+
 
 def main():
     log.startLogging(sys.stdout)
@@ -124,7 +124,7 @@ def main():
     reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi8/', factory)
     #
     lc = task.LoopingCall(looping_call, handler)
-    # lc.start(10)
+    lc.start(10)
     #
     reactor.run()
 
