@@ -4,19 +4,15 @@
 import struct
 import array
 import uuid
-import devicehive
 import json
 from collections import Iterable
-from zope.interface import Interface, implements, Attribute
-from devicehive.interfaces import IDeviceInfo, INetwork, IDeviceClass, INotification 
-from devicehive.gateway import IGateway
-from devicehive.common import DeviceInfo as CDeviceInfo, Network as CNetwork, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
-from twisted.internet import interfaces, defer
-import twisted.internet.serialport
+from zope.interface import implements
+from twisted.internet import interfaces
 from twisted.python import log
 from twisted.internet.protocol import ServerFactory, Protocol
-from twisted.python.constants import Values, ValueConstant
 from twisted.internet.serialport import SerialPort
+from devicehive import CommandResult, DeviceInfo as CDeviceInfo, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
+from devicehive.gateway import IGateway
 
 
 class PacketError(Exception):
@@ -512,7 +508,7 @@ class BinaryFormatter(object) :
             bstr = bytearray(data[offset:offset + strlen])
             offset += strlen
             return (bstr.decode('utf-8'), offset)
-        elif prop.type == DATA_TYPE_BINARY :
+        elif type == DATA_TYPE_BINARY :
             binlen = struct.unpack_from('<H', data, offset)[0]
             offset += 2
             bin = data[offset:offset + binlen]
@@ -750,7 +746,7 @@ class ToDictionary(object):
                 elif isinstance(prop, binary_property) :
                     res[propname] = prop.__get__(obj)
                 else :
-                    raise TypeError('Upsupported type.')
+                    raise TypeError('Unsupported type.')
             return res
         return _to_dict(self)
 
@@ -1013,16 +1009,7 @@ class BinaryProtocol(Protocol):
         self.transport.write(pkt.to_binary())
 
 
-
 class BinaryFactory(ServerFactory):
-    class _Notification(object):
-        implements(INotification)
-        def __init__(self, name, parameters):
-            self.name = name
-            self.parameters = parameters
-        def __str__(self):
-            return '{{name: "{0}", parameters: {1}}}'.format(self.name, self.parameters)
-    
     class _DescrItem(object):
         def __init__(self, intent = 0, cls = None, info = None):
             self.intent = intent
@@ -1072,12 +1059,12 @@ class BinaryFactory(ServerFactory):
     
     def handle_notification_command_result(self, notification):
         """
-        Run all callbacks attached to notification_reveived deferred
+        Run all callbacks attached to notification_received deferred
         """
         log.msg('BinaryFactory.handle_notification_command_result')
         if notification.command_id in self.pending_results :
             deferred = self.pending_results.pop(notification.command_id)
-            deferred.callback(devicehive.CommandResult(notification.status, notification.result))
+            deferred.callback(CommandResult(notification.status, notification.result))
     
     def handle_pass_notification(self, pkt):
         for (notif,nname) in [(self.notification_descriptors[nname], nname) for nname in self.notification_descriptors if self.notification_descriptors[nname].intent == pkt.intent] :
@@ -1100,19 +1087,19 @@ class BinaryFactory(ServerFactory):
     
     def do_command(self, command, finish_deferred):
         """
-        This handler is called when a new command comes from DeviceHive server
+        This handler is called when a new command comes from DeviceHive server.
+
+        @type command: C{object}
+        @param command: object which implements C{ICommand} interface
         """
-        log.msg('BinaryFactory.do_command')
-        command_id = command['id']
-        command_name = command['command']
-        parameters = command['parameters']
+        command_id = command.id
+        command_name = command.command
         if command_name in self.command_descriptors :
             command_desc = self.command_descriptors[command_name]
             command_obj = command_desc.cls()
-            command_obj.update( command['parameters'] )
+            command_obj.update( command.parameters )
             self.pending_results[command_id] = finish_deferred
-            #
-            self.protocol.send_command(command_desc.intent, command_bin)
+            self.protocol.send_command(command_desc.intent, BinaryFormatter.serialize_object(command_obj))
         else :
             finish_deferred.errback()
     
@@ -1162,5 +1149,3 @@ class SerialPortEndpoint(object):
     def listen(self, protoFactory):
         proto = protoFactory.buildProtocol(self._port_addr)
         return SerialPort(proto, self._port_addr.port, self._reactor, **self._port_addr.port_options)
-
-
