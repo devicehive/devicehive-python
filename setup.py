@@ -12,7 +12,7 @@ from distutils.sysconfig import get_python_lib
 
 setup(
     name = 'devicehive',
-    version = '0.0.1',
+    version = '0.0.2',
     author = 'DataArt Apps (http://dataart.com)',
     author_email = 'info@devicehive.com',
     url = 'http://devicehive.com',
