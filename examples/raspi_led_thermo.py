@@ -30,49 +30,76 @@ _API_URL = 'http://nn57.pg.devicehive.com/api'
 #
 # for easier reading, this class holds all registration information for DeviceHive
 #
-class RasPiConfig:
-    def __init__(self, led):
-        self._device_id = '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
-        self.led = led
-
-    def device_id(self):
-        return self._device_id
-
-    def device_key(self):
+class RasPiConfig(object):
+    
+    implements(devicehive.interfaces.IDeviceInfo)
+    
+    @property
+    def id(self):
+        return '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
+    
+    @property
+    def key(self):
         return 'device-key'
-
-    def device_name(self):
+    
+    @property
+    def name(self):
         return 'Device1'
-
-    def device_status(self):
+    
+    @property
+    def status(self):
         return 'Online'
-
-    def network_name(self):
-        return 'Netname'
-
-    def network_description(self):
-        return 'RasPi/Py LED/w1 sample'
-
-    def device_class_name(self):
-        return 'Class1'
-
-    def device_class_version(self):
-        return '1.0'
-
-    def device_class_is_permanent(self):
-        return False
-
+    
+    @property
+    def network(self):
+        return devicehive.Network(key = 'Netname', name = 'Netname', descr = 'RasPi/Py LED/w1 sample')
+    
+    @property
+    def device_class(self):
+        return devicehive.DeviceClass(name = 'Class1', version = '1.0', is_permanent = False)
+    
+    @property
     def equipment(self):
-        return [devicehive.Equipment(name = 'LED', code = 'LED', _type = 'Controllable LED'),
-            devicehive.Equipment(name = 'THERMO', code = 'temp', _type = 'TempSensor')]
+        return [devicehive.Equipment(name = 'LED', code = 'LED', type = 'Controllable LED'), devicehive.Equipment(name = 'THERMO', code = 'temp', type = 'TempSensor')]
+
 #
 # This class handles DeviceHive API calls for our device
 #
-class RasPiDelegate(RasPiConfig, devicehive.DeviceDelegate):
+class RasPiApp(object):
+    
+    implements(devicehive.interfaces.IProtoHandler)
+    
     def __init__(self, led):
-        super(RasPiDelegate, self).__init__(led)
-
-    def do_short_command(self, finish_deferred, equipment = None, state = 0):
+        super(RasPiApp, self).__init__()
+        self.connected = False
+        self.notifs = []
+        self.info = RasPiConfig()
+        self.led = led
+    
+    def on_apimeta(self, websocket_server, server_time):
+        pass
+    
+    def on_connected(self):
+        self.connected = True
+        for onotif in self.notifs :
+            self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id, device_key = self.info.key)
+        self.notifs = []
+        def on_subscribe(result) :
+            self.factory.subscribe(self.info.id, self.info.key)
+        def on_failed(reason) :
+            log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
+        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+    
+    def on_connection_failed(self, reason) :
+        pass
+    
+    def on_closing_connection(self):
+        pass
+    
+    def on_failure(self, device_id, reason):
+        pass
+    
+    def do_short_command(self, finished, equipment = None, state = 0):
         log.msg('Setting {0} equipment to {1}'.format(equipment, state))
         if equipment == 'LED' :
             if int(state) == 0 :
@@ -80,16 +107,23 @@ class RasPiDelegate(RasPiConfig, devicehive.DeviceDelegate):
             else:
                 self.led.set_on()
         # upon completion post the result back
-        self.notify('equipment', state = state, equipment = "LED")
-        finish_deferred.callback(devicehive.CommandResult('Completed'))
-
-    def do_command(self, command, finish_deferred):
+        self.factory.notify('equipment', {'state': state, 'equipment': 'LED'}, device_id = self.info.id, device_key = self.info.key)
+        finished.callback(devicehive.CommandResult('Completed'))
+    
+    def on_command(self, device_id, command, finished):
         # Expecting command as 'UpdateState' and parameters as {"equipment" : "LED", "state" : "0"}
-        if command['command'] == 'UpdateLedState' :
-            self.do_short_command(finish_deferred,  **command['parameters'])
+        if command.command == 'UpdateLedState' :
+            self.do_short_command(finished,  **command.parameters)
         else :
-            finish_deferred.errback()
+            finished.errback()
         # end do_command
+    
+    def notify(self, notif, **params):
+        if self.connected :
+            self.factory(notif, params, device_id = self.info.id, device_key = self.info.key)
+        else :
+            self.notifs.append({'notification': notif, 'parameters': params})
+
 
 #
 # Temperature sensor wrapper. Gets temperature readings form file, parses them
@@ -119,7 +153,6 @@ class TempSensor(object):
     # check temperature, if greater than threshold, notify
     def get_temp(self, dev):
         temp = self._get_temp()
-
         if abs(temp - self.last_temp) > 0.2:
             log.msg('Temperature {0} -> {1}'.format(self.last_temp, temp))
             dev.notify('equipment', temperature = temp, equipment = "temp")
@@ -152,20 +185,21 @@ class LedDevice(object):
 #
 if __name__ == '__main__' :
     log.startLogging(sys.stdout)
-
+    
     led = LedDevice(_LED_PIN)
     # Blink on start to ensure device is working
     led.blink(3)
-
+    
     # create a delegate to handle commands
     device = RasPiDelegate(led)
-    led_factory = devicehive.HTTP11DeviceHiveFactory(device_delegate = device)
+    led_factory = devicehive.auto.AutoFactory(device)
     reactor.connectDeviceHive(_API_URL, led_factory)
-
+    
     # create temp sensor and queue it to check for temperature in a separate thread
     tempSensor = TempSensor(_W1_FILENAME)
     lc = task.LoopingCall(tempSensor.get_temp, device)
     lc.start(1)
-
+    
     # off we go!
     reactor.run()
+
