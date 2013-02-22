@@ -36,6 +36,9 @@ def url_path(base_uri, api_uri):
 
 
 def parse_date(date_str) :
+    """
+    Converts a date-time string into a datetime object.
+    """
     if len(date_str) > 19:
         return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
     else :
@@ -43,6 +46,10 @@ def parse_date(date_str) :
 
 
 class TextDataConsumer(Protocol):
+    """
+    Converts a text input into a C{str}.
+    """
+    
     def __init__(self, deferred):
         self.deferred = deferred
         self.text = ''
@@ -56,7 +63,8 @@ class TextDataConsumer(Protocol):
 
 class JsonDataConsumer(Protocol):
     """
-    L{JsonDataConsumer}
+    JsonDataConsumer receives JSON data as an input and
+    then converts it into C{dict} type.
     """
     
     def __init__(self, deferred):
