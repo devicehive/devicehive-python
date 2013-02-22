@@ -1,96 +1,89 @@
 #/usr/bin/env python
+# vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import sys
+import os
 import time
-import uuid
 from twisted.python import log
-from twisted.internet import reactor, task
-
-
-import sys
-from os import path
-
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
+from twisted.internet import reactor
+from zope.interface import implements
 try :
-    devicehive = __import__('devicehive')
-finally :
-    sys.path[:] = orig_path
+    import devicehive
+except :
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import devicehive
+import devicehive.interfaces
+import devicehive.ws
 
 
 def threading_command(finish_defer) :
-	print('Thread command handling started.')
 	time.sleep(5)
-	print('Thread command handling finished.')
 	def not_thread_safe(d):
-		print('Call defer callback from main thread')
 		d.callback('Completed')
 	reactor.callFromThread(not_thread_safe, finish_defer)
 
 
-class LEDHiveDelegate(devicehive.DeviceDelegate):
-	def device_id(self):
-		return '0204eede-2297-11e2-882c-e0cb4eb92129'
-
-	def device_key(self):
-		return 'Exmaple Device Key'
-
-	def device_name(self):
-		return 'DeviceHive Python Example'
-
-	def device_status(self):
-		return 'Online'
-
-	def network_name(self):
-		return 'Network Name'
-
-	def network_description(self):
-		return 'Network Description'
-
-	def device_class_name(self):
-		return 'Example Network'
-
-	def device_class_version(self):
-		return '1.0'
-
-	def device_class_is_permanent(self):
-		return False
-
-	def equipment(self):
-		return [devicehive.Equipment(name = 'ExampleEquipment', code = 'ExampleCode', _type = 'ExampleType'), ]
-
-	def do_short_command(self, finish_deferred):
-		finish_deferred.callback(devicehive.CommandResult('Completed'))
-
-	def do_long_async_command(self, finish_deferred, echo_str):
-		def command_finished(finish_d, par_echo_string) :
-			print 'Device async acomplished.'
-			finish_d.callback(devicehive.CommandResult('Completed', par_echo_string))
-		reactor.callLater(10, command_finished, finish_deferred, echo_str)
-
-	def do_long_thread_command(self, finish_deferred):
-		print('Starting command handling thread')
-		# or regular (threading.Thread(threading_command,...)).start()
-		reactor.callInThread(threading_command, finish_defer =finish_deferred)
-
-	def do_command(self, command, finish_deferred):
-		print 'do_command handle'
-		if command['command'] == 'short' :
-			print 'short command handle'
-			self.do_short_command(finish_deferred)
-		elif command['command'] == 'long_async' :
-			self.do_long_async_command(finish_deferred, command['parameters']['echo_str'])
-		elif command['command'] == 'long_thread' :
-			self.do_long_thread_command(finish_deferred)
-		else :
-			finish_deferred.errback(NotImplementedError('Command is not supported.'))
+class LEDHiveApp(object):
+    implements(devicehive.interfaces.IProtoHandler)
+    
+    def generate_info():
+        return devicehive.DeviceInfo(id = '0204eede-2297-11e2-882c-e0cb4eb92129',
+                              key = 'Exmaple Device Key',
+                              name = 'DeviceHive Python Example',
+                              status = 'Online',
+                              network = devicehive.Network(key = 'Network Name', name = 'Network Name', descr = 'Network Description'),
+                              device_class = devicehive.DeviceClass(name = 'Example Network', version = '1.0', is_permanent = False),
+                              equipment = [devicehive.Equipment(name = 'ExampleEquipment', code = 'ExampleCode', type = 'ExampleType')])
+    DEVICE_INFO = generate_info()
+    
+    factory = None
+    
+    def on_apimeta(self, websocket_server, server_time):
+        pass
+    
+    def on_closing_connection(self):
+        pass
+    
+    def on_connection_failed(self, reason):
+        pass
+    
+    def on_failure(self, device_id, reason):
+        log.err('Unhandled error. Device: {0}. Reason: {1}.'.format(device_id, reason))
+    
+    def on_connected(self):
+        def on_subscribe(result) :
+            self.factory.subscribe(self.DEVICE_INFO.id, self.DEVICE_INFO.key)
+        def on_failed(reason) :
+            log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
+        self.factory.device_save(self.DEVICE_INFO).addCallbacks(on_subscribe, on_failed)
+    
+    def do_short_command(self, finished):
+        log.msg('short command handle')
+        finished.callback(devicehive.CommandResult('Completed'))
+    
+    def do_long_async_command(self, finished, echo_str):
+        def command_finished(finish_d, par_echo_string):
+            log.msg('Device async acomplished.')
+            finish_d.callback(devicehive.CommandResult('Completed', par_echo_string))
+        reactor.callLater(10, command_finished, finished, echo_str)
+    
+    def do_long_thread_command(self, finished):
+        log.msg('Starting command handling thread.')
+        reactor.callInThread(threading_command, finish_defer = finished)
+    
+    def on_command(self, device_id, command, finished):
+        if command.command == 'short' :
+            self.do_short_command(finished)
+        elif command.command == 'long_async' :
+            self.do_long_async_command(finished, command.parameters['echo_str'])
+        elif command.command == 'long_thread' :
+            self.do_long_thread_command(finished)
+        else :
+            finished.errback(NotImplementedError('Command is not supported.'))
 
 
 if __name__ == '__main__' :
     log.startLogging(sys.stdout)
-    #
-    device = LEDHiveDelegate()
-    factory = devicehive.WebSocketDeviceHiveFactory(device_delegate = device)
-    reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi7', factory)
+    reactor.connectDeviceHive('http://ecloud.dataart.com:8010', devicehive.ws.WebSocketFactory(LEDHiveApp()))
     reactor.run()
 
