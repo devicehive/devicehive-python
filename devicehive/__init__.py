@@ -22,7 +22,7 @@ __all__ = ['DhError',
 
 class DhError(Exception):
     """
-    It is supposed to be base exception type for entire devicehive library.
+    Base exception type for entire devicehive library.
     """
     
     def __init__(self, msg = None) :
@@ -31,7 +31,13 @@ class DhError(Exception):
 
 def connectDeviceHive(device_hive_url, factory):
     """
-    reactor.connectDeviceHive(device_hive_url, factory)
+    Connects a DeviceHive client.
+    
+    @type device_hive_url: C{str}
+    @param device_hive_url: 
+    
+    @type factory: C{object}
+    @param factory: a factory object which implements C{IProtoFactory} interface.
     """
     url, host, port = parse_url(device_hive_url)
     factory.url  = url
@@ -57,6 +63,10 @@ class CommandResult(object):
 
 
 class BaseCommand(object):
+    """
+    Base implementation of ICommand interface. It implements backward compatibility
+    logic.
+    """
     
     implements(ICommand)
     
