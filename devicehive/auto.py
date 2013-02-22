@@ -18,6 +18,10 @@ __all__ = ['AutoProtocol', 'AutoFactory']
 
 
 class AutoProtocol(HTTP11ClientProtocol):
+    """
+    The protocol makes API-INFO request. Not intended to external use.
+    """
+    
     def __init__(self, factory):
         HTTP11ClientProtocol.__init__(self)
         self.factory = factory
@@ -45,6 +49,10 @@ class AutoProtocol(HTTP11ClientProtocol):
 
 
 class AutoFactory(ClientFactory):
+    """
+    The first thing the factory does, it makes an '/info' request. Then an information
+    retrived from response is used to deceide which DeviceHive protocol is more appropriate.
+    """
     
     implements(IProtoFactory, IProtoHandler)
     
