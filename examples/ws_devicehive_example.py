@@ -55,7 +55,7 @@ class LEDHiveApp(object):
         def on_subscribe(result) :
             self.factory.subscribe(self.DEVICE_INFO.id, self.DEVICE_INFO.key)
         def on_failed(reason) :
-            log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
+            log.err('Failed to save device {0}. Reason: {1}.'.format(self.DEVICE_INFO, reason))
         self.factory.device_save(self.DEVICE_INFO).addCallbacks(on_subscribe, on_failed)
     
     def do_short_command(self, finished):

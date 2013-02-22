@@ -18,6 +18,7 @@ import devicehive
 from time import sleep
 from twisted.python import log
 from twisted.internet import reactor, task
+from zope.interface import implements
 
 # change it to match your address for 1-wire sensor
 _W1_FILENAME='/sys/bus/w1/devices/28-00000393268a/w1_slave'
@@ -134,8 +135,7 @@ class TempSensor(object):
         self.file_name = file_name
         self.last_temp = 0
         self.last_good_temp = 0
-        pass
-
+    
     # internal, get temperature readings from device and check CRC
     def _get_temp(self):
         with open(self.file_name) as f:
