@@ -1,8 +1,16 @@
 devicehive - is a Twisted implementation of Device-Hive client protocol v6.
 
+What`s new in 0.0.2
+===================
 
-devicehive 0.0.1 tutorial
-=========================
+    - devicehive.DeviceDelegate class was replaced with devicehive.interfaces.IProtoHandler interface.
+    - long polling transport related classes were moved into separate module (devicehive.poll).
+    - web-socket transport support has been added (devicehive.ws module).
+    - devicehive.auto.AutoFactory was added - factory which select devicehive transport depends on info-call result.
+    - under devicehive.gateway a few classes have been added which support creation of a custom gateway.
+    - gateway`s binary protocol has been added
+    - one IProtoHandler class can implement logic for a few devices at once.
+
 
 Prerequisites
 -------------
@@ -33,112 +41,64 @@ should to download and install dependencies manually or use one of methods
 described in Python Package Index tutorial http://wiki.python.org/moin/CheeseShopTutorial.
 
 
+
 Creating a simple client
 ------------------------
+    Creating a simple application using new version of  library is not much harder then is was before.
+The only difference is that now you need to implement devicehive.interfaces.IProtoHandler interface
+instead of overriding devicehive.DeviceDelegate class methods.
 
-	The very fist thing you need to do to start working with devicehive library
-is to write the following code:
+This way now your application class has to implement all methods which IProtoHandler interface defines.
+This means that you class most likly will look like this:
 
-	from devicehive import HTTP11DeviceHiveFactory, DeviceDelegate, Equipment, CommandResult
-	from twisted.internet import reactor
+    class YourApplicationClass(object):
+        zope.interface.implements(devicehive.interfaces.IProtoHandler)
+        def on_apimeta(self, websocket_server, server_time):
+            pass
+        def on_connected(self):
+            pass
+        def on_connection_failed(self, reason) :
+            pass
+        def on_closing_connection(self): 
+            pass
+        def on_failure(self, device_id, reason):
+            pass
+        def on_command(self, device_id, command, finished):
+            pass
 
-	The import statement above enumerates all classes which devicehive library
-provides for your use. HTTP11DeviceHiveFactory is a client factory in terms of Twisted. You
-may use its parameters to tune factory and protocol behaviour. Equipment and CommandResult classes
-are utility classes and in general they were added into library just to increase readability. Therefore
-the main class your will work with is a DeviceDelegate.
-	DeviceDelegate is an abstract class. Devicehive library uses it's methods to obtain description of
-your device. This means that your need to override these mandatory abstract
-methods like in the following code:
+For instance, if your application does not requires to handle transport failures then you
+may leave on_failure method empty.
 
-	class MyDeviceDelegate(devicehive.DeviceDelegate):
-		def device_id(self):
-			return 'E50D6085-2ABA-48E9-B1C3-73C673E414BE'
-		def device_key(self):
-			return 'device-key'
-		def device_name(self):
-			return 'DeviceHive Python Example'
-		def device_status(self):
-			return 'Online'
-		def network_name(self):
-			return 'Netname'
-		def network_description(self):
-			return 'Description'
-		def device_class_name(self):
-			return 'RGB Led Network'
-		def device_class_version(self):
-			return '1.0'
-		def device_class_is_permanent(self):
-			return False
-		def equipment(self):
-			return [devicehive.Equipment(name = 'LED', code = 'LED_CODE', _type = 'LED_TYPE'), ]
+Here I need to mention that during protocol-factory initialization it will set a reference to itself in
+YourApplication.factory attribute. And every devicehive protocol-factory implements
+devicehive.interfaces.IProtoFactory interface. And using factory methods an application of yours can
+interact upon underlying devicehive protocol. For example, it can send a notification
+message using self.factory.notify(...) call. Or it can register one or more devices
+using self.factory.device_save method. For a simple application the most appropriate place to register
+device would be on_connected method.
 
-Please see protocol description to understand the purpose of overridden methods.
-The next thing we need to acomplish is to actually run protocol implementation.
+    def on_connected(self):
+        self.factory.device_save(iDeviceInfoInstance)
 
-	if __name__ == '__main__' :
-		my_device_delegate = MyDeviceDelegate()
-		factory = devicehive.HTTP11DeviceHiveFactory(device_delegate = my_device_delegate)
-		reactor.connectDeviceHive("http://ecloud.dataart.com/ecapi6/", factory)
-		reactor.run()
+A class which you pass into device_save method has to confirm devicehive.interfaces.IDeviceInfo interface.
+We suggested that implementation of IDeviceInfo interface will not differ to much from application to application,
+that is why we included it`s typical implementation into devicehive.DeviceInfo class. Also under devicehive.* namespace
+you will find a few other classes which will be helpfull during constuction of IDeviceInfo object. These are:
+    - devicehive.Network is a typical implementation of devicehive.interfaces.INetwork interface.
+    - devicehive.DeviceClass --- implements devicehive.interfaces.IDeviceClass.
+    - and devicehive.Equipment which implements devicehive.interfaces.IEquipment interface.
+Please see complete description of IProtoFactory methods in devicehive.interfaces module`s documentation.
 
-
-Code above creates an instance of MyDeviceDelegate class which was created on the previous step,
-creates protocol factory and passes deviec-delegate variable as a parameter into it. Then code
-calls reactor.connectDeviceHive method which accept URL to Device-Hive server as a first parameter
-and protocol factory as a second prameter. And finally it runs twisted reactor.
+I would also like to note that protocol factories do not do any additional verifications and will allow you, lets say,
+to call notify() method even before devicehive connection had been established. Application of yours has to implement
+all neccessary logic to avoid such situations.
 
 
-Handling commands and Sending notifications
--------------------------------------------
-
-In the previous steps, we created complete device-hive application. Despite that there is only a
-few lines of code were written it actually does a lot. It registers the device in device-hive server,
-acquire commands, sends reports and notifications if necessary. Unfortunately right now we do not
-have any influence on this process. To change the things and do handling of upcoming command it
-is needed to override method
-
-	def do_command(self, command, finish_deferred):
-		pass
-
-in DeviceDelegate class. Every time a command is sent to you device the DeviceDelegate.do_command
-method will be called. The first parameter is a json commad object decoded into python's dict type.
-The typical structure of of this command-object will look like:
-
-	{'command' = 'command_name', 'parameters': [ LIST_OF_COMMAND_PARAMETERS ]}
-
-	Because command processing may take a while and thus it may block the rest of the
-library, it is good idea to make it asynchronous. In order to support such an approach
-devicehive library passes Deferred object as a second parameter into the do_command method.
-callback method of finish_deferred expects devicehive.CommandResult object as a parameter.
-
-	def do_command(self, command, finish_deferred):
-		# do something
-		finish_deferred.callback(CommandResult("status", "result of operation"))
-
-Invokation of deferred`s callback method will result in Report-request to Device-Hive server.
-When you do not need to report Result parameter you may use the following code:
-
-	def do_command(self, command, finish_deferred):
-		# do something
-		finish_deferred.callback("Completed")
-
-In case of error you still may use callback method with specially encoded values passed
-in a Status and a Result parameters into CommandResult contructor. But more convenient method
-to report callee about exceptions thrown is to use errback method of the finish_deferred object.
-
-	...
- 	finish_deferred.errback(Exception("Exception description."))
- 	...
-
-And finally at any time you may notify listeners about events happened in your device by 
-	
-	...
-	device_delegate_instance.notify('notification', parameter1='value', prameter_to_send2='value2')
-	...
-
-You may send as many parameters as you want until their names and values are conform
-client side API.
+In order to handle device-hive command your application has to allow it for specific device by
+calling factory.subscribe method. Command handling should be done in on_command method. The procedure of command
+handling in the new version of the library did not changed much. Except that in the new version on_command method
+expects device_info variable and command parameter now implements devicehive.interfaces.ICommand interface.
+The device_info variable specifies for which device a command was sent.
 
 
 Conclusion
@@ -146,5 +106,6 @@ Conclusion
 
 	In this tutorial we have implemented the simplest Device-Hive application. For more examples please
 see examples subdirectory under devicehive python library distribution. And of cause you may use python
-build-in help system to take a closer look at library's API.
+build-in help system to take a closer look at library`s API.
+    For futher reading please see examples under examples folder.
 
