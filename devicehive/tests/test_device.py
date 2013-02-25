@@ -39,9 +39,6 @@ class LogicHandler(object):
     def on_connection_failed(self, reason):
         pass
     
-    def on_command(self, deviceguid, command, finished):
-        raise NotImplementedError('COMMAND IS NOT IMPLEMENTED')
-    
     def on_connected(self):
         log.msg('Connected to devicehive.')
         for info in self.DEVICES :
