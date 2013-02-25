@@ -101,6 +101,22 @@ expects device_info variable and command parameter now implements devicehive.int
 The device_info variable specifies for which device a command was sent.
 
 
+Using device-hive gateway API
+-----------------------------
+
+    Device-Hive gateway is built on the same principles as the client API. devicehive.gateway.IGateway defines the
+interface to which every custom gateway has to be conformed to. Although in most cases it would be appropriate to
+use devicehive.BaseGateway class as a starting point of your custom implementation.
+In file basic_gateway_example.py you can see such an implementation. This example creates Gateway class instance.
+A constructor of this class expects devicehive URL as it`s first parameter and a class of protocol-factory as it`s
+second parameter. This protocol-factory will be used to form transport layer between gateway and device-hive server.
+A end point and it`s protocol factory define a channel and a protocol which will be used to transfer commands
+between gateway and end device.
+    Thus to customize Gateway`s behaviuor you need to override BaseGateway`s class methods. An if you want to change
+device-to-gateway transport you will need to provide a protocol-factory implementation of that transport into
+gateway 'run' method.
+
+
 Conclusion
 ----------
 
