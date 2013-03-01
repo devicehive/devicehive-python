@@ -356,13 +356,26 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
             def get_response(cmd_data):
                 for cmd in cmd_data :
                     def __command_done(result, command) :
-                        res = result
+                        log.msg('The command "{0}" successfully processed. Result: {1}.'.format(command, result))
                         if not isinstance(result, CommandResult) :
-                            res = CommandResult(status = result)
+                            res = CommandResult('Success', result)
+                        else :
+                            res = result
                         self.factory.next_state(ProtocolState.Report, ReportData(command, res), self.transport.connector)
                     ok_func = partial(__command_done, command = cmd)
                     def __command_error(reason, command):
-                        res = CommandResult('Failed', str(reason))
+                        log.err('Failed to process command "{0}". Reason: {1}.'.format(command, reason))
+                        if isinstance(reason, Exception) :
+                            res = CommandRequest('Failed', reason.message)
+                        elif hasattr(reason, 'value') :
+                            if isinstance(reason.value, CommandResult) :
+                                res = CommandResult(reason.value.status, reason.value.result)
+                            elif isinstance(reason.value, Exception) :
+                                res = CommandResult('Failed', reason.value.message)
+                            else :
+                                res = CommandResult('Failed', reason.value)
+                        else :
+                            res = CommandRequest('Failed', 'Unhandled Exception')
                         self.factory.next_state(ProtocolState.Report, ReportData(command, res), self.transport.connector)
                     err_func = partial(__command_error, command = cmd)
                     # Obtain only new commands next time

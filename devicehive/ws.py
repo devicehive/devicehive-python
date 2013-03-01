@@ -575,6 +575,7 @@ class WebSocketFactory(ClientFactory):
         log.msg('Command {0} has been received for device {1}.'.format(cmd, info))
         if self.test_handler() :
             def on_ok(result):
+                log.msg('The command "{0}" successfully processed. Result: {1}.'.format(cmd, result))
                 if isinstance(result, CommandResult) :
                     cmd.status = result.status
                     cmd.result = result.result
