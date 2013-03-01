@@ -137,7 +137,7 @@ class AutoFactory(ClientFactory):
         self.handler.on_closing_connection()
     
     def on_command(self, device_id, command, finished):
-        self.on_command(device_id, command, finished)
+        self.handler.on_command(device_id, command, finished)
     
     def on_failure(self, device_id, reason):
         self.handler.on_failure(device_id, reason)
