@@ -93,7 +93,7 @@ class AutoFactory(ClientFactory):
                 self.handler.on_apimeta(wsurl, self.server_time)
                 self.connect_ws()
                 return
-        self.handler.on_apimeta(None, self.server_time)
+        self.handler.on_apimeta(wsurl, self.server_time)
         self.connect_poll()
     
     def api_failed(self, reason):
