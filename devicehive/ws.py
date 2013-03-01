@@ -555,7 +555,7 @@ class WebSocketFactory(ClientFactory):
             if not 'deviceGuid' in message :
                 log.err('Malformed command/insert message {0}.'.format(message))
             else :
-                device_id = message['deviceGuid']
+                device_id = str(message['deviceGuid']).lower() if ('deviceGuid' in message) and (message['deviceGuid'] is not None) else None
                 if device_id in self.devices :
                     self.on_command_insert(WsCommand.create(message), self.devices[device_id])
                 else :
@@ -576,23 +576,31 @@ class WebSocketFactory(ClientFactory):
         if self.test_handler() :
             def on_ok(result):
                 if isinstance(result, CommandResult) :
-                    cmd.result = result.result if isinstance(result.result, dict) else str(result.result)
-                    cmd.status = result.status if isinstance(result.status, dict) else str(result.status)
+                    cmd.status = result.status
+                    cmd.result = result.result
                 else :
-                    cmd.result = result if isinstance(result, dict) else str(result)
-                    cmd.status = 'Succeed'
+                    cmd.status = 'Success'
+                    cmd.result = result
                 self.update_command(cmd, device_id = info.id, device_key = info.key)
             #
             def on_err(reason):
-                if isinstance(reason, CommandResult) :
-                    cmd.result = result.result if isinstance(result.result, dict) else str(result.result)
-                    cmd.status = result.status if isinstance(result.status, dict) else str(result.status)
-                elif isinstance(reason, Exception) :
-                    cmd.result = reason.message
+                log.err('Failed to process command "{0}". Reason: {1}.'.format(cmd, reason))
+                if isinstance(reason, Exception) :
                     cmd.status = 'Failed'
+                    cmd.result = reason.message
+                elif hasattr(reason, 'value') :
+                    if isinstance(reason.value, CommandResult) :
+                        cmd.status = reason.value.status
+                        cmd.result = reason.value.result
+                    elif isinstance(reason.value, Exception) :
+                        cmd.status = 'Failed'
+                        cmd.result = reason.value.message
+                    else :
+                        cmd.status = 'Failed'
+                        cmd.result = reason.value
                 else :
-                    cmd.result = reason if isinstance(reason, dict) else str(reason)
-                    cmd.status = 'Failed' 
+                    cmd.status = 'Failed'
+                    cmd.result = 'Unhandled Exception'
                 self.update_command(cmd, device_id = info.id, device_key = info.key)
             #
             finished = Deferred()
@@ -661,7 +669,8 @@ class WebSocketFactory(ClientFactory):
             dev['deviceClass'] = info.device_class.to_dict() if IDeviceClass.implementedBy(info.device_class.__class__) else info.device_class
         request = {'action': 'device/save', 'deviceId': info.id, 'deviceKey': info.key, 'device': dev}
         def on_ok(result):
-            self.devices[info.id] = info
+            key = str(info.id).lower()
+            self.devices[key] = info
         return self.send_message(request).addCallback(on_ok)
     # end IProtoFactory implementation
 
