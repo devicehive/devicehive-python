@@ -9,24 +9,48 @@
 # (C) DataArt Apps, 2012
 # Distributed under MIT license
 #
+
 import sys
+import os
 import time
-
-import RPi.GPIO as GPIO
-import devicehive
-
 from time import sleep
+
+try :
+    import RPi.GPIO as GPIO
+except ImportError:
+    class FakeGPIO(object):
+        OUT = 'OUTPUT BCM.GPIO17'
+        BOARD = 'BOARD'
+        def __init__(self):
+            print 'Fake gpio initialized'
+        def setmode(self, value):
+            print 'Set mode {0}.'.format(value)
+        def setup(self, io, mode):
+            print 'Set gpio {0}; Mode: {1};'.format(io, mode)
+        def output(self, io, vlaue):
+            print 'Set gpio {0}; Value: {1};'.format(io, vlaue)
+    GPIO = FakeGPIO()
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from zope.interface import implements
 from twisted.python import log
 from twisted.internet import reactor, task
-from zope.interface import implements
+
+import devicehive
+import devicehive.auto
+
 
 # change it to match your address for 1-wire sensor
 _W1_FILENAME='/sys/bus/w1/devices/28-00000393268a/w1_slave'
+if not os.path.exists(_W1_FILENAME) :
+    _W1_FILENAME = '/dev/null'
+
 # Board's pin #11 (GPIO17)
 _LED_PIN=11
-# API URL (register for free playground at http://beta2.devicehive.com/playground
-_API_URL = 'http://nn57.pg.devicehive.com/api'
 
+# API URL (register for free playground at http://beta2.devicehive.com/playground
+_API_URL = 'http://ecloud.dataart.com/ecapi7/'
 
 #
 # for easier reading, this class holds all registration information for DeviceHive
@@ -70,17 +94,22 @@ class RasPiApp(object):
     
     implements(devicehive.interfaces.IProtoHandler)
     
-    def __init__(self, led):
+    def __init__(self, led, sensor):
         super(RasPiApp, self).__init__()
         self.connected = False
         self.notifs = []
         self.info = RasPiConfig()
         self.led = led
+        self.sensor = sensor
     
     def on_apimeta(self, websocket_server, server_time):
-        pass
+        log.msg('on_apimeta')
     
     def on_connected(self):
+        lc = task.LoopingCall(self.sensor.get_temp, self)
+        lc.start(1)
+        
+        log.msg('Connected to devicehive server.')
         self.connected = True
         for onotif in self.notifs :
             self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id, device_key = self.info.key)
@@ -148,7 +177,7 @@ class TempSensor(object):
                 if p >= 0:
                     self.last_good_temp = float(line[p+2:])/1000.0
                     return self.last_good_temp
-        pass
+        return 0.0
 
     # check temperature, if greater than threshold, notify
     def get_temp(self, dev):
@@ -189,16 +218,14 @@ if __name__ == '__main__' :
     led = LedDevice(_LED_PIN)
     # Blink on start to ensure device is working
     led.blink(3)
-    
-    # create a delegate to handle commands
-    device = RasPiDelegate(led)
-    led_factory = devicehive.auto.AutoFactory(device)
-    reactor.connectDeviceHive(_API_URL, led_factory)
-    
+
     # create temp sensor and queue it to check for temperature in a separate thread
     tempSensor = TempSensor(_W1_FILENAME)
-    lc = task.LoopingCall(tempSensor.get_temp, device)
-    lc.start(1)
+    
+    # create a delegate to handle commands
+    device = RasPiApp(led, tempSensor)
+    led_factory = devicehive.auto.AutoFactory(device)
+    reactor.connectDeviceHive(_API_URL, led_factory)   
     
     # off we go!
     reactor.run()
