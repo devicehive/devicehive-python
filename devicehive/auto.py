@@ -23,7 +23,6 @@ class AutoProtocol(HTTP11ClientProtocol):
     """
     
     def __init__(self, factory):
-        HTTP11ClientProtocol.__init__(self)
         self.factory = factory
     
     def connectionMade(self) :
@@ -67,6 +66,8 @@ class AutoFactory(ClientFactory):
     handler = None
     
     def __init__(self, handler):
+        if not IProtoHandler.implementedBy(handler.__class__) :
+            raise TypeError('The protocol handler has to conform to IProtoHandler interface.')
         self.handler  = handler
         self.handler.factory = self
         self.factory  = None
@@ -75,21 +76,29 @@ class AutoFactory(ClientFactory):
         return AutoProtocol(self)
     
     def clientConnectionFailed(self, connector, reason):
-        log.err('Failed to make API info call. Reason: {0}.'.format(reason))
+        log.err('Failed to make "/info" call. Reason: {0}.'.format(reason))
         self.handle_connection_failure(reason)
     
     def api_received(self, wsurl, server_time):
-        log.msg('API info called successfully has been made.')
-        self.ws_url, self.ws_host, self.ws_port  = parse_url(wsurl.replace('ws://', 'http://', 1).replace('wss://', 'https://'))
-        self.server_time = parse_date(server_time)
-        self.handler.on_apimeta(wsurl, server_time)
-        if (self.ws_url is not None) and len(self.ws_url) > 0 :
-            self.connect_ws()
-        else :
-            self.connect_poll()
+        log.msg('The call to "/info" api has finished successfully.')
+        try :
+            self.server_time = parse_date(server_time)
+        except ValueError :
+            log.msg('Failed to parse a date-time string "{0}" returned from "/info" api call.'.format(server_time))
+            self.server_time = datetime.utcnow()
+        if wsurl is not None :
+            wsurl = wsurl.strip().replace('ws://', 'http://', 1).replace('wss://', 'https://', 1)
+            if wsurl.startswith('http://') or wsurl.startswith('https://') :
+                self.ws_url, self.ws_host, self.ws_port = parse_url(wsurl)
+                self.handler.on_apimeta(wsurl, self.server_time)
+                self.connect_ws()
+                return
+        self.handler.on_apimeta(None, self.server_time)
+        self.connect_poll()
     
     def api_failed(self, reason):
-        self.connect_poll()
+        log.err('The call to "/info" api failed. Reason: {0}.'.format(reason))
+        self.on_failure(None, reason)
     
     def handle_connection_failure(self, reason):
         if isinstance(self.factory, WebSocketFactory) :
