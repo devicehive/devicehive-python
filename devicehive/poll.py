@@ -394,7 +394,8 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
 class ApiInfoProtocol(HTTP11ClientProtocol):
     
     def __init__(self, factory):
-        HTTP11ClientProtocol.__init__(self)
+        if hasattr(HTTP11ClientProtocol, '__init__'):
+            HTTP11ClientProtocol.__init__(self)
         self.factory = factory
     
     def connectionMade(self):
@@ -414,7 +415,11 @@ class ApiInfoProtocol(HTTP11ClientProtocol):
             res.addCallbacks(ok_response, err_response)
             response.deliverBody(JsonDataConsumer(res))
         else :
-            log.err('API Info failed. Response code: {0}.'.format(response.code))
+            def err_handler(reason):
+                log.err('/info call failed. Response code: {0}. Reason: {1}.'.format(response.code, reason))
+            res = Deferred()
+            res.addBoth(err_handler)
+            response.deliverBody(TextDataConsumer(res))
     
     def on_fail(self, reason):
         log.err('Failed to make API Info request. Reason: {0}.'.format(reason))
