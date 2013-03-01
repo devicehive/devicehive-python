@@ -8,10 +8,8 @@ from twisted.python import log
 from twisted.internet import reactor
 from zope.interface import implements
 from ConfigParser import ConfigParser as Conf
-try:
-    import devicehive
-except :
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import devicehive
 import devicehive.poll
 import devicehive.ws
@@ -60,6 +58,20 @@ class VirtualLedInfo(object):
     @property
     def equipment(self):
         return [devicehive.Equipment(name = 'VirtualLED', code = 'LED', type = 'Controllable LED')]
+    
+    def to_dict(self):
+        res = {'key': self.key,
+               'name': self.name}
+        if self.status is not None :
+            res['status'] = self.status
+        if self.data is not None :
+            res['data'] = data
+        if self.network is not None :
+            res['network'] = self.network.to_dict() if devicehive.interfaces.INetwork.implementedBy(self.network.__class__) else self.network
+        res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
+        if self.equipment is not None :
+            res['equipment'] = [x.to_dict() for x in self.equipment]
+        return res
 
 
 class VirtualLedApp(object):
@@ -124,7 +136,7 @@ if __name__ == '__main__':
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive
-    reactor.connectDeviceHive("http://ecloud.devicehive.com/apiv7/", virt_led_factory)
+    reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi7/', virt_led_factory)
     try :
         reactor.run()
     except KeyboardInterrupt, err:
