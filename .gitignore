@@ -2,3 +2,6 @@
 *.swp
 *.swo
 .idea
+build/*
+devicehive.egg-info/*
+dist/*
