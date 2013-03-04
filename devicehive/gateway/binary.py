@@ -1051,13 +1051,13 @@ class BinaryFactory(ServerFactory):
                            equipment = [CEquipment(name = e.name, code = e.code, type = e.typename) for e in reg.equipment])
         def fill_descriptors(objs, out, info) :
             for obj in objs :
-                objname = obj.name
+                objname = obj.intent
                 if not objname in out :
                     cls = obj.descriptor()
                     out[objname] = BinaryFactory._DescrItem(obj.intent, cls, info)
                 else :
                     out[objname].intent = obj.intent
-                    out[objname].info   = obj.info
+                    out[objname].info = info
         fill_descriptors(reg.commands, self.command_descriptors, info)
         fill_descriptors(reg.notifications, self.notification_descriptors, info)
         self.gateway.registration_received(info)

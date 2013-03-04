@@ -2,6 +2,7 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import json
+from datetime import datetime
 from functools import partial
 from sys import maxint
 from zope.interface import implements, Interface, Attribute
@@ -417,9 +418,7 @@ class ApiInfoProtocol(HTTP11ClientProtocol):
     def on_ok(self, response):
         if response.code == 200:
             def ok_response(obj):
-                url, host, port = parse_url(obj['webSocketServerUrl'])
-                server_time = parse_date(obj['serverTimestamp'])
-                self.factory.api_received(url, host, port, server_time)
+                self.factory.api_received(obj['webSocketServerUrl'], obj['serverTimestamp'])
             
             def err_response(reason):
                 log.err('Failed to parse command request response. Reason: <{0}>.'.format(reason))
@@ -607,13 +606,15 @@ class PollFactory(ClientFactory):
         return ApiInfoProtocol(self)
     
     # begin callbacks
-    def api_received(self, url, host, port, server_time):
-        self.timestamp = server_time
-        if self.test_handler() :
-            # for long-polling api, "receiving api info" and "connection" events
-            # mean the same.
-            self.handler.on_apimeta(self.url, self.timestamp)
-            self.handler.on_connected()
+    def api_received(self, url, server_time):
+        log.msg('The call to "/info" api has finished successfully.')
+        try :
+            self.timestamp = parse_date(server_time)
+        except ValueError :
+            log.msg('Failed to parse a date-time string "{0}" returned from "/info" api call.'.format(server_time))
+            self.timestamp = datetime.utcnow()
+        self.handler.on_apimeta(url, self.timestamp)
+        self.handler.on_connected()
     # end callbacks
     
     # begin IPollOwner implementation
