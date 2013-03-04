@@ -3,9 +3,12 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import sys
-import signal
+import os
 from twisted.python import log
 from twisted.internet import reactor
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import devicehive
 import devicehive.auto
 import devicehive.gateway
@@ -32,27 +35,12 @@ class Gateway(devicehive.gateway.BaseGateway):
         super(Gateway, self).run(transport_endpoint, device_factory)
 
 
-def stop_handler(signum, e):
-    log.msg('Signal trapped. Terminating application. Stopping reactor.')
-    reactor.stop()
-
-
-def install_signal_handlers():
-    if hasattr(signal, 'SIGTERM'):
-        signal.signal(signal.SIGTERM, stop_handler)
-    if hasattr(signal, 'SIGINT'):
-        signal.signal(signal.SIGINT, stop_handler)
-    if hasattr(signal, 'SIGHUP'):
-        signal.signal(signal.SIGHUP, stop_handler)
-
-
 def main():
     log.startLogging(sys.stdout)
-    install_signal_handlers()
-    gateway = Gateway('http://pg.devicehive.com/api/', devicehive.auto.AutoFactory)
+    gateway = Gateway('http://ecloud.dataart.com/ecapi7/', devicehive.auto.AutoFactory)
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
-                                                            'COM2', \
+                                                            '/dev/tty.usbmodem1411', \
                                                             baudrate = 9600, \
                                                             bytesize = EIGHTBITS, \
                                                             parity = PARITY_NONE, \
@@ -65,5 +53,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 

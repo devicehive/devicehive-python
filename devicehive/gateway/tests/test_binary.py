@@ -50,7 +50,7 @@ class PacketTests(unittest.TestCase):
     def test_crc_error(self):
         tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xBA])
         try:
-           Packet.from_binary(tstval)
+           Packet.from_binary( str(tstval) )
            self.assertTrue(False, 'from_binary method should raises InvalidCRCError')
         except InvalidCRCError:
             pass
@@ -58,7 +58,7 @@ class PacketTests(unittest.TestCase):
     def test_incomplete_packet(self):
         tstval = bytearray([0, 1, 2, 3])
         try:
-            Packet.from_binary(tstval)
+            Packet.from_binary( str(tstval) )
             self.assertTrue(False, 'from_binary method should raises IncompltePacketError in case data-packet passed into this method is too small')
         except IncompletePacketError:
             pass
@@ -66,7 +66,7 @@ class PacketTests(unittest.TestCase):
     def test_invalid_packet_length(self):
         tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x00, 0x03, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
         try:
-            Packet.from_binary(tstval)
+            Packet.from_binary( str(tstval) )
             self.assertTrue(False, 'from_binary method should raises InvalidPacketlengthError in case there not enough data passed into it')
         except InvalidPacketLengthError:
             pass
@@ -74,7 +74,7 @@ class PacketTests(unittest.TestCase):
     def test_raise_invalid_signature(self):
         tstval = bytearray([0xBA, 0xD1, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
         try:
-            Packet.from_binary(tstval)
+            Packet.from_binary( str(tstval) )
             self.assertTrue(False, 'from_binary method should raises InvalidSignatureError in case packet signature is incorrect')
         except InvalidSignatureError:
             pass
@@ -85,7 +85,7 @@ class BinaryPacketBufferTests(unittest.TestCase):
         pkt = [PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
         pkt_buff  = BinaryPacketBuffer()
         pkt_buff.append(pkt)
-        self.assertEquals(pkt, pkt_buff.data)
+        self.assertEquals( str(bytearray(pkt)), pkt_buff.data)
         self.assertTrue(pkt_buff.has_packet())
     
     def test_adding_partial_packet(self):
@@ -93,7 +93,7 @@ class BinaryPacketBufferTests(unittest.TestCase):
         pkt_buff  = BinaryPacketBuffer()
         pkt_buff.append(pkt[:4])
         pkt_buff.append(pkt[4:])
-        self.assertEquals(pkt, pkt_buff.data, 'One complete packet should be located in the buffer')
+        self.assertEquals( str(bytearray(pkt)), pkt_buff.data, 'One complete packet should be located in the buffer')
         self.assertTrue(pkt_buff.has_packet())
     
     def test_add_packet_prefixed_with_junk(self):
@@ -101,7 +101,7 @@ class BinaryPacketBufferTests(unittest.TestCase):
         pkt_buff = BinaryPacketBuffer()
         pkt_buff.append(pkt[:6])
         pkt_buff.append(pkt[6:])
-        self.assertEquals(pkt[3:], pkt_buff.data, 'Junk data should be skipped in the head of packet buffer')
+        self.assertEquals( str(bytearray(pkt[3:])), pkt_buff.data, 'Junk data should be skipped in the head of packet buffer. {0} != {1}'.format(pkt[3:], pkt_buff.data))
         self.assertTrue(pkt_buff.has_packet())
 
     def test_onechar_junk_add(self):
@@ -116,14 +116,14 @@ class BinaryPacketBufferTests(unittest.TestCase):
         pkt = [99, 98, 97, PACKET_SIGNATURE_HI, 96, PACKET_SIGNATURE_LO, 94, 93, PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5]
         pkt_buff = BinaryPacketBuffer()
         pkt_buff.append(pkt)
-        self.assertEquals(pkt[8:], pkt_buff.data, 'Buffer should starts from FULL frame signature')
+        self.assertEquals( str(bytearray(pkt[8:])), pkt_buff.data, 'Buffer should starts from FULL frame signature')
         self.assertTrue(pkt_buff.has_packet())
     
     def test_inv_sign_last_signhi(self):
         pkt = [99, 98, 97, PACKET_SIGNATURE_HI, 96, PACKET_SIGNATURE_LO, 94, 93, PACKET_SIGNATURE_HI]
         pkt_buff = BinaryPacketBuffer()
         pkt_buff.append(pkt)
-        self.assertEquals([PACKET_SIGNATURE_HI], pkt_buff.data, 'One last character should stay untoched if it is SIGNATURE_HI')
+        self.assertEquals( str(bytearray([PACKET_SIGNATURE_HI])), pkt_buff.data, 'One last character should stay untoched if it is SIGNATURE_HI')
         self.assertFalse(pkt_buff.has_packet())
     
     def test_signature_byteatatime(self):
@@ -131,7 +131,7 @@ class BinaryPacketBufferTests(unittest.TestCase):
         pkt_buff = BinaryPacketBuffer()
         for byte in pkt:
             pkt_buff.append([byte])
-        self.assertEquals(pkt[8:], pkt_buff.data, 'Even if we adds packet by one byte the buffer should starts from FULL frame signature')
+        self.assertEquals(str(bytearray(pkt[8:])), pkt_buff.data, 'Even if we adds packet by one byte the buffer should starts from FULL frame signature')
         self.assertTrue(pkt_buff.has_packet())
 
 
@@ -544,7 +544,7 @@ class BinaryFactoryTests(unittest.TestCase):
         transport = StringTransport()
         protocol.makeConnection( transport )
         # makeConnection
-        bindata = bytearray(transport.value())
+        bindata = transport.value()
         pkt = Packet.from_binary(bindata)
         self.assertEquals(PACKET_SIGNATURE, pkt.signature)
         self.assertEquals(1, pkt.version)
@@ -567,7 +567,7 @@ class BinaryFactoryTests(unittest.TestCase):
         eq = self.gateway.device_info.equipment[0]
         self.assertEquals('eq-1-name', eq.name)
         self.assertEquals('eq-1-code', eq.code)
-        self.assertEquals('eq-1-typecode', eq.typename)
+        self.assertEquals('eq-1-typecode', eq.type)
         # test notification_descriptors
         self.assertEquals(1, len(binfactory.notification_descriptors))
         self.assertTrue( 'notification-1-name' in binfactory.notification_descriptors )

@@ -94,7 +94,7 @@ class AbstractPacket(object):
     
     intent = property(fget = lambda self : 0)
     
-    data = property(fget = lambda self : bytearray())
+    data = property(fget = lambda self : b'')
     
     def __len__(self):
         return self.length
@@ -153,17 +153,17 @@ class Packet(AbstractPacket):
         binstr_len = len(binstr)
         if binstr_len < EMPTY_PACKET_LENGTH :
             raise IncompletePacketError()
-        signature = ((binstr[PACKET_OFFSET_SIGN_MSB] & 0xff) << 8) | (binstr[PACKET_OFFSET_SIGN_LSB] & 0xff)
+        signature = struct.unpack_from('!H', binstr, min(PACKET_OFFSET_SIGN_LSB, PACKET_OFFSET_SIGN_MSB))[0]
         if signature != PACKET_SIGNATURE :
             raise InvalidSignatureError()
-        version = binstr[PACKET_OFFSET_VERSION]
-        flags   = binstr[PACKET_OFFSET_FLAGS]
-        payload_len = ((binstr[PACKET_OFFSET_LEN_MSB] & 0xff) << 8) | (binstr[PACKET_OFFSET_LEN_LSB] & 0xff)
+        version = ord(binstr[PACKET_OFFSET_VERSION])
+        flags   = ord(binstr[PACKET_OFFSET_FLAGS])
+        payload_len = struct.unpack_from('<H', binstr, min(PACKET_OFFSET_LEN_MSB, PACKET_OFFSET_LEN_LSB))[0]
         if binstr_len < (EMPTY_PACKET_LENGTH + payload_len) :
             raise InvalidPacketLengthError()
-        intent = ((binstr[PACKET_OFFSET_INTENT_MSB] & 0xff) << 8) | (binstr[PACKET_OFFSET_INTENT_LSB] & 0xff)
-        frame_data = bytearray(binstr[PACKET_OFFSET_DATA:(PACKET_OFFSET_DATA + payload_len)])
-        if 0xff != (sum(binstr[0: PACKET_OFFSET_DATA + payload_len + 1]) & 0xff) :
+        intent = struct.unpack_from('<H', binstr, min(PACKET_OFFSET_INTENT_MSB, PACKET_OFFSET_INTENT_LSB))[0]
+        frame_data = str(bytearray(binstr[PACKET_OFFSET_DATA:(PACKET_OFFSET_DATA + payload_len)]))
+        if 0xff != (sum([ord(i) for i in binstr[0: PACKET_OFFSET_DATA + payload_len + 1]]) & 0xff) :
             raise InvalidCRCError()
         return Packet(signature, version, flags, intent, frame_data)
 
@@ -194,37 +194,40 @@ class BinaryPacketBuffer(object):
     """
     
     def __init__(self):
-        self._data = []
+        self._data = b''
     
     data = property(fget = lambda self : self._data)
     
     def append(self, value):
         if isinstance(value, str) :
-            value = [ord(x) for x in value]
-        self._data.extend(value)
+            self._data += value
+        elif isinstance(value, tuple) or isinstance(value, list) :
+            self._data += b''.join([chr(i) for i in value])
+        else :
+            self._data += value
         self._skip_to_next_packet()
     
     def _skip_to_next_packet(self):
         data_len = len(self._data)
         if data_len > 1:
             # this line is not neccessary but i think this would be better than deleting void list (del _data[:0])
-            if self._data[0] == PACKET_SIGNATURE_HI and self._data[1] == PACKET_SIGNATURE_LO :
+            if self._data[0] == chr(PACKET_SIGNATURE_HI) and self._data[1] == chr(PACKET_SIGNATURE_LO) :
                 return
             idx = -1
             try:
-                idx = self._data.index(PACKET_SIGNATURE_HI)
+                idx = self._data.index(chr(PACKET_SIGNATURE_HI))
                 if idx == data_len - 1 :
-                    del self._data[:idx]
+                    self._data = self._data[idx:]
                 elif idx < data_len - 2 :
-                    if self._data[idx + 1] == PACKET_SIGNATURE_LO:
-                        del self._data[:idx]
+                    if self._data[idx + 1] == chr(PACKET_SIGNATURE_LO) :
+                        self._data = self._data[idx:]
                     else :
-                        del self._data[:idx + 1]
+                        self._data = self._data[idx + 1:]
                         self._skip_to_next_packet()
             except ValueError:
-                self._data = []
-        elif data_len == 1 and self._data[0] != PACKET_SIGNATURE_HI:
-            self._data = []
+                self._data = b''
+        elif data_len == 1 and self._data[0] != chr(PACKET_SIGNATURE_HI) :
+            self._data = b''
     
     def has_packet(self):
         """
@@ -233,13 +236,14 @@ class BinaryPacketBuffer(object):
         data_len = len(self._data)
         if data_len < EMPTY_PACKET_LENGTH :
             return False
-        payload_len = ((self._data[PACKET_OFFSET_LEN_MSB] << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff)
+        payload_len = struct.unpack_from('<H', self._data, min(PACKET_OFFSET_LEN_MSB, PACKET_OFFSET_LEN_LSB))[0]
+        # payload_len = (( ord(self._data[PACKET_OFFSET_LEN_MSB]) << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff)
         if data_len < payload_len + EMPTY_PACKET_LENGTH:
             return False
         return True
     
     def clear(self):
-        self._data = []
+        self._data = b''
     
     def pop_packet(self):
         """
@@ -248,7 +252,7 @@ class BinaryPacketBuffer(object):
         if not self.has_packet() :
             return None
         pkt = Packet.from_binary(self._data)
-        del self._data[:PACKET_OFFSET_DATA + 1 + (((self._data[PACKET_OFFSET_LEN_MSB] << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff))]
+        self._data = self._data[PACKET_OFFSET_DATA + 1 + ((( ord(self._data[PACKET_OFFSET_LEN_MSB]) << 8) & 0xff00) | ( ord(self._data[PACKET_OFFSET_LEN_LSB]) & 0xff)):]
         self._skip_to_next_packet()
         return pkt
 
@@ -1044,7 +1048,7 @@ class BinaryFactory(ServerFactory):
                            key = reg.device_key, \
                            name = reg.device_name, \
                            device_class = CDeviceClass(name = reg.device_class_name, version = reg.device_class_version), \
-                           equipment = [CEquipment(name = e.name, code = e.code, typename = e.typename) for e in reg.equipment])
+                           equipment = [CEquipment(name = e.name, code = e.code, type = e.typename) for e in reg.equipment])
         def fill_descriptors(objs, out, info) :
             for obj in objs :
                 objname = obj.name
@@ -1079,7 +1083,7 @@ class BinaryFactory(ServerFactory):
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
         elif packet.intent == SYS_INTENT_REGISTER2:
-            regreq = BinaryFormatter.deserialize_register2(packet.data)
+            regreq = BinaryFormatter.deserialize_register2(packet.data[2:])
             self.handle_registration_received(regreq)
         elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT :
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
