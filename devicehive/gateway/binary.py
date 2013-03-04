@@ -118,12 +118,13 @@ class AbstractPacket(object):
         _len  = self.length
         _data = [x for x in self.data]
         _intent = self.intent
-        return bytearray([((self.signature & 0xff00) >> 8) & 0xff,
+        res = bytearray([((self.signature & 0xff00) >> 8) & 0xff,
                     self.signature & 0xff,
                     self.version & 0xff,
                     self.flags & 0xff,
                     _len & 0xff, ((_len & 0xff00) >> 8),
-                    _intent & 0xff, ((_intent & 0xff00) >> 8)] + _data + [self.checksum,]) 
+                    _intent & 0xff, ((_intent & 0xff00) >> 8)] + _data + [self.checksum,])
+        return str(res)
 
 
 class Packet(AbstractPacket):
@@ -1078,7 +1079,8 @@ class BinaryFactory(ServerFactory):
             regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
             self.handle_registration_received(regreq)
         elif packet.intent == SYS_INTENT_REGISTER2:
-            pass
+            regreq = BinaryFormatter.deserialize_register2(packet.data)
+            self.handle_registration_received(regreq)
         elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT :
             notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
             self.handle_notification_command_result(notifreq)
