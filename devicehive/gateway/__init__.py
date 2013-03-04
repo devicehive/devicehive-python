@@ -71,7 +71,7 @@ class BaseGateway(object):
         gateway = None
         
         def __init__(self, gateway):
-            self.gateway = self
+            self.gateway = gateway
         
         def on_apimeta(self, websocket_server, server_time):
             pass
