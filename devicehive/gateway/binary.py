@@ -788,7 +788,8 @@ class Updateable(object):
     @staticmethod
     def update_object(obj, value) :
         if not isinstance(value, dict) :
-            raise TypeError('Failed to update object {0}. Reason: value parameter must be of dict type.'.format(obj))
+            raise TypeError('Failed to update object {0}. Reason: value parameter must be of dict type, got {1}.'.format(obj, type(value)))
+        
         cls = obj.__class__
         # iterate over AbstractBinaryProperties which names are present in value dictionary
         for prop, pname in [x for x in [(getattr(cls, pname), pname) for pname in dir(cls) if value.has_key(pname)] if isinstance(x[0], AbstractBinaryProperty) and x[0] in cls.__binary_struct__] :
@@ -803,7 +804,14 @@ class Updateable(object):
         pass
     
     def update(self, value) :
-        Updateable.update_object(self, value)
+        """
+        Updates object using values stored in value dictionary.
+        
+        Verification is neccessary because devicehive server may send and empty parameters list.
+        In this case their default value will be sent.
+        """
+        if value is not None :
+            Updateable.update_object(self, value)
 
 
 class BinaryConstructable(object):
