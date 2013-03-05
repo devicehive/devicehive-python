@@ -100,16 +100,22 @@ class AbstractPacket(object):
         return self.length
     
     def checksum():
+        """
+        Checksum should be computed using all packet data.
+        """
         def fget(self):
             s = ((self.signature & 0xff00) >> 8) + \
-                self.signature + \
+                (self.signature & 0xff) + \
                 self.version + \
                 self.flags + \
                 ((self.length & 0xff00) >> 8) + \
-                self.length + \
+                (self.length & 0xff) + \
                 ((self.intent & 0xff00) >> 8) + \
-                self.intent
-            s += sum(self.data)
+                (self.intent & 0xff)
+            if isinstance(self.data, str) :
+                s += sum([ord(x) for x in self.data])
+            else :
+                s += sum(self.data)
             return (0xff - (s & 0xff)) & 0xff
         return locals()
     checksum = property(**checksum())
@@ -237,7 +243,6 @@ class BinaryPacketBuffer(object):
         if data_len < EMPTY_PACKET_LENGTH :
             return False
         payload_len = struct.unpack_from('<H', self._data, min(PACKET_OFFSET_LEN_MSB, PACKET_OFFSET_LEN_LSB))[0]
-        # payload_len = (( ord(self._data[PACKET_OFFSET_LEN_MSB]) << 8) & 0xff00) | (self._data[PACKET_OFFSET_LEN_LSB] & 0xff)
         if data_len < payload_len + EMPTY_PACKET_LENGTH:
             return False
         return True
@@ -658,6 +663,7 @@ class BinaryFormatter(object) :
         """
         Method is dedicated to register2 payload. This code should not be used anywhere else.
         """
+        log.msg('Deserializing registration 2 message {0}.'.format(str_payload))
         def _deserialize_register2(val) :
             obj = RegistrationPayload()
             if 'id' in val :
@@ -1005,7 +1011,9 @@ class BinaryProtocol(Protocol):
         Sends binary data into transport channel
         """
         msg = Packet(PACKET_SIGNATURE, 1, 0, intent, payload)
-        self.transport.write(msg.to_binary())
+        bin_pkt = msg.to_binary()
+        log.msg('Sending packet "{0}" into transport.'.format(' '.join([hex(ord(x)) for x in bin_pkt])))
+        self.transport.write(bin_pkt)
     
     def connectionMade(self):
         """
@@ -1115,7 +1123,7 @@ class BinaryFactory(ServerFactory):
             log.msg('Command parameters {0}. Parameters type: {1}.'.format(command.parameters, type(command.parameters)))
             command_obj.update( command.parameters )
             self.pending_results[command_id] = finish_deferred
-            self.protocol.send_command(command_desc.intent, BinaryFormatter.serialize_object(command_obj))
+            self.protocol.send_command(command_desc.intent, struct.pack('<I', command_id) + BinaryFormatter.serialize_object(command_obj))
         else :
             msg = 'Command {0} is not registered for device "{1}".'.format(command, device_id)
             log.err(msg)
