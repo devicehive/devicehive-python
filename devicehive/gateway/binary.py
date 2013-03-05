@@ -781,6 +781,8 @@ class Updateable(object):
     
     @staticmethod
     def update_object(obj, value) :
+        if not isinstance(value, dict) :
+            raise TypeError('Failed to update object {0}. Reason: value parameter must be of dict type.'.format(obj))
         cls = obj.__class__
         # iterate over AbstractBinaryProperties which names are present in value dictionary
         for prop, pname in [x for x in [(getattr(cls, pname), pname) for pname in dir(cls) if value.has_key(pname)] if isinstance(x[0], AbstractBinaryProperty) and x[0] in cls.__binary_struct__] :
@@ -1016,8 +1018,9 @@ class BinaryProtocol(Protocol):
 
 class BinaryFactory(ServerFactory):
     class _DescrItem(object):
-        def __init__(self, intent = 0, cls = None, info = None):
+        def __init__(self, intent = 0, name = None, cls = None, info = None):
             self.intent = intent
+            self.name = name
             self.cls = cls
             self.info = info
     
@@ -1051,13 +1054,16 @@ class BinaryFactory(ServerFactory):
                            equipment = [CEquipment(name = e.name, code = e.code, type = e.typename) for e in reg.equipment])
         def fill_descriptors(objs, out, info) :
             for obj in objs :
-                objname = obj.intent
-                if not objname in out :
+                okey = obj.intent
+                if not okey in out :
+                    log.msg('A new handler object {0} ({1}) has been registered.'.format(obj.name, obj.intent))
                     cls = obj.descriptor()
-                    out[objname] = BinaryFactory._DescrItem(obj.intent, cls, info)
+                    out[okey] = BinaryFactory._DescrItem(obj.intent, obj.name, cls, info)
                 else :
-                    out[objname].intent = obj.intent
-                    out[objname].info = info
+                    log.msg('Handler object {0} ({1}) has been updated.'.format(obj.name, obj.intent))
+                    out[okey].intent = obj.intent
+                    out[okey].name = obj.name
+                    out[okey].info = info
         fill_descriptors(reg.commands, self.command_descriptors, info)
         fill_descriptors(reg.notifications, self.notification_descriptors, info)
         self.gateway.registration_received(info)
@@ -1091,23 +1097,29 @@ class BinaryFactory(ServerFactory):
         else:
             self.handle_pass_notification(packet)
     
-    def do_command(self, command, finish_deferred):
+    def do_command(self, device_id, command, finish_deferred):
         """
         This handler is called when a new command comes from DeviceHive server.
-
+        
         @type command: C{object}
         @param command: object which implements C{ICommand} interface
         """
+        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device_id))
         command_id = command.id
         command_name = command.command
-        if command_name in self.command_descriptors :
-            command_desc = self.command_descriptors[command_name]
+        descrs = [x for x in self.command_descriptors.values() if x.name == command_name]
+        if len(descrs) > 0 :
+            log.msg('Has found {0} matching command {1} descriptor(s).'.format(len(descrs), command))
+            command_desc = descrs[0]
             command_obj = command_desc.cls()
+            log.msg('Command parameters {0}. Parameters type: {1}.'.format(command.parameters, type(command.parameters)))
             command_obj.update( command.parameters )
             self.pending_results[command_id] = finish_deferred
             self.protocol.send_command(command_desc.intent, BinaryFormatter.serialize_object(command_obj))
         else :
-            finish_deferred.errback()
+            msg = 'Command {0} is not registered for device "{1}".'.format(command, device_id)
+            log.err(msg)
+            finish_deferred.errback(msg)
     
     def buildProtocol(self, addr):
         log.msg('BinaryFactory.buildProtocol')
