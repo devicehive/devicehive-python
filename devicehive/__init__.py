@@ -171,7 +171,7 @@ class DeviceInfo(object):
         self.equipment = equipment
     
     def __str__(self):
-            return '<id: "{0}", key: "{1}", name: "{2}", ... >'.format(self.id, self.key, self.name)
+            return '<id: "{0}", name: "{1}", ... >'.format(self.id, self.name)
     
     def to_dict(self):
         res = {'key': self.key,
