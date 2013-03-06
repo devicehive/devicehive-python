@@ -606,11 +606,11 @@ class BinaryFormatter(object) :
         
         etype = json[0]
         if isinstance(etype, dict) :
-            return ArrayQualifier( BinaryFormatter.deserialize_json_object_definition(etype) )
+            return ArrayQualifier(BinaryFormatter.deserialize_json_object_definition(etype))
         elif (isinstance(etype, tuple) or isinstance(etype, list)) and len(etype) == 1 :
-            return ArrayQualifier( BinaryFormatter.deserialize_json_array_definition(etype) )
+            return ArrayQualifier(BinaryFormatter.deserialize_json_array_definition(etype))
         elif etype in BinaryFormatter.__json_type_map__ :
-            return ArrayQualifier( BinaryFormatter.__json_type_map__[etype] )
+            return ArrayQualifier(BinaryFormatter.__json_type_map__[etype])
         else :
             raise BinaryDeserializationError('Unsupported json array element {0}.'.format(etype))
     
@@ -629,6 +629,36 @@ class BinaryFormatter(object) :
             raise BinaryDeserializationError('Unsupported json definition {0}.'.format(json))
     
     @staticmethod
+    def deserialize_json_parameter(param_type, param_name = ''):
+        param = Parameter()
+        param.name = param_name
+        # Determine parameter type
+        if isinstance(param_type, dict) :
+            param.type = DATA_TYPE_OBJECT
+        elif isinstance(param_type, list) or isinstance(param_type, tuple) :
+            param.type = DATA_TYPE_ARRAY
+        elif param_type in BinaryFormatter.__json_type_map__ :
+            param.type = BinaryFormatter.__json_type_map__[param_type]
+        else :
+            raise BinaryDeserializationError('JSON parameter {0} has unsupported type {1}.'.format(param_name, param_type))
+        # Apply parameter type qualifier if neccessary. For basic type qualifier would be equal to None
+        if param.type == DATA_TYPE_OBJECT :
+            param.qualifier = BinaryFormatter.deserialize_json_object_definition(param_type)
+        elif param.type == DATA_TYPE_ARRAY :
+            param.qualifier = BinaryFormatter.deserialize_json_array_definition(param_type)
+        else :
+            param.qualifier = None
+        return param
+    
+    @staticmethod
+    def deserialize_json_array_parameter(param_type, param_name):
+        param = Parameter()
+        param.name = param_name
+        param.type = DATA_TYPE_ARRAY
+        param.qualifier = BinaryFormatter.deserialize_json_array_definition(param_type)
+        return [param]
+    
+    @staticmethod
     def deserialize_json_parameters(params) :
         """
         Method converts list of json parameter definitions into BinarySerializable structure
@@ -636,26 +666,7 @@ class BinaryFormatter(object) :
         res = []
         for param_name in params :
             param_type = params[param_name]
-            #
-            param = Parameter()
-            param.name = param_name
-            # Determine parameter type
-            if isinstance(param_type, dict) :
-                param.type = DATA_TYPE_OBJECT
-            elif isinstance(param_type, list) or isinstance(param_type, tuple) :
-                param.type = DATA_TYPE_ARRAY
-            elif param_type in BinaryFormatter.__json_type_map__ :
-                param.type = BinaryFormatter.__json_type_map__[param_type]
-            else :
-                raise BinaryDeserializationError('JSON parameter {0} has unsupported type {1}.'.format(param_name, param_type))
-            # Apply parameter type qualifier if neccessary. For basic type qualifier would be equal to None
-            if param.type == DATA_TYPE_OBJECT :
-                param.qualifier = BinaryFormatter.deserialize_json_object_definition(param_type)
-            elif param.type == DATA_TYPE_ARRAY :
-                param.qualifier = BinaryFormatter.deserialize_json_array_definition(param_type)
-            else :
-                param.qualifier = None
-            res.append(param)
+            res.append(BinaryFormatter.deserialize_json_parameter(param_type, param_name))
         return res
     
     @staticmethod
@@ -697,8 +708,13 @@ class BinaryFormatter(object) :
                         cmdobj.intent = int(cmdval['intent'])
                     if 'name' in cmdval :
                         cmdobj.name = cmdval['name']
-                    if 'params' in cmdval and isinstance(cmdval['params'], dict) :
-                        cmdobj.parameters = BinaryFormatter.deserialize_json_parameters(cmdval['params'])
+                    if 'params' in cmdval :
+                        if isinstance(cmdval['params'], dict) :
+                            cmdobj.parameters = BinaryFormatter.deserialize_json_parameters(cmdval['params'])
+                        elif (isinstance(cmdval['params'], list) or isinstance(cmdval['params'], tuple)) and len(cmdval['params']) == 1 :
+                            cmdobj.parameters = BinaryFormatter.deserialize_json_array_parameter(cmdval['params'], 'top_level')
+                        else :
+                            cmdobj.parameters = [BinaryFormatter.deserialize_json_parameter(cmdval['params'], 'top_level')]
                     cmdlst.append(cmdobj)
                 obj.commands = cmdlst
             if 'notifications' in val and isinstance(val['notifications'], Iterable) :
@@ -709,8 +725,13 @@ class BinaryFormatter(object) :
                         nofobj.intent = int(nofval['intent'])
                     if 'name' in nofval :
                         nofobj.name = nofval['name']
-                    if 'params' in nofval and isinstance(nofval['params'], dict) :
-                        nofobj.parameters = BinaryFormatter.deserialize_json_parameters(nofval['params'])
+                    if 'params' in nofval :
+                        if isinstance(nofval['params'], dict) :
+                            nofobj.parameters = BinaryFormatter.deserialize_json_parameters(nofval['params'])
+                        elif (isinstance(nofval['params'], list) or isinstance(nofval['params'], tuple)) and len(nofval['params']) == 1 :
+                            nofobj.parameters = BinaryFormatter.deserialize_json_array_parameter(nofval['params'], 'top_level')
+                        else :
+                            nofobj.parameters = [BinaryFormatter.deserialize_json_parameter(nofval['params'], 'top_level')]
                     noflst.append(nofobj)
                 obj.notifications = noflst
             return obj
@@ -801,7 +822,6 @@ class Updateable(object):
                 prop.__set__(obj, Updateable.update_array(prop.qualifier, value[pname]))
             else :
                 prop.__set__(obj, value[pname])
-        pass
     
     def update(self, value) :
         """
@@ -811,7 +831,18 @@ class Updateable(object):
         In this case their default value will be sent.
         """
         if value is not None :
-            Updateable.update_object(self, value)
+            if isinstance(value, dict) :
+                Updateable.update_object(self, value)
+            elif hasattr(self.__class__, 'top_level') :
+                prop = getattr(self.__class__, 'top_level')
+                if isinstance(prop, AbstractBinaryProperty) :
+                    if isinstance(value, list) or isinstance(value, tuple) :
+                        prop.__set__(self, Updateable.update_array(prop.qualifier, value))
+                    else :
+                        prop.__set__(self, value)
+                    pass
+                pass
+            pass
 
 
 class BinaryConstructable(object):
@@ -1048,16 +1079,6 @@ class BinaryFactory(ServerFactory):
         self.notification_descriptors = {}
         self.pending_results = {}
     
-    def register_command_descriptor(self, command_name, binary_class):
-        """
-        Method is specific for binary protocol. It allows specify custom deserialization
-        description for the command's payload.
-        """
-        self.command_descriptors[command_name] = BinaryFactory._DescrItem(intent = -1, cls = binary_class)
-    
-    def register_notification_descriptor(self, notification_name, binary_class):
-        self.notification_descriptors[notification_name] = BinaryFactory._DescrItem(intent = -1, cls = binary_class)
-    
     def handle_registration_received(self, reg):
         """
         Adds command to binary-serializable-class mapping and then
@@ -1072,11 +1093,9 @@ class BinaryFactory(ServerFactory):
             for obj in objs :
                 okey = obj.intent
                 if not okey in out :
-                    log.msg('A new handler object {0} ({1}) has been registered.'.format(obj.name, obj.intent))
                     cls = obj.descriptor()
                     out[okey] = BinaryFactory._DescrItem(obj.intent, obj.name, cls, info)
                 else :
-                    log.msg('Handler object {0} ({1}) has been updated.'.format(obj.name, obj.intent))
                     out[okey].intent = obj.intent
                     out[okey].name = obj.name
                     out[okey].info = info
@@ -1094,10 +1113,10 @@ class BinaryFactory(ServerFactory):
             deferred.callback(CommandResult(notification.status, notification.result))
     
     def handle_pass_notification(self, pkt):
-        for (notif,nname) in [(self.notification_descriptors[nname], nname) for nname in self.notification_descriptors if self.notification_descriptors[nname].intent == pkt.intent] :
+        for notif in [self.notification_descriptors[intent] for intent in self.notification_descriptors if intent == pkt.intent] :
             obj = BinaryFormatter.deserialize(pkt.data, notif.cls)
             params = obj.to_dict()
-            self.gateway.notification_received(notif.info, CNotification(nname, params))
+            self.gateway.notification_received(notif.info, CNotification(notif.name, params))
     
     def packet_received(self, packet):
         log.msg('Data packet {0} has been received from device channel'.format(packet))
@@ -1128,7 +1147,7 @@ class BinaryFactory(ServerFactory):
             log.msg('Has found {0} matching command {1} descriptor(s).'.format(len(descrs), command))
             command_desc = descrs[0]
             command_obj = command_desc.cls()
-            log.msg('Command parameters {0}. Parameters type: {1}.'.format(command.parameters, type(command.parameters)))
+            log.msg('Command parameters {0}.'.format(command.parameters, type(command.parameters)))
             command_obj.update( command.parameters )
             self.pending_results[command_id] = finish_deferred
             self.protocol.send_command(command_desc.intent, struct.pack('<I', command_id) + BinaryFormatter.serialize_object(command_obj))

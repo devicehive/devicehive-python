@@ -19,7 +19,7 @@ finally :
 
 class PacketTests(unittest.TestCase):
     def setUp(self):
-        self.pkt = Packet(PACKET_SIGNATURE, 2, 3, 4, bytearray('123'))
+        self.pkt = Packet(PACKET_SIGNATURE, 2, 3, 4, '123')
     
     def tearDown(self):
         pass
@@ -32,6 +32,10 @@ class PacketTests(unittest.TestCase):
     
     def test_checksum(self):
         self.assertEquals(0xd5, self.pkt.checksum, 'Invalid checksum')
+    
+    def test_checksum2(self):
+        pkt =  Packet(PACKET_SIGNATURE, 0x1, 0x0, 0x101, b'\x01\x02\x03\x04\x05\x06')
+        self.assertEquals(0x59, pkt.checksum)
     
     def test_to_binary(self):
         tstval = bytearray([PACKET_SIGNATURE_HI, PACKET_SIGNATURE_LO, 0x02, 0x03, 0x03, 0x00, 0x04, 0x00, 0x31, 0x32, 0x33, 0xd5])
@@ -377,6 +381,9 @@ class BinaryConstructableTest(unittest.TestCase):
         self.assertTrue(isinstance(cls.property4, object_binary_property))
         self.assertEquals(BinaryConstructableTest._ElementType, cls.property4.qualifier)
         self.assertTrue(hasattr(cls.property4.qualifier, 'sub_property1'))
+    
+    def test_top_level_scalar(self):
+        pass
 
 
 class ToDictionaryTest(unittest.TestCase):
@@ -507,6 +514,26 @@ class UpdateableTest(unittest.TestCase) :
         self.assertEquals(3, obj.property5[5][0])
         self.assertEquals(1, obj.property5[5][1])
         self.assertEquals(2, obj.property5[5][2])
+    
+    def test_array_updateable(self):
+        class _ArrayElement(Updateable):
+            top_level = array_binary_property(ArrayQualifier(DATA_TYPE_BYTE))
+            __binary_struct__ = (top_level,)
+        obj = _ArrayElement()
+        obj.update([1, 2, 3])
+        self.assertEquals(1, obj.top_level[0])
+        self.assertEquals(2, obj.top_level[1])
+        self.assertEquals(3, obj.top_level[2])
+    
+    def test_scalar_updateable(self):
+        class _ScalarElement(Updateable) :
+            top_level = binary_property(DATA_TYPE_BYTE)
+            __binary_struct__ = (top_level,)
+        obj = _ScalarElement()
+        obj.update(12)
+        self.assertEquals(12, obj.top_level)
+        obj.update(230)
+        self.assertEquals(230, obj.top_level)
 
 
 class BinaryFactoryTests(unittest.TestCase):
@@ -570,8 +597,8 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertEquals('eq-1-typecode', eq.type)
         # test notification_descriptors
         self.assertEquals(1, len(binfactory.notification_descriptors))
-        self.assertTrue( 'notification-1-name' in binfactory.notification_descriptors )
-        notif = binfactory.notification_descriptors['notification-1-name']
+        self.assertTrue(300 in binfactory.notification_descriptors)
+        notif = binfactory.notification_descriptors[300]
         self.assertEquals(300, notif.intent)
         self.assertNotEquals(None, notif.cls)
         self.assertTrue(hasattr(notif.cls, 'word_param'))
@@ -580,18 +607,84 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertTrue(DATA_TYPE_BYTE, notif.cls.byte_param.type)
         # test command_descriptors
         self.assertEquals(1, len(binfactory.command_descriptors))
-        self.assertTrue('command-1-name' in binfactory.command_descriptors)
-        cmd = binfactory.command_descriptors['command-1-name']
+        self.assertTrue(301 in binfactory.command_descriptors)
+        cmd = binfactory.command_descriptors[301]
         self.assertEquals(301, cmd.intent)
         self.assertNotEquals(None, cmd.cls)
         self.assertTrue(hasattr(cmd.cls, 'sword_param'))
         self.assertTrue(DATA_TYPE_SWORD, cmd.cls.sword_param.type)
     
     def test_registration2(self):
-        pass
-    
-    def test_notification_command_response(self):
-        pass
+        json_str = '{"id":"e736540e-97e4-4b19-864f-103e5a4a965c","key":"key123","name":"test123",' + \
+                   '"deviceClass":{"name":"dev123cls","version":"1.0"},' + \
+                   '"equipment":[{"code":"tst_r","name":"test red","type":"test_red_t"},' + \
+                                '{"code":"tst_g","name":"test green","type":"tst_grn_t"}],' + \
+                   '"notifications":[{"intent":256,"name":"eq1","params":{"eprop":"str","state":"bool"}},' + \
+                                    '{"intent":257,"name":"eq2","params":"str"},' + \
+                                    '{"intent":258,"name":"eq3","params":["str"]}],' + \
+                   '"commands":[{"intent":266,"name":"cmd1","params":{"e1":"str","state":"bool"}},' + \
+                               '{"intent":267,"name":"SetTempResolution","params":"str"},' + \
+                               '{"intent":268,"name":"SetTempInterval","params":["str"]},' + \
+                               '{"intent":269,"name":"vcc"}]}'
+        obj = BinaryFormatter.deserialize_register2(json_str)
+        self.assertEquals(4, len(obj.commands))
+        self.assertTrue(all([isinstance(x, Command) for x in obj.commands]))
+        # object top level value
+        cmd0 = obj.commands[0]
+        self.assertTrue(isinstance(cmd0, BinaryConstructable))
+        descr0 = cmd0.descriptor()
+        self.assertTrue(hasattr(descr0, 'e1'))
+        self.assertTrue(isinstance(getattr(descr0, 'e1'), AbstractBinaryProperty))
+        self.assertTrue(hasattr(descr0, 'state'))
+        self.assertTrue(isinstance(getattr(descr0, 'state'), AbstractBinaryProperty))
+        # scalar top level value
+        cmd1 = obj.commands[1]
+        self.assertTrue(isinstance(cmd1, BinaryConstructable))
+        descr1 = cmd1.descriptor()
+        self.assertTrue(hasattr(descr1, 'top_level'))
+        self.assertTrue(isinstance(getattr(descr1, 'top_level'), AbstractBinaryProperty))
+        self.assertEquals(DATA_TYPE_STRING, getattr(descr1, 'top_level').type)
+        # array top level value
+        cmd2 = obj.commands[2]
+        descr2 = cmd2.descriptor()
+        self.assertTrue(hasattr(descr2, 'top_level'))
+        self.assertTrue(isinstance(getattr(descr2, 'top_level'), array_binary_property))
+        self.assertEquals(DATA_TYPE_STRING, getattr(descr2, 'top_level').qualifier.data_type)
+        # empty parameters
+        cmd3 = obj.commands[3]
+        descr3 = cmd3.descriptor()
+        self.assertFalse(hasattr(descr3, 'top_level'))
+        self.assertTrue(hasattr(descr3, '__binary_struct__'))
+        self.assertEquals(0, len(descr3.__binary_struct__))
+        # update tests
+        o0 = descr0()
+        o0.update({'e1': 'test0', 'state': True})
+        self.assertEquals('test0', o0.e1)
+        self.assertEquals(True, o0.state)
+        # descr1
+        o1 = descr1()
+        o1.update('test1')
+        self.assertEquals('test1', o1.top_level)
+        # descr2
+        o2 = descr2()
+        o2.update(['test2.1', 'test2.2', 'test2.3'])
+        self.assertEquals(3, len(o2.top_level))
+        self.assertEquals('test2.1', o2.top_level[0])
+        self.assertEquals('test2.2', o2.top_level[1])
+        self.assertEquals('test2.3', o2.top_level[2])
+        o2.update(('test2.1.1', 'test2.1.2'))
+        self.assertEquals(2, len(o2.top_level))
+        self.assertEquals('test2.1.1', o2.top_level[0])
+        self.assertEquals('test2.1.2', o2.top_level[1])
+        # fail tests o2
+        o2.update({'test3': 'test3', 'test4': 4})
+        self.assertEquals(['test2.1.1', 'test2.1.2'], o2.top_level, 'Invalid update parameter should not updates values.')
+        # descr3
+        o3 = descr3()
+        o3.update(None)
+        # fail tests o3
+        o3.update([1,2,3])
+        o3.update({'test1': 'test1', 'test2': 2})
 
 
 class BinaryFormatterErrorTests(unittest.TestCase):
