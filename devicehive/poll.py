@@ -129,10 +129,10 @@ class BaseRequest(Request):
     
     @staticmethod
     def headers(host, device_id, device_key):
-        headers = Headers({'Host': [host],
+        headers = Headers({'Host': [host.encode('utf-8')],
                            'Content-Type': ['application/json',],
-                           'Auth-DeviceID': [device_id],
-                           'Auth-DeviceKey': [device_key],
+                           'Auth-DeviceID': [device_id.encode('utf-8')],
+                           'Auth-DeviceKey': [device_key.encode('utf-8')],
                            'Accept': ['application/json']})
         return headers
 
@@ -311,11 +311,13 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         if hasattr(HTTP11ClientProtocol, '__init__'):
             HTTP11ClientProtocol.__init__(self)
         self.factory = factory
-
+    
     def connectionMade(self):
         if self.factory.state.value == ProtocolState.Register :
+            log.msg('About to send registration request.')
             self.request(RegisterRequest(self.factory)).addCallbacks(self._register_done, self._critical_error)
         elif self.factory.state.value == ProtocolState.Command :
+            log.msg('Command acquisition has started.')
             res = self.request(CommandRequest(self.factory))
             res.addCallbacks(self._command_done, self._critical_error)
         else :
@@ -335,6 +337,7 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
         """
         Method is called when the answer to registration request is received.
         """
+        log.msg('Has sent registration request.')
         if response.code == 200:
             def get_response_text(reason):
                 log.err('Registration succeed. Response code {0}. Reason: {1}.'.format(response.code, reason))
