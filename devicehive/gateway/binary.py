@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
+"""
+    Remove ugly 'top_level' property and use Command.parameter.value(binary_property) to
+    unify the way how object, array and scalar parameters are stored.
+    
+    For now it is impossible to do this because We need to support both json and binary
+    registration.
+"""
+
 import struct
 import array
 import uuid
@@ -1148,7 +1156,7 @@ class BinaryFactory(ServerFactory):
             command_desc = descrs[0]
             command_obj = command_desc.cls()
             log.msg('Command parameters {0}.'.format(command.parameters, type(command.parameters)))
-            command_obj.update( command.parameters )
+            command_obj.update(command.parameters)
             self.pending_results[command_id] = finish_deferred
             self.protocol.send_command(command_desc.intent, struct.pack('<I', command_id) + BinaryFormatter.serialize_object(command_obj))
         else :

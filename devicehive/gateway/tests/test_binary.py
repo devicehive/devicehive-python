@@ -625,9 +625,11 @@ class BinaryFactoryTests(unittest.TestCase):
                    '"commands":[{"intent":266,"name":"cmd1","params":{"e1":"str","state":"bool"}},' + \
                                '{"intent":267,"name":"SetTempResolution","params":"str"},' + \
                                '{"intent":268,"name":"SetTempInterval","params":["str"]},' + \
-                               '{"intent":269,"name":"vcc"}]}'
+                               '{"intent":269,"name":"vcc"},' + \
+                               '{"intent":270,"name":"SetTempInterval","params":{"equipment":"str","interval":"u16"}}' + \
+                               ']}'
         obj = BinaryFormatter.deserialize_register2(json_str)
-        self.assertEquals(4, len(obj.commands))
+        self.assertEquals(5, len(obj.commands))
         self.assertTrue(all([isinstance(x, Command) for x in obj.commands]))
         # object top level value
         cmd0 = obj.commands[0]
@@ -685,6 +687,13 @@ class BinaryFactoryTests(unittest.TestCase):
         # fail tests o3
         o3.update([1,2,3])
         o3.update({'test1': 'test1', 'test2': 2})
+        # cmd 4, creates descriptor, an object and then a command.
+        cmd4 = obj.commands[4]
+        descr4 = cmd4.descriptor()
+        o4 = descr4()
+        o4.update({'equipment':'LED_Y', 'interval':10})
+        msg = Packet(PACKET_SIGNATURE, 1, 0, cmd4.intent, struct.pack('<I', 123) + BinaryFormatter.serialize_object(o4))
+        bin_pkt = msg.to_binary()
 
 
 class BinaryFormatterErrorTests(unittest.TestCase):
