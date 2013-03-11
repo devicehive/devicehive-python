@@ -11,7 +11,7 @@ from zope.interface import implements
 
 from devicehive import DhError, Notification
 from devicehive.ws import IWebSocketCallback, IWebSocketProtocolCallback, WS_STATE_UNKNOWN, WS_STATE_WS_CONNECTING, WebSocketDeviceHiveProtocol, WS_STATE_WS_CONNECTED
-from devicehive.interfaces import IClientFactory, IClientApp
+from devicehive.interfaces import IClientTransport, IClientApp
 
 
 def LOG_MSG(msg):
@@ -36,7 +36,7 @@ class WebSocketFactory(ClientFactory):
     Implements client factory over websocket protocol.
     """
     
-    implements(IClientFactory, IWebSocketProtocolCallback)
+    implements(IClientTransport, IWebSocketProtocolCallback)
     
     url  = 'localhost'
     host = 'localhost'
@@ -92,7 +92,7 @@ class WebSocketFactory(ClientFactory):
             err.fail('failed to send websocket frame')
             return err
     
-    # IClientFactory interface implementation
+    # IClientTransport interface implementation
     def authenticate(self, login, password):
         LOG_MSG('About to send authentication request.')
         return self.send_message({'action': 'authenticate', 'requestId': None, 'login': login.encode('utf-8'), 'password': password.encode('utf-8')})
@@ -122,7 +122,10 @@ class WebSocketFactory(ClientFactory):
     def do_notification(self, msg):
         LOG_MSG('Notification {0} has been received.'.format(msg['notification']))
         self.handler.do_notification(msg['deviceGuid'], Notification(name = msg['notification']['notification'], parameters = msg['notification']['parameters']))
-    # end IClientFactory interface implementation
+    
+    def connect(self, url):
+        reactor.connectDeviceHive(url, self)
+    # end IClientTransport interface implementation
     
     # IWebSocketProtocolCallback interface implementation
     state = WS_STATE_UNKNOWN

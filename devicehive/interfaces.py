@@ -238,7 +238,7 @@ class IClientApp(Interface):
         pass
 
 
-class IClientFactory(Interface):
+class IClientTransport(Interface):
     def authenticate(self, login, password):
         """
         Authenticates client in device hive server.
@@ -276,5 +276,10 @@ class IClientFactory(Interface):
         
         @param device_id: a device to which a command will be sent
         @return deferred result
+        """
+    
+    def connect(self, url):
+        """
+        Connects factory to devicehive server.
         """
 

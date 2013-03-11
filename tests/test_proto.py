@@ -5,6 +5,7 @@ import sys
 import os
 import unittest
 import json
+from zope.interface import implements
 from twisted.internet import reactor
 from twisted.web.client import HTTP11ClientProtocol
 from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
@@ -20,32 +21,31 @@ class TestReactorFunc(unittest.TestCase):
 
 
 class TestRegisterRequest(unittest.TestCase):
-	class FakeDeviceDelegate(object):
-		def device_id(self):
-			return 'device-id'
-		def device_key(self):
-			return 'device-key'
-		def registration_info(self):
-			res = {'id': self.device_id(),
-				   'key': self.device_key(),
-				   'name': 'device-name',
-				   'status':  'device-status',
-				   'network': {'name': 'network-name', 'description': 'network-description'},
-				   'deviceClass': {'name': 'device-class-name', 'version': 'device-class-version', 'isPermanent': 'device-class-ispermanent'},
-				   'equipment': [devicehive.Equipment('eq-name', 'eq-code', 'eq-type').to_dict(), ]}
-			return res
+    class FakeDevice(object):
+        implements(devicehive.interfaces.IDeviceInfo)
+        id = ''
+        key = 'fake-device'
+        name = 'fake-device'
+        status = 'Online'
+        data = None
+        network = devicehive.Network(id = 'netid', name='netname', key='netkey', descr='net descr'),
+        device_class = devicehive.DeviceClass(name='devcls-name', version='0.1'),
+        equipment = [devicehive.Equipment('eq-name', 'eq-code', 'eq-type'),]
+    
 	class FakeFactory(object):
 		def __init__(self, device_delegate):
 			self.device_delegate = device_delegate
 			self.uri = 'http://localhost/'
 			self.host = 'localhost'
-			self.info = None
+			self.info = FakeDevice()
+    
 	def setUp(self):
 		self.device_delegate = TestRegisterRequest.FakeDeviceDelegate()
 		self.factory = TestRegisterRequest.FakeFactory(self.device_delegate)
 		self.transport = StringTransport()
 		self.protocol = HTTP11ClientProtocol()
 		self.protocol.makeConnection(self.transport)
+    
 	def test_request(self):
 		request = devicehive.poll.RegisterRequest(self.factory)
 		r = self.protocol.request(request)

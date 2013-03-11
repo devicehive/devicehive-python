@@ -28,12 +28,11 @@ class TestApp(object):
             print 'The application authenticated.'
             def on_subscribed(msg):
                 print 'The application has subscribed to notifications'
-                def on_unsbcr(msg):
-                    print 'Unsubscribed'
-                def on_fail_unsubcr(resn):
-                    print 'Failed to unsubscribe'
+                # def on_unsbcr(msg):
+                #    print 'Unsubscribed'
+                #def on_fail_unsubcr(resn):
+                #    print 'Failed to unsubscribe'
                 #self.factory.unsubscribe(['b125698d-61bd-40d7-b65e-e1f86852a166']).addCallbacks(on_unsbcr, on_fail_unsubcr)
-                pass
             def on_subscribed_failed(rsn):
                 print 'The application failed to subscribe to notifications'
             self.factory.subscribe(['b125698d-61bd-40d7-b65e-e1f86852a166', 'e50d6085-2aba-48e9-b1c3-73c673e414be']).addCallbacks(on_subscribed, on_subscribed_failed)
@@ -44,8 +43,8 @@ class TestApp(object):
 
 def main():
     log.startLogging(sys.stdout)
-    factory = devicehive.client.ws.WebSocketFactory( TestApp() )
-    reactor.connectDeviceHive('ws://ecloud.dataart.com:8010', factory)
+    transport = devicehive.client.ws.WebSocketFactory(TestApp())
+    transport.connect('ws://ecloud.dataart.com:8010')
     reactor.run()
 
 

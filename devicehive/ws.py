@@ -18,7 +18,7 @@ from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.protocols.basic import LineReceiver
 from devicehive import ApiInfoRequest, CommandResult, DhError, BaseCommand
 from devicehive.utils import JsonDataConsumer, parse_url, parse_date
-from devicehive.interfaces import IProtoFactory, IClientFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
+from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 
 
 __all__ = ['WebSocketError', 'WebSocketState', 'WebSocketParser', 'WebSocketProtocol13',
@@ -560,7 +560,7 @@ class WebSocketFactory(ClientFactory):
                     log.err('Unable to process command {0}. Device {1} is not registered.'.format(message, device_id))
         else :
             raise DhError('unsupported message {0}'.format(message))
-    # end IWebSocketProtocolCallback
+    # End of IWebSocketProtocolCallback interface implementation
     
     def on_command_insert(self, cmd, info):
         """
@@ -671,5 +671,8 @@ class WebSocketFactory(ClientFactory):
             key = str(info.id).lower()
             self.devices[key] = info
         return self.send_message(request).addCallback(on_ok)
+    
+    def connect(self, url):
+        reactor.connectDeviceHive(url, self)
     # end IProtoFactory implementation
 
