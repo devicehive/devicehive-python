@@ -18,7 +18,7 @@ from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.protocols.basic import LineReceiver
 from devicehive import ApiInfoRequest, CommandResult, DhError, BaseCommand
 from devicehive.utils import JsonDataConsumer, parse_url, parse_date
-from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
+from devicehive.interfaces import IProtoFactory, IClientFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 
 
 __all__ = ['WebSocketError', 'WebSocketState', 'WebSocketParser', 'WebSocketProtocol13',
@@ -67,11 +67,6 @@ class IWebSocketProtocolCallback(Interface):
     def failure(self, reason, connector):
         """
         Callback signals about critial error
-        """
-    
-    def api_received(self, url, host, port, server_time, connector):
-        """
-        Callback is called after api matedata has been received
         """
     
     def connected(self):
@@ -452,6 +447,9 @@ class WsCommand(BaseCommand):
 
 
 class WebSocketFactory(ClientFactory):
+    """
+    Implements device factory over websocket protocol.
+    """
     
     implements(IWebSocketProtocolCallback, IProtoFactory)
     

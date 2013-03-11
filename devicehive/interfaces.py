@@ -205,4 +205,70 @@ class IProtoFactory(Interface):
         
         @return deferred
         """
+    
+    def connect(self, url):
+        """
+        Connects the factory to devicehive server.
+        
+        @type url: C{str}
+        @param url: url to the devicehive server
+        """
+
+
+class IClientApp(Interface):
+    """
+    Defines interface of client application.
+    """
+    def connected(self):
+        """
+        Method called by a client factory when it connects to devicehive server.
+        """
+    def do_notification(self, device_id, notification):
+        """
+        Notifies the user about new device notification.
+        
+        @param device_id:
+        @param notification: a notification object which implements INotification interface
+        """
+
+
+class IClientFactory(Interface):
+    def authenticate(self, login, password):
+        """
+        Authenticates client in device hive server.
+        @return deferred object
+        """
+    
+    def subscribe(self, device_ids):
+        """
+        Method starts listening for a new noficiations for specified devices.
+        
+        @param device_ids: a list of device identifiers which notifications should
+                           be passed into do_notification method
+        @return deferred object
+        """
+    
+    def unsubscribe(self, device_ids):
+        """
+        An oposite functionallity to subscribe method.
+        
+        @param device_ids: list of devices in which notifications we do not interesting more.
+        """
+   
+    def do_notification(self, device_id, notification):
+        """
+        Method is invoked when a new the device-hive
+        server receives new notification.
+        
+        @param device_id: an identifier which specifies which device has sent the notification.
+        @param notification: the Notification object.
+        """
+    
+    def command(self, device_id, cmd):
+        """
+        Sends command to a device.
+        
+        @param device_id: a device to which a command will be sent
+        @return deferred result
+        """
 
