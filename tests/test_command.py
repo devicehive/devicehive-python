@@ -6,7 +6,7 @@ from zope.interface import implements
 
 orig_name = __name__
 orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..')))
+sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
 try :
     devicehive = __import__('devicehive')
     __import__('devicehive.ws')

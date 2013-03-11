@@ -230,6 +230,12 @@ class IClientApp(Interface):
         @param device_id:
         @param notification: a notification object which implements INotification interface
         """
+    
+    def failure(self, reason):
+        pass
+    
+    def closing_connection(self):
+        pass
 
 
 class IClientFactory(Interface):

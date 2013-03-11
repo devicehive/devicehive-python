@@ -14,11 +14,12 @@ from devicehive.ws import IWebSocketCallback, IWebSocketProtocolCallback, WS_STA
 from devicehive.interfaces import IClientFactory, IClientApp
 
 
-def LOG_MSG(msg, *args):
-    """
-    TODO: generalize this
-    """
+def LOG_MSG(msg):
     log.msg(msg)
+
+
+def LOG_ERR(msg):
+    log.err(msg)
 
 
 class WebSocketClientError(DhError):
@@ -127,13 +128,14 @@ class WebSocketFactory(ClientFactory):
     state = WS_STATE_UNKNOWN
     
     def failure(self, reason, connector):
-        print 'factory failure'
+        LOG_ERR('WebSocekt client failure. Reason: {0}.'.format(reason))
+        self.handler.failure(reason)
     
     def connected(self):
         self.handler.connected()
     
     def closing_connection(self):
-        print 'closing_connection'
+        self.handler.closing_connection()
     
     def frame_received(self, message):
         LOG_MSG('Message has been received {0}.'.format(message))

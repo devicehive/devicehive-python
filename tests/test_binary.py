@@ -9,7 +9,7 @@ from twisted.test.proto_helpers import MemoryReactor, StringTransport, Accumulat
 
 
 orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..', '..', '..')))
+sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
 try :
     import devicehive
     from devicehive.gateway.binary import *

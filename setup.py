@@ -21,7 +21,7 @@ setup(
     description = 'A framework for interfacing applications and devices with the web cloud',
     long_description = open('README.md').read(),
     keywords = "web cloud api embedded tutorial",
-    packages = ['devicehive', 'devicehive.tests', 'devicehive.gateway', 'devicehive.gateway.tests'],
+    packages = ['devicehive', 'devicehive.client', 'devicehive.gateway'],
     install_requires = ['twisted'],
     requires = ['twisted (>=12.0)'],
     data_files=[(path.join(get_python_lib(), 'devicehive'),  ['LICENSE']),

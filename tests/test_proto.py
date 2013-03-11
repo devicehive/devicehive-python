@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
+import sys
+import os
 import unittest
 import json
 from twisted.internet import reactor
 from twisted.web.client import HTTP11ClientProtocol
 from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import devicehive
+import devicehive.poll
 
 
 class TestReactorFunc(unittest.TestCase):
@@ -34,6 +39,7 @@ class TestRegisterRequest(unittest.TestCase):
 			self.device_delegate = device_delegate
 			self.uri = 'http://localhost/'
 			self.host = 'localhost'
+			self.info = None
 	def setUp(self):
 		self.device_delegate = TestRegisterRequest.FakeDeviceDelegate()
 		self.factory = TestRegisterRequest.FakeFactory(self.device_delegate)
@@ -41,7 +47,7 @@ class TestRegisterRequest(unittest.TestCase):
 		self.protocol = HTTP11ClientProtocol()
 		self.protocol.makeConnection(self.transport)
 	def test_request(self):
-		request = devicehive.RegisterRequest(self.factory)
+		request = devicehive.poll.RegisterRequest(self.factory)
 		r = self.protocol.request(request)
 		def request_done(resp):
 			self.assertTrue(200, resp.code)
