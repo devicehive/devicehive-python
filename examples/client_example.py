@@ -23,22 +23,25 @@ class TestApp(object):
     
     implements(devicehive.interfaces.IClientApp)
     
+    dev_id = 'e50d6085-2aba-48e9-b1c3-73c673e414be'
+    
     def connected(self):
         def on_ok(result):
             print 'The application authenticated.'
             def on_subscribed(msg):
-                print 'The application has subscribed to notifications'
-                # def on_unsbcr(msg):
-                #    print 'Unsubscribed'
-                #def on_fail_unsubcr(resn):
-                #    print 'Failed to unsubscribe'
-                #self.factory.unsubscribe(['b125698d-61bd-40d7-b65e-e1f86852a166']).addCallbacks(on_unsbcr, on_fail_unsubcr)
+                print 'The application has subscribed to notifications. Sending test command to the device.'
+                def cmd_ret(o):
+                    print 'Result from command {0}'.format(o)
+                self.factory.command(self.dev_id, devicehive.client.ws.WsCommand('test')).addBoth(cmd_ret)
             def on_subscribed_failed(rsn):
                 print 'The application failed to subscribe to notifications'
-            self.factory.subscribe(['b125698d-61bd-40d7-b65e-e1f86852a166', 'e50d6085-2aba-48e9-b1c3-73c673e414be']).addCallbacks(on_subscribed, on_subscribed_failed)
+            self.factory.subscribe([self.dev_id]).addCallbacks(on_subscribed, on_subscribed_failed)
         def on_fail(reason):
             print 'The application FAILED authentication.'
         self.factory.authenticate('vusr', 'password').addCallbacks(on_ok, on_fail)
+    
+    def do_notification(self, device_id, notification):
+        print 'Notification {0} has been received for device {1}.'.format(notification, device_id)
 
 
 def main():

@@ -261,17 +261,21 @@ class WebSocketParser(LineReceiver) :
 class WebSocketProtocol13(object):
     implements(IWebSocketParserCallback)
     
-    def __init__(self, handler, transport, host):
+    def __init__(self, handler, transport, host, uri):
         """
         @type handler: C{object}
         @param handler: has to implement C{IWebSocketCallback} interface
         
         @type host: C{str}
         @param host: host string which will be used to form HTTP request header
+        
+        @type uri: C{str}
+        @param uri: device uri
         """
         self.handler = handler
         self.transport = transport
         self.host = host
+        self.uri = uri
         self.rand = Random(long(time()))
         self.security_key = base64.b64encode(array('B', [self.rand.randint(0, 0xff) for x in range(12)]).tostring())
         self.parser = WebSocketParser(self)
@@ -323,7 +327,7 @@ class WebSocketProtocol13(object):
         return answer == key
     
     def send_headers(self) :
-        header = 'GET /device HTTP/1.1\r\n' + \
+        header = 'GET {0} HTTP/1.1\r\n'.format(self.uri) + \
                   'Host: {0}\r\n' + \
                   'Upgrade: websocket\r\n' + \
                   'Connection: Upgrade\r\n' + \
@@ -359,8 +363,13 @@ class WebSocketDeviceHiveProtocol(Protocol):
     
     implements(IWebSocketCallback, IWebSocketMessanger)
     
-    def __init__(self, factory):
+    def __init__(self, factory, uri):
+        """
+        @type uri: C{str}
+        @param uri: an uri which is used during handshake
+        """
         self.factory = factory
+        self.uri = uri
         self.socket = None
     
     def test_factory(self):
@@ -384,7 +393,7 @@ class WebSocketDeviceHiveProtocol(Protocol):
     def connectionMade(self):
         if self.test_factory() :
             if self.factory.state == WS_STATE_WS_CONNECTING :
-                self.socket = WebSocketProtocol13(self, self.transport, self.factory.host)
+                self.socket = WebSocketProtocol13(self, self.transport, self.factory.host, self.uri)
                 self.socket.send_headers()
         else :
             raise WebSocketError('factory expected')
@@ -400,7 +409,9 @@ class WebSocketDeviceHiveProtocol(Protocol):
         if not isinstance(message, dict) :
             raise TypeError('message should be a dict')
         if self.socket is not None :
-            self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, json.dumps(message))
+            data = json.dumps(message).encode('utf-8')
+            log.msg('Sending websocket text frame. Payload: {0}'.format(data))
+            self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, data)
             return True
         else :
             return False    
@@ -485,7 +496,7 @@ class WebSocketFactory(ClientFactory):
         ClientFactory.doStart(self)
     
     def buildProtocol(self, addr):
-        self.proto = WebSocketDeviceHiveProtocol(self)
+        self.proto = WebSocketDeviceHiveProtocol(self, '/device')
         return self.proto
     
     def clientConnectionFailed(self, connector, reason):
@@ -514,8 +525,6 @@ class WebSocketFactory(ClientFactory):
             msgid = self.request_counter.next()
             message['requestId'] = msgid
             self.callbacks[msgid] = Deferred()
-            
-            log.msg('Sending message {0}.'.format(message))
             if self.proto.send_message(message) :
                 return self.callbacks[msgid]
             else :
