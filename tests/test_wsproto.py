@@ -38,7 +38,7 @@ class TestHandler(object):
 class WebSocketProtocol13Test(unittest.TestCase):
     def test_send_frame(self):
         trans = StringTransport()
-        proto = ws.WebSocketProtocol13(None, trans, 'localhost')
+        proto = ws.WebSocketProtocol13(None, trans, 'localhost', '/test')
         proto.send_frame(True, 2, b'1234')
         data = trans.value()
         self.assertEquals(0x82, ord(data[0:1]))
@@ -52,7 +52,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
     def test_receive_frame(self):
         trans = StringTransport()
         handler = TestHandler()
-        proto = ws.WebSocketProtocol13(handler, trans, 'localhost')
+        proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x81\x03\x01\x02\x03'
@@ -62,7 +62,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
     def test_invalid_opcode(self):
         trans = StringTransport()
         handler = TestHandler()
-        proto = ws.WebSocketProtocol13(handler, trans, 'localhost')
+        proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x83\x03\x01\x02\x03'
@@ -75,7 +75,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
     def test_closing_connection(self):
         trans = StringTransport()
         handler = TestHandler()
-        proto = ws.WebSocketProtocol13(handler, trans, 'localhost')
+        proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x88\x00'
@@ -85,7 +85,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
     def test_invalid_sec_key(self):
         trans = StringTransport()
         handler = TestHandler()
-        proto = ws.WebSocketProtocol13(handler, trans, 'localhost')
+        proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
         data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s2pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         try :

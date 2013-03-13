@@ -88,7 +88,12 @@ class IWebSocketProtocolCallback(Interface):
 class IWebSocketMessanger(Interface):
     def send_message(self, message):
         """
-        Sends text message
+        Sends text message to a server.
+        """
+    
+    def ping(self):
+        """
+        Sends a ping request to a server.
         """
 
 
@@ -310,8 +315,11 @@ class WebSocketProtocol13(object):
             self.handler.headers_received()
     
     def frame_received(self, opcode, payload):
+        log.msg('Websocket frame ({0}) has been received. Frame data: {1}.'.format(opcode, payload))
         if opcode == WS_OPCODE_PING :
-            self.send_frame(1, WS_OPCODE_PONG, payload)
+            self.send_frame(True, WS_OPCODE_PONG, payload)
+        elif opcode == WS_OPCODE_PONG :
+            self.handler.pong_received(payload)
         elif opcode == WS_OPCODE_CONNECTION_CLOSE :
             if self.test_handler() :
                 self.handler.closing_connection()
@@ -363,14 +371,20 @@ class WebSocketDeviceHiveProtocol(Protocol):
     
     implements(IWebSocketCallback, IWebSocketMessanger)
     
-    def __init__(self, factory, uri):
+    def __init__(self, factory, uri, timeout = 10):
         """
         @type uri: C{str}
         @param uri: an uri which is used during handshake
+        
+        @type timeout: C{int}
+        @param timeout: timeout in seconds for requests
         """
         self.factory = factory
         self.uri = uri
         self.socket = None
+        self.timeout = timeout
+        #
+        self.ping_callbacks = {}
     
     def test_factory(self):
         return IWebSocketProtocolCallback.implementedBy(self.factory.__class__)
@@ -388,6 +402,11 @@ class WebSocketDeviceHiveProtocol(Protocol):
         if self.test_factory() :
             message = json.loads(payload)
             self.factory.frame_received(message)
+    
+    def pong_received(self, ping_payload):
+        if ping_payload in self.ping_callbacks :
+            log.msg('Pong {0} received.'.format(ping_payload))
+            self.ping_callbacks[ping_payload].callback(ping_payload)
     # end IWebSocketCallback
     
     def connectionMade(self):
@@ -414,7 +433,44 @@ class WebSocketDeviceHiveProtocol(Protocol):
             self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, data)
             return True
         else :
-            return False    
+            return False
+    
+    def ping_counter():
+        ping_number = 1
+        while True :
+            yield hex(ping_number).encode('utf-8')
+            if ping_number == maxint :
+                ping_number = 0
+            else :
+                ping_number += 1
+    ping_counter = ping_counter()
+    
+    def ping(self):
+        if self.socket is not None :
+            pingid = self.ping_counter.next()
+            defer = Deferred()
+            self.ping_callbacks[pingid] = defer
+            
+            log.msg('Ping {0} devicehive server.'.format(pingid))
+            self.socket.send_frame(True, WS_OPCODE_PING, pingid)
+            
+            # I cannot move it into decorator logic because I need a reference to
+            # a function which is clousered to a local scope.
+            def on_timeout():
+                if pingid in self.ping_callbacks :
+                    defer = self.ping_callbacks.pop(pingid)
+                    defer.errback(WebSocketError('Ping {0} timeout.'.format(pingid)))
+            timeout_defer = reactor.callLater(self.timeout, on_timeout)
+            def cancel_timeout(result, *args, **kwargs):
+                if timeout_defer.active() :
+                    log.msg('Cancelling timeout function call for ping {0}.'.format(pingid))
+                    timeout_defer.cancel()
+                return result
+            defer.addBoth(cancel_timeout)
+            
+            return defer
+        else :
+            return fail(WebSocketError('Failed to send ping to the server. Websocket is not established.'))
 
 
 class WsCommand(BaseCommand):

@@ -278,6 +278,11 @@ class IClientTransport(Interface):
         @return deferred result
         """
     
+    def ping(self):
+        """
+        Sends ping to a server.
+        """
+    
     def connect(self, url):
         """
         Connects factory to devicehive server.

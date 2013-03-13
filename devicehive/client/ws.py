@@ -127,8 +127,7 @@ class WebSocketFactory(ClientFactory):
         if self.proto.send_message(message) :
             return self.callbacks[msgid]
         else :
-            err = self.callbacks[msgid]
-            del self.callbacks[msgid]
+            err = self.callbacks.pop(msgid)
             err.fail('failed to send websocket frame')
             return err
     
@@ -206,8 +205,7 @@ class WebSocketFactory(ClientFactory):
             cmdid = cmd.get('id', None)
             if cmdid in self.command_callbacks :
                 LOG_MSG('Command {0} update has been received.'.format(msg))
-                defer = self.command_callbacks[cmdid]
-                del self.command_callbacks[cmdid]
+                defer = self.command_callbacks.pop(cmdid)
                 ocmd = WsCommand.create(cmd)
                 if (isinstance(ocmd.status, str) or isinstance(ocmd.status, unicode)) and ocmd.status.lower() == 'success' :
                     defer.callback(ocmd)
@@ -217,6 +215,9 @@ class WebSocketFactory(ClientFactory):
                 LOG_ERR('Unattached command/update message {0} has been received.'.format(msg))
         else :
             LOG_ERR('Malformed command response {0} has been received.'.format(msg))
+    
+    def ping(self):
+        return self.proto.ping()
     
     def connect(self, url):
         reactor.connectDeviceHive(url, self)
@@ -244,8 +245,7 @@ class WebSocketFactory(ClientFactory):
             self.do_notification(message)
         elif ('requestId' in message) and (message['requestId'] in self.callbacks) :
             reqid = message['requestId']
-            deferred = self.callbacks[reqid]
-            del self.callbacks[reqid]
+            deferred = self.callbacks.pop(reqid)
             deferred.callback(message)
     # end of IWebSocketProtocolCallback interface implementation
 
