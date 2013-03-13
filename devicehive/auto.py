@@ -10,7 +10,7 @@ from twisted.internet.protocol import ClientFactory, Protocol
 from devicehive import ApiInfoRequest
 from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer, parse_url, parse_date
-from devicehive.ws import WebSocketFactory
+from devicehive.device.ws import WebSocketFactory
 from devicehive.poll import PollFactory
 
 

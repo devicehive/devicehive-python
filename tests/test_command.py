@@ -12,7 +12,9 @@ try :
     __import__('devicehive.ws')
     __import__('devicehive.interfaces')
     __import__('devicehive.poll')
+    __import__('devicehive.device.ws')
     ws = devicehive.ws
+    dws = devicehive.device.ws
     poll = devicehive.poll
 finally :
     sys.path[:] = orig_path
@@ -24,17 +26,17 @@ class WsCommandTests(unittest.TestCase):
         self.msg = {'action': 'command/insert', 'deviceGuid': '22345678-9012-3456-7890-123456789012', 'command': { 'id': 1, 'timestamp': None, 'userId': 2, 'command': 'cmd_name', 'parameters': [], 'lifetime': None, 'flags': 0, 'status': 'test status', 'result': None }}
     
     def test_interface(self):
-        devicehive.interfaces.ICommand.implementedBy(ws.WsCommand)
+        devicehive.interfaces.ICommand.implementedBy(dws.WsCommand)
     
     def test_create(self):
-        ci = ws.WsCommand.create(self.msg)
+        ci = dws.WsCommand.create(self.msg)
         self.assertEquals(1, ci.id)
         self.assertEquals(2, ci.user_id)
         self.assertEquals(0, ci.flags)
         self.assertEquals('test status', ci.status)
     
     def test_to_dict(self):
-        ci = ws.WsCommand.create(self.msg)
+        ci = dws.WsCommand.create(self.msg)
         d  = ci.to_dict()
         
         self.assertEquals(1, d['id'])
@@ -46,7 +48,7 @@ class WsCommandTests(unittest.TestCase):
         self.assertFalse('result' in d)
     
     def test__getter(self):
-        ci = ws.WsCommand.create(self.msg)
+        ci = dws.WsCommand.create(self.msg)
         self.assertEquals('cmd_name', ci['command'])
         self.assertEquals([], ci['parameters']) 
         try :

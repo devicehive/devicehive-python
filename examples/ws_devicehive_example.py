@@ -15,6 +15,7 @@ except :
 import devicehive
 import devicehive.interfaces
 import devicehive.ws
+import devicehive.device.ws
 
 
 def threading_command(finish_defer) :
@@ -85,6 +86,6 @@ class LEDHiveApp(object):
 
 if __name__ == '__main__' :
     log.startLogging(sys.stdout)
-    reactor.connectDeviceHive('http://ecloud.dataart.com:8010', devicehive.ws.WebSocketFactory(LEDHiveApp()))
+    reactor.connectDeviceHive('http://ecloud.dataart.com:8010', devicehive.device.ws.WebSocketFactory(LEDHiveApp()))
     reactor.run()
 
