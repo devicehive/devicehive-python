@@ -9,6 +9,7 @@ from zope.interface import implements
 from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
+from twisted.internet.defer import Deferred, fail
 from devicehive import CommandResult, DhError, BaseCommand
 from devicehive.interfaces import IProtoFactory, IProtoHandler, IDeviceInfo, INetwork, IDeviceClass, ICommand
 from devicehive.ws import IWebSocketProtocolCallback, IWebSocketMessanger, WebSocketError, WebSocketDeviceHiveProtocol
