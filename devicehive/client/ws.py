@@ -88,22 +88,7 @@ class WebSocketFactory(ClientFactory):
             raise TypeError('handler must implement devicehive.interfaces.IClientApp interface.')
         self.handler = handler
         self.handler.factory = self
-        self.callbacks = {}
         self.command_callbacks = {}
-    
-    def request_counter():
-        """
-        Internal method which is used to generate request ids for
-        websocket messages.
-        """
-        request_number = 1
-        while True :
-            yield request_number
-            if request_number == maxint :
-                request_number = 0
-            else :
-                request_number += 1
-    request_counter = request_counter()
     
     def doStart(self):
         if self.state == WS_STATE_UNKNOWN :
@@ -120,18 +105,6 @@ class WebSocketFactory(ClientFactory):
     def clientConnectionLost(self, connector, reason):
         print 'Connection lost'
     
-    def send_message(self, message):
-        msgid = self.request_counter.next()
-        message['requestId'] = msgid
-        self.callbacks[msgid] = Deferred()
-        
-        if self.proto.send_message(message) :
-            return self.callbacks[msgid]
-        else :
-            err = self.callbacks.pop(msgid)
-            err.fail('failed to send websocket frame')
-            return err
-    
     # IClientTransport interface implementation
     def authenticate(self, login, password):
         LOG_MSG('Authenticating the client library.')
@@ -146,7 +119,7 @@ class WebSocketFactory(ClientFactory):
         def on_err(reason):
             LOG_ERR('Failed to send authentication message. Reason: {0}.'.format(reason))
             defer.errback(reason)
-        self.send_message({'action': 'authenticate', 'requestId': None, 'login': login, 'password': password}).addCallbacks(on_ok, on_err)
+        self.proto.send_message({'action': 'authenticate', 'requestId': None, 'login': login, 'password': password}).addCallbacks(on_ok, on_err)
         return defer
     
     def subscribe(self, device_ids):
@@ -164,7 +137,7 @@ class WebSocketFactory(ClientFactory):
         def on_err(reason):
             LOG_ERR('Failed to send subscribe command. Reason: {0}.'.format(reason))
             defer.errback(reason)
-        return self.send_message({'action': 'notification/subscribe', 'requestId': None, 'deviceGuids': device_ids}).addCallbacks(on_ok, on_err)
+        return self.proto.send_message({'action': 'notification/subscribe', 'requestId': None, 'deviceGuids': device_ids}).addCallbacks(on_ok, on_err)
     
     def unsubscribe(self, device_ids):
         if not (isinstance(device_ids, list) or isinstance(device_ids, tuple)) :
@@ -181,7 +154,7 @@ class WebSocketFactory(ClientFactory):
         def on_err(reason):
             LOG_ERR('Failed to send unsubscribe command. Reason: {0}.'.format(reason))
             defer.errback(reason)
-        self.send_message({'action': 'notification/unsubscribe',
+        self.proto.send_message({'action': 'notification/unsubscribe',
                            'requestId': None,
                            'deviceGuids': device_ids}).addCallbacks(on_ok, on_err)
         return defer
@@ -202,7 +175,7 @@ class WebSocketFactory(ClientFactory):
         def on_err(reason):
             LOG_ERR('Failed to send command {0}. Reason: {1}.'.format(cmd, reason))
             defer.errback(reason)
-        self.send_message({'action': 'command/insert',
+        self.proto.send_message({'action': 'command/insert',
                                   'requestId': None,
                                   'deviceGuid': device_id,
                                   'command': cmd.to_dict()}).addCallbacks(on_ok, on_err)
@@ -252,15 +225,10 @@ class WebSocketFactory(ClientFactory):
         self.handler.closing_connection()
     
     def frame_received(self, message):
-        LOG_MSG('Message has been received {0}.'.format(message))
         action = message.get('action', '')
         if action == 'command/update' :
             self.do_command_update(message)
         elif action == 'notification/insert' :
             self.do_notification(message)
-        elif ('requestId' in message) and (message['requestId'] in self.callbacks) :
-            reqid = message['requestId']
-            deferred = self.callbacks.pop(reqid)
-            deferred.callback(message)
     # end of IWebSocketProtocolCallback interface implementation
 

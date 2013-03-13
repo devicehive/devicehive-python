@@ -383,7 +383,8 @@ class WebSocketDeviceHiveProtocol(Protocol):
         self.uri = uri
         self.socket = None
         self.timeout = timeout
-        #
+        # Each devicehive message has an accossiated response.
+        self.msg_callbacks = {}
         self.ping_callbacks = {}
     
     def test_factory(self):
@@ -399,9 +400,14 @@ class WebSocketDeviceHiveProtocol(Protocol):
             self.factory.closing_connection()
     
     def frame_received(self, payload):
-        if self.test_factory() :
-            message = json.loads(payload)
-            self.factory.frame_received(message)
+        log.msg('Websocket message has been received {0}.'.format(payload))
+        message = json.loads(payload)
+        if 'requestId' in message :
+            request_id = message['requestId']
+            if request_id in self.msg_callbacks :
+                defer = self.msg_callbacks.pop(request_id)
+                defer.callback(message)
+        self.factory.frame_received(message)
     
     def pong_received(self, ping_payload):
         if ping_payload in self.ping_callbacks :
@@ -424,16 +430,36 @@ class WebSocketDeviceHiveProtocol(Protocol):
         else :
             raise WebSocketError('factory expected')
     
+    def request_counter():
+        """
+        Internal method which is used to generate request ids for websocket messages.
+        """
+        request_number = 1
+        while True :
+            yield request_number
+            if request_number == maxint :
+                request_number = 0
+            else :
+                request_number += 1
+    request_counter = request_counter()
+    
     def send_message(self, message):
         if not isinstance(message, dict) :
-            raise TypeError('message should be a dict')
+            return fail(TypeError('message should be a dict'))
+        
         if self.socket is not None :
+            defer = Deferred()
+            # generating message id
+            msg_id = self.request_counter.next()
+            message['requestId'] = msg_id
+            self.msg_callbacks[msg_id] = defer
+            # all messages should be in utf-8
             data = json.dumps(message).encode('utf-8')
             log.msg('Sending websocket text frame. Payload: {0}'.format(data))
             self.socket.send_frame(True, WS_OPCODE_TEXT_FRAME, data)
-            return True
+            return defer
         else :
-            return False
+            return fail(WebSocketError('Failed to send websocket message. Websocket is not set.'))
     
     def ping_counter():
         ping_number = 1
@@ -564,30 +590,11 @@ class WebSocketFactory(ClientFactory):
         if self.state == WS_STATE_WS_CONNECTING :
             reactor.connectTCP(self.host, self.port, self)
     
-    def request_counter():
-        request_number = 1
-        while True :
-            yield request_number
-            if request_number == maxint :
-                request_number = 0
-            else :
-                request_number += 1
-    request_counter = request_counter()
-    
     def send_message(self, message):
         if self.state != WS_STATE_WS_CONNECTED :
             return fail(WebSocketError('protocol is not in WS_STATE_WS_CONNECTED'))
         if self.test_proto() :
-            msgid = self.request_counter.next()
-            message['requestId'] = msgid
-            self.callbacks[msgid] = Deferred()
-            if self.proto.send_message(message) :
-                return self.callbacks[msgid]
-            else :
-                err = self.callbacks[msgid]
-                del self.callbacks[msgid]
-                err.fail(WebSocketError('failed to send websocket frame'))
-                return err
+            return self.proto.send_message(message)
         else :
             return fail(WebSocketError('protocol is not set'))
     
@@ -608,13 +615,7 @@ class WebSocketFactory(ClientFactory):
             self.handler.on_closing_connection()
     
     def frame_received(self, message):
-        log.msg('Message received {0}.'.format(message))
-        if ('requestId' in message) and (message['requestId'] in self.callbacks) :
-            reqid = message['requestId']
-            deferred = self.callbacks[reqid]
-            del self.callbacks[reqid]
-            deferred.callback(message)
-        elif ('action' in message) and (message['action'] == 'command/insert') :
+        if ('action' in message) and (message['action'] == 'command/insert') :
             if not 'deviceGuid' in message :
                 log.err('Malformed command/insert message {0}.'.format(message))
             else :
@@ -623,8 +624,6 @@ class WebSocketFactory(ClientFactory):
                     self.on_command_insert(WsCommand.create(message), self.devices[device_id])
                 else :
                     log.err('Unable to process command {0}. Device {1} is not registered.'.format(message, device_id))
-        else :
-            raise DhError('unsupported message {0}'.format(message))
     # End of IWebSocketProtocolCallback interface implementation
     
     def on_command_insert(self, cmd, info):
