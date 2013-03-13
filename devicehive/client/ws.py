@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
+"""
+Client API implementation for WebSocket protocol.
+"""
+
 import json
 from sys import maxint
 from twisted.python import log
@@ -61,15 +65,6 @@ class WsCommand(BaseCommand):
         return res
 
 
-class WebSocketClientError(DhError):
-    """
-    Base error type for this module.
-    """
-    
-    def __init__(self, msg = None):
-        super(WebSocketClientError, 'Client websocket failure. Reason: {0}.'.format(msg if msg is not None else 'unknown'))
-
-
 class WebSocketFactory(ClientFactory):
     """
     Implements client factory over websocket protocol.
@@ -100,10 +95,11 @@ class WebSocketFactory(ClientFactory):
         return self.proto
     
     def clientConnectionFailed(self, connector, reason):
-        print 'Connection failed {0}, {1}, {2}'.format(self.url, self.host, self.port)
+        LOG_ERR('Client connection failed. Reason: {0}.'.format(reason))
+        self.handler.failure(reason)
     
     def clientConnectionLost(self, connector, reason):
-        print 'Connection lost'
+        pass
     
     # IClientTransport interface implementation
     def authenticate(self, login, password):
@@ -219,9 +215,11 @@ class WebSocketFactory(ClientFactory):
         self.handler.failure(reason)
     
     def connected(self):
+        LOG_MSG('Client has connected to websocket server.')
         self.handler.connected()
     
     def closing_connection(self):
+        LOG_MSG('WebSocket server has requested connection closing.')
         self.handler.closing_connection()
     
     def frame_received(self, message):
