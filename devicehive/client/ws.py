@@ -21,6 +21,7 @@ def LOG_MSG(msg):
 def LOG_ERR(msg):
     log.err(msg)
 
+
 class WsCommand(BaseCommand):
     """
     Client implementation of ICommand interface.
@@ -169,7 +170,21 @@ class WebSocketFactory(ClientFactory):
         if not (isinstance(device_ids, list) or isinstance(device_ids, tuple)) :
             raise TypeError('device_ids should be a list or a tuple')
         LOG_MSG('Unsubscibing from devices {0}.'.format(device_ids))
-        return self.send_message({'action': 'notification/unsubscribe', 'requestId': None, 'deviceGuids': device_ids})
+        defer = Deferred()
+        def on_ok(res):
+            if res.get('status', 'error') == 'success' :
+                LOG_MSG('Unsubscribed from device(s) notifications.')
+                defer.callback(res)
+            else :
+                LOG_ERR('Failed to unsubscribe from device(s) notifications. Reason: {0}.'.format(res.get('error', 'unknown')))
+                defer.errback(res)
+        def on_err(reason):
+            LOG_ERR('Failed to send unsubscribe command. Reason: {0}.'.format(reason))
+            defer.errback(reason)
+        self.send_message({'action': 'notification/unsubscribe',
+                           'requestId': None,
+                           'deviceGuids': device_ids}).addCallbacks(on_ok, on_err)
+        return defer
     
     def command(self, device_id, cmd):
         if not (isinstance(device_id, str) or isinstance(device_id, unicode)) :
