@@ -4,7 +4,7 @@
 
 import unittest
 
-testmodules = ('test_binary', 'test_command', 'test_proto', 'test_utils', 'test_wsparser', 'test_wsproto')
+testmodules = ('test_binary', 'test_command', 'test_proto', 'test_utils', 'test_wsparser', 'test_wsproto', 'test_wsdev')
 
 suite = unittest.TestSuite()
 for t in testmodules:
