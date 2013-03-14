@@ -42,7 +42,6 @@ def decode_ws_message(data):
     return msg
 
 
-
 class Handler(object) :
     implements(IProtoHandler)
     

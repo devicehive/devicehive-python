@@ -14,7 +14,8 @@ from twisted.internet.protocol import ClientFactory, Protocol
 from zope.interface import implements
 
 from devicehive import DhError, Notification, BaseCommand
-from devicehive.ws import IWebSocketCallback, IWebSocketProtocolCallback, WS_STATE_UNKNOWN, WS_STATE_WS_CONNECTING, WebSocketDeviceHiveProtocol, WS_STATE_WS_CONNECTED
+from devicehive.ws import IWebSocketCallback, IWebSocketProtocolCallback, WebSocketDeviceHiveProtocol
+from devicehive.device.ws import WS_STATE_UNKNOWN, WS_STATE_WS_CONNECTING
 from devicehive.interfaces import IClientTransport, IClientApp
 
 
