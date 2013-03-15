@@ -370,7 +370,7 @@ class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
                     def __command_error(reason, command):
                         log.err('Failed to process command "{0}". Reason: {1}.'.format(command, reason))
                         if isinstance(reason, Exception) :
-                            res = CommandRequest('Failed', reason.message)
+                            res = CommandResult('Failed', reason.message)
                         elif hasattr(reason, 'value') :
                             if isinstance(reason.value, CommandResult) :
                                 res = CommandResult(reason.value.status, reason.value.result)
