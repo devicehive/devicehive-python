@@ -743,8 +743,7 @@ class BinaryFormatter(object) :
                     noflst.append(nofobj)
                 obj.notifications = noflst
             return obj
-        json.JSONDecoder(object_pairs_hook=OrderedDict).decode(str_payload)
-        val = json.loads(str_payload)
+        val = json.JSONDecoder(object_pairs_hook=OrderedDict).decode(str_payload)
         return _deserialize_register2(val)
 
 
