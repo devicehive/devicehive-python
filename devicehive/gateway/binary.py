@@ -13,7 +13,7 @@ import struct
 import array
 import uuid
 import json
-from collections import Iterable
+from collections import Iterable, OrderedDict
 from zope.interface import implements
 from twisted.internet import interfaces
 from twisted.python import log
@@ -743,6 +743,7 @@ class BinaryFormatter(object) :
                     noflst.append(nofobj)
                 obj.notifications = noflst
             return obj
+        json.JSONDecoder(object_pairs_hook=OrderedDict).decode(str_payload)
         val = json.loads(str_payload)
         return _deserialize_register2(val)
 
