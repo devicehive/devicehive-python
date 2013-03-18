@@ -29,11 +29,23 @@ class Parser(object) :
             ch = self.next_ch()
     
     def read_until(self, eset) :
+        ESC = {'t': '\t', 'r': '\r', 'n': '\n', 'f': '\x0c', '\\': '\\', '/': '/', '"': '"', "'": "'"}
         ch  = self.next_ch()
         res = ''
-        while (ch is not None) and (ch not in eset) :
+        escape = ch == '\\'
+        while (ch != '') and (escape or (ch not in eset)) :
+            if escape :
+                ch = self.next_ch()
+                if ch is None or ch == '' or ch not in """trn"'\\f/""" :
+                    raise ValueError('Malformed escape sequence. Value {0}.'.format(self.buff[self.offset:]))
+                else :
+                    ch = ESC[ch]
+                escape = False
             res += ch
             ch = self.next_ch()
+            escape = ch == '\\'
+        if escape :
+            raise ValueError('Malformed string.')
         return res
     
     def parse_number_str(self, addnums = ''):

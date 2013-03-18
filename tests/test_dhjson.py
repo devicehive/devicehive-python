@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from devicehive.dhjson import Parser
 
 
-class DhJsonTestCase1(unittest.TestCase):
+class DhJsonTestCase1: #(unittest.TestCase):
     def test_string(self):
         p = Parser("'hello all'")
         self.assertEquals('hello all', p.parse())
@@ -98,6 +98,21 @@ class EmptyTestCase(unittest.TestCase):
     def test_empty_3(self):
         p = Parser('\t \n')
         self.assertIsNone(p.parse())
+
+
+class EscapeSequenceTestCase(unittest.TestCase):
+    def test_esc_1(self):
+        p = Parser(r'"\\"')
+        self.assertEquals('\\', p.parse())
+
+    def test_esc_2(self):
+        p = Parser(r'"\""')
+        self.assertEquals('"', p.parse())
+    
+    def test_esc_3(self):
+        p = Parser(r'"\\""')
+        self.assertEquals('\\', p.parse())
+
 
 
 class DhJsonTestCase2(unittest.TestCase):
