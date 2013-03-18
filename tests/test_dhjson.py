@@ -84,6 +84,21 @@ class DhJsonTestCase1(unittest.TestCase):
         self.assertEquals('b1', r[0])
         self.assertEquals('a2', r[1])
         self.assertEquals('c3', r[2])
+    
+
+class EmptyTestCase(unittest.TestCase):
+    def test_empty_1(self):
+        p = Parser('')
+        self.assertIsNone(p.parse())
+    
+    def test_empty_2(self):
+        p = Parser('   ')
+        self.assertIsNone(p.parse())
+    
+    def test_empty_3(self):
+        p = Parser('\t \n')
+        self.assertIsNone(p.parse())
+
 
 class DhJsonTestCase2(unittest.TestCase):
     def test_complex(self):
@@ -105,8 +120,7 @@ class DhJsonTestCase2(unittest.TestCase):
                     {intent:2003,name:'pinRead',params:{pin:u8,value:u16}}
                 ]
             }""")
-        o = p.parse()
-        print o
+        self.assertIsNotNone(p.parse())
 
 
 if __name__ == '__main__':

@@ -157,7 +157,7 @@ class Parser(object) :
     
     def parse(self):
         self.skip_spaces()
-        if len(self.buff) > 0 :
+        if len(self.buff[self.offset:]) > 0 :
             return self.parse_value()
         else :
             return None

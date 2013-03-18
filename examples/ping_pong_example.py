@@ -83,7 +83,7 @@ class Gateway(devicehive.gateway.BaseGateway):
     
     def do_command(self, sender, command, finish_deferred):
         print 'DH -> DEVICE: {0}. CMD: {1}'.format(datetime.utcnow(), command)
-        print ' Time %0.10f' % (time() - self.ping_app.tm)
+        print 'Time %0.10f' % (time() - self.ping_app.tm)
         print '--------------------------------------'
         super(Gateway, self).do_command(sender, command, finish_deferred)
         self.ping_app.send_next_command()
