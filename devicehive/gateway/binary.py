@@ -12,13 +12,15 @@
 import struct
 import array
 import uuid
-import json
+# import json
 from collections import Iterable, OrderedDict
 from zope.interface import implements
 from twisted.internet import interfaces
 from twisted.python import log
 from twisted.internet.protocol import ServerFactory, Protocol
 from twisted.internet.serialport import SerialPort
+
+import devicehive.dhjson
 from devicehive import CommandResult, DeviceInfo as CDeviceInfo, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
 from devicehive.gateway import IGateway
 
@@ -743,7 +745,9 @@ class BinaryFormatter(object) :
                     noflst.append(nofobj)
                 obj.notifications = noflst
             return obj
-        val = json.JSONDecoder(object_pairs_hook=OrderedDict).decode(str_payload)
+        #val = json.JSONDecoder(object_pairs_hook=OrderedDict).decode(str_payload)
+        parser = devicehive.dhjson.Parser(str_payload)
+        val = parser.parse()
         return _deserialize_register2(val)
 
 

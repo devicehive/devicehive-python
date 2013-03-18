@@ -14,6 +14,7 @@ import devicehive
 import devicehive.poll
 import devicehive.ws
 import devicehive.auto
+import devicehive.device.ws
 import devicehive.interfaces
 
 
@@ -132,10 +133,13 @@ if __name__ == '__main__':
     virt_led = VirtualLedApp(conf)
     # Automacti factory
     # Also it is possible to use C{devicehive.poll.PollFactory} or C{devicehive.ws.WebSocketFactory}
-    virt_led_factory = devicehive.auto.AutoFactory(virt_led)
+    # virt_led_factory = devicehive.auto.AutoFactory(virt_led)
+    #virt_led_factory = devicehive.device.ws.WebSocketFactory(virt_led)
+    virt_led_factory = devicehive.poll.PollFactory(virt_led)
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive
+    # reactor.connectDeviceHive('ws://ecloud.dataart.com:8010', virt_led_factory)
     reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi7/', virt_led_factory)
     try :
         reactor.run()

@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from devicehive.dhjson import Parser
 
 
-class DhJsonTestCase1(object):
+class DhJsonTestCase1(unittest.TestCase):
     def test_string(self):
         p = Parser("'hello all'")
         self.assertEquals('hello all', p.parse())
@@ -107,8 +107,6 @@ class DhJsonTestCase2(unittest.TestCase):
             }""")
         o = p.parse()
         print o
-        pass
-
 
 
 if __name__ == '__main__':

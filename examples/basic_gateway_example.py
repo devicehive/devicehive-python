@@ -41,7 +41,7 @@ def main():
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
                                                             '/dev/tty.usbmodem1411', \
-                                                            baudrate = 9600, \
+                                                            baudrate = 115200, \
                                                             bytesize = EIGHTBITS, \
                                                             parity = PARITY_NONE, \
                                                             stopbits = STOPBITS_ONE)

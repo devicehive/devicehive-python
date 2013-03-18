@@ -17,7 +17,8 @@ __all__ = ['DhError',
            'DeviceClass',
            'Equipment',
            'DeviceInfo',
-           'Notification']
+           'Notification',
+           'dhjson']
 
 
 class DhError(Exception):
