@@ -5,7 +5,6 @@
 Client API implementation for WebSocket protocol.
 """
 
-import json
 from sys import maxint
 from twisted.python import log
 from twisted.internet import reactor
@@ -15,7 +14,6 @@ from zope.interface import implements
 
 from devicehive import DhError, Notification, BaseCommand
 from devicehive.ws import IWebSocketCallback, IWebSocketProtocolCallback, WebSocketDeviceHiveProtocol
-from devicehive.device.ws import WS_STATE_UNKNOWN, WS_STATE_WS_CONNECTING
 from devicehive.interfaces import IClientTransport, IClientApp
 
 
@@ -85,11 +83,6 @@ class WebSocketFactory(ClientFactory):
         self.handler = handler
         self.handler.factory = self
         self.command_callbacks = {}
-    
-    def doStart(self):
-        if self.state == WS_STATE_UNKNOWN :
-            self.state = WS_STATE_WS_CONNECTING
-        ClientFactory.doStart(self)
     
     def buildProtocol(self, addr):
         self.proto = WebSocketDeviceHiveProtocol(self, '/client')
@@ -209,8 +202,6 @@ class WebSocketFactory(ClientFactory):
     # end IClientTransport interface implementation
     
     # IWebSocketProtocolCallback interface implementation
-    state = WS_STATE_UNKNOWN
-    
     def failure(self, reason, connector):
         LOG_ERR('WebSocekt client failure. Reason: {0}.'.format(reason))
         self.handler.failure(reason)

@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import devicehive
 from devicehive.interfaces import IDeviceInfo
 from devicehive.ws import WebSocketDeviceHiveProtocol, WebSocketError, WS_OPCODE_TEXT_FRAME
-from devicehive.device.ws import WebSocketFactory, WS_STATE_WS_CONNECTED
+from devicehive.device.ws import WebSocketFactory
 from devicehive.interfaces import IProtoHandler
 
 
@@ -99,7 +99,6 @@ class WsClientSendingTestCase(unittest.TestCase):
         self.assertTrue(self.handler.is_connected)
         self.transport.clear()
         # testing message sending
-        self.factory.state = WS_STATE_WS_CONNECTED
         proto.socket.rand = Random(1)
         defer = self.factory.send_message({'test': True})
         self.assertIsInstance(defer, Deferred)

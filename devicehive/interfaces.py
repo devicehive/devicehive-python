@@ -281,6 +281,7 @@ class IClientTransport(Interface):
     def ping(self):
         """
         Sends ping to a server.
+        @return deferred object.
         """
     
     def connect(self, url):

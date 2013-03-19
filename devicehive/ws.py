@@ -64,8 +64,6 @@ class IWebSocketParserCallback(Interface) :
 
 
 class IWebSocketProtocolCallback(Interface):
-    state = Attribute('Stores protocol state')
-    
     def failure(self, reason, connector):
         """
         Callback signals about critial error

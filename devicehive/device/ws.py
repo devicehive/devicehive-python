@@ -58,12 +58,6 @@ class WsCommand(BaseCommand):
         return cmd
 
 
-WS_STATE_UNKNOWN          = 0
-WS_STATE_WS_CONNECTING    = 1
-WS_STATE_WS_CONNECTED     = 2
-WS_STATE_WS_DISCONNECTING = 3
-
-
 class WebSocketFactory(ClientFactory):
     """
     Implements device factory over websocket protocol.
@@ -77,7 +71,6 @@ class WebSocketFactory(ClientFactory):
     proto = None
     handler = None
     callbacks = dict()
-    state = WS_STATE_UNKNOWN
     
     def __init__(self, handler):
         """
@@ -97,11 +90,6 @@ class WebSocketFactory(ClientFactory):
     def test_proto(self):
         return IWebSocketMessanger.implementedBy(self.proto.__class__)
     
-    def doStart(self):
-        if self.state == WS_STATE_UNKNOWN :
-            self.state = WS_STATE_WS_CONNECTING
-        ClientFactory.doStart(self)
-    
     def buildProtocol(self, addr):
         self.proto = WebSocketDeviceHiveProtocol(self, '/device')
         return self.proto
@@ -112,12 +100,12 @@ class WebSocketFactory(ClientFactory):
             self.handler.on_connection_failed(reason)
     
     def clientConnectionLost(self, connector, reason):
-        if self.state == WS_STATE_WS_CONNECTING :
-            reactor.connectTCP(self.host, self.port, self)
+        """
+        TODO: notify handler about disconnection.
+        """
+        pass
     
     def send_message(self, message):
-        if self.state != WS_STATE_WS_CONNECTED :
-            return fail(WebSocketError('protocol is not in WS_STATE_WS_CONNECTED'))
         if self.test_proto() :
             return self.proto.send_message(message)
         else :
@@ -130,12 +118,10 @@ class WebSocketFactory(ClientFactory):
             self.handler.on_failure(None, reason)
     
     def connected(self):
-        self.state = WS_STATE_WS_CONNECTED
         if self.test_handler() :
             self.handler.on_connected()
     
     def closing_connection(self):
-        self.state = WS_STATE_WS_DISCONNECTING
         if self.test_handler() :
             self.handler.on_closing_connection()
     
