@@ -77,11 +77,6 @@ class WsClientSendingTestCase(unittest.TestCase):
         self.assertIsInstance(proto, WebSocketDeviceHiveProtocol)
     
     def test_send_message(self):
-        # tests what's happenning when there is a error
-        defer = self.factory.send_message({'test': True})
-        self.assertIsInstance(defer, Deferred)
-        self.assertIsInstance(defer.result, Failure)
-        self.assertIsInstance(defer.result.value, WebSocketError)
         # testing headers sending
         # this should result in connected event
         proto = self.factory.buildProtocol(None)

@@ -18,6 +18,14 @@ from devicehive.ws import IWebSocketProtocolCallback, IWebSocketMessanger, WebSo
 __all__ = ['WsCommand', 'WebSocketFactory']
 
 
+def LOG_ERR(msg):
+    log.err(msg)
+
+
+def LOG_MSG(msg):
+    log.msg(msg)
+
+
 class WsCommand(BaseCommand):
     @staticmethod
     def create(message):
@@ -78,26 +86,24 @@ class WebSocketFactory(ClientFactory):
         @param handler: handler has to implement C{IProtoHandler} interface
         """
         self.handler = handler
-        if self.test_handler() :
+        if IProtoHandler.implementedBy(self.handler.__class__) :
             self.handler.factory = self
         else :
             raise TypeError('handler should implements IProtoHandler interface')
         self.devices = {}
     
-    def test_handler(self):
-        return IProtoHandler.implementedBy(self.handler.__class__)
-    
-    def test_proto(self):
-        return IWebSocketMessanger.implementedBy(self.proto.__class__)
-    
     def buildProtocol(self, addr):
         self.proto = WebSocketDeviceHiveProtocol(self, '/device')
+        if not IWebSocketMessanger.implementedBy(self.proto.__class__) :
+            raise TypeError('Protocol has to implement IWebSocketMessanger interface.')
         return self.proto
     
     def clientConnectionFailed(self, connector, reason):
-        log.err('Failed to connect to {0}, host: {1}, port: {2}. Reason: {3}.'.format(self.url, self.host, self.port, reason))
-        if self.test_handler() :
-            self.handler.on_connection_failed(reason)
+        """
+        TODO: rename on_connection_failed method
+        """
+        LOG_ERR('Failed to connect to {0}, host: {1}, port: {2}. Reason: {3}.'.format(self.url, self.host, self.port, reason))
+        self.handler.on_connection_failed(reason)
     
     def clientConnectionLost(self, connector, reason):
         """
@@ -106,35 +112,29 @@ class WebSocketFactory(ClientFactory):
         pass
     
     def send_message(self, message):
-        if self.test_proto() :
-            return self.proto.send_message(message)
-        else :
-            return fail(WebSocketError('protocol is not set'))
+        return self.proto.send_message(message)
     
     # begin IWebSocketProtocolCallback implementation
     def failure(self, reason, connector):
-        log.err('Critial error. Reason: {0}.'.format(reason))
-        if self.test_handler():
-            self.handler.on_failure(None, reason)
+        LOG_ERR('Critial error. Reason: {0}.'.format(reason))
+        self.handler.on_failure(None, reason)
     
     def connected(self):
-        if self.test_handler() :
-            self.handler.on_connected()
+        self.handler.on_connected()
     
     def closing_connection(self):
-        if self.test_handler() :
-            self.handler.on_closing_connection()
+        self.handler.on_closing_connection()
     
     def frame_received(self, message):
         if ('action' in message) and (message['action'] == 'command/insert') :
             if not 'deviceGuid' in message :
-                log.err('Malformed command/insert message {0}.'.format(message))
+                LOG_ERR('Malformed command/insert message {0}.'.format(message))
             else :
                 device_id = str(message['deviceGuid']).lower() if ('deviceGuid' in message) and (message['deviceGuid'] is not None) else None
                 if device_id in self.devices :
                     self.on_command_insert(WsCommand.create(message), self.devices[device_id])
                 else :
-                    log.err('Unable to process command {0}. Device {1} is not registered.'.format(message, device_id))
+                    LOG_ERR('Unable to process command {0}. Device {1} is not registered.'.format(message, device_id))
     # End of IWebSocketProtocolCallback interface implementation
     
     def on_command_insert(self, cmd, info):
@@ -145,48 +145,45 @@ class WebSocketFactory(ClientFactory):
         @type info: C{object}
         @param info: C{IDeviceInfo} object which is receiving the command
         """
-        log.msg('Command {0} has been received for device {1}.'.format(cmd, info))
-        if self.test_handler() :
-            def on_ok(result):
-                log.msg('The command "{0}" successfully processed. Result: {1}.'.format(cmd, result))
-                if isinstance(result, CommandResult) :
-                    cmd.status = result.status
-                    cmd.result = result.result
-                else :
-                    cmd.status = 'Success'
-                    cmd.result = result
-                self.update_command(cmd, device_id = info.id, device_key = info.key)
-            #
-            def on_err(reason):
-                log.err('Failed to process command "{0}". Reason: {1}.'.format(cmd, reason))
-                if isinstance(reason, Exception) :
+        LOG_MSG('Command {0} has been received for device {1}.'.format(cmd, info))
+        def on_ok(result):
+            LOG_MSG('The command "{0}" successfully processed. Result: {1}.'.format(cmd, result))
+            if isinstance(result, CommandResult) :
+                cmd.status = result.status
+                cmd.result = result.result
+            else :
+                cmd.status = 'Success'
+                cmd.result = result
+            self.update_command(cmd, device_id = info.id, device_key = info.key)
+        #
+        def on_err(reason):
+            LOG_ERR('Failed to process command "{0}". Reason: {1}.'.format(cmd, reason))
+            if isinstance(reason, Exception) :
+                cmd.status = 'Failed'
+                cmd.result = reason.message
+            elif hasattr(reason, 'value') :
+                if isinstance(reason.value, CommandResult) :
+                    cmd.status = reason.value.status
+                    cmd.result = reason.value.result
+                elif isinstance(reason.value, Exception) :
                     cmd.status = 'Failed'
-                    cmd.result = reason.message
-                elif hasattr(reason, 'value') :
-                    if isinstance(reason.value, CommandResult) :
-                        cmd.status = reason.value.status
-                        cmd.result = reason.value.result
-                    elif isinstance(reason.value, Exception) :
-                        cmd.status = 'Failed'
-                        cmd.result = reason.value.message
-                    else :
-                        cmd.status = 'Failed'
-                        cmd.result = reason.value
+                    cmd.result = reason.value.message
                 else :
                     cmd.status = 'Failed'
-                    cmd.result = 'Unhandled Exception'
-                self.update_command(cmd, device_id = info.id, device_key = info.key)
-            #
-            finished = Deferred()
-            finished.addCallbacks(on_ok, on_err)
-            try :
-                self.handler.on_command(info.id, cmd, finished)
-            except Exception as ex:
-                err = DhError('Failed to invoke command {0}. Reason: {1}.'.format(cmd, ex.message))
-                log.err(err.message)
-                on_err(err)
-        else :
-            raise WebSocketError('handler should be set')
+                    cmd.result = reason.value
+            else :
+                cmd.status = 'Failed'
+                cmd.result = 'Unhandled Exception'
+            self.update_command(cmd, device_id = info.id, device_key = info.key)
+        #
+        finished = Deferred()
+        finished.addCallbacks(on_ok, on_err)
+        try :
+            self.handler.on_command(info.id, cmd, finished)
+        except Exception as ex:
+            err = DhError('Failed to invoke command {0}. Reason: {1}.'.format(cmd, ex.message))
+            LOG_ERR(err.message)
+            on_err(err)
     
     # begin IProtoFactory implementation
     def authenticate(self, device_id, device_key):
@@ -214,7 +211,7 @@ class WebSocketFactory(ClientFactory):
         return self.send_message(request)
     
     def subscribe(self, device_id = None, device_key = None):
-        log.msg('Subscribe device {0}.'.format(device_id))
+        LOG_MSG('Subscribe device {0}.'.format(device_id))
         request = {'action': 'command/subscribe'}
         if device_id is not None :
             request['deviceId'] = device_id
@@ -231,7 +228,7 @@ class WebSocketFactory(ClientFactory):
         return self.send_message(request)
     
     def device_save(self, info):
-        log.msg('device_save {0}'.format(info))
+        LOG_MSG('device_save {0}'.format(info))
         if not IDeviceInfo.implementedBy(info.__class__) :
             raise WebSocketError('info parameter has to implement IDeviceInfo interface')
         dev = {'key': info.key, 'name': info.name, 'equipment': [e.to_dict() for e in info.equipment]}
@@ -250,4 +247,3 @@ class WebSocketFactory(ClientFactory):
     def connect(self, url):
         reactor.connectDeviceHive(url, self)
     # end IProtoFactory implementation
-
