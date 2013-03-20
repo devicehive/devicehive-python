@@ -792,7 +792,10 @@ class ToDictionary(object):
                 else :
                     raise TypeError('Unsupported type.')
             return res
-        return _to_dict(self)
+        res = _to_dict(self)
+        if (len(res) == 1) and 'top_level' in res :
+            res = res['top_level']
+        return res
 
 
 class Updateable(object):
