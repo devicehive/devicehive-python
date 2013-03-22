@@ -182,6 +182,6 @@ if __name__ == '__main__' :
     # 2.
     factory = devicehive.auto.AutoFactory(rpi_app)
     # 3.
-    reactor.connectDeviceHive("http://pg.devicehive.com/api/", factory)
+    factory.connect("http://pg.devicehive.com/api/")
     reactor.run()
 

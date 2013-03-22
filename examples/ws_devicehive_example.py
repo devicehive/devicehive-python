@@ -86,6 +86,7 @@ class LEDHiveApp(object):
 
 if __name__ == '__main__' :
     log.startLogging(sys.stdout)
-    reactor.connectDeviceHive('http://ecloud.dataart.com:8010', devicehive.device.ws.WebSocketFactory(LEDHiveApp()))
+    transport = devicehive.device.ws.WebSocketFactory(LEDHiveApp())
+    transport.connect('http://ecloud.dataart.com:8010')
     reactor.run()
 

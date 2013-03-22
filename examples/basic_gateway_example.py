@@ -39,7 +39,7 @@ class Gateway(devicehive.gateway.BaseGateway):
 
 def main(sport, brate):
     log.startLogging(sys.stdout)
-    gateway = Gateway('http://ecloud.dataart.com/ecapi7/', devicehive.poll.PollFactory) # devicehive.auto.AutoFactory)
+    gateway = Gateway('http://ecloud.dataart.com/ecapi7/', devicehive.auto.AutoFactory)
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
                                                             sport, \

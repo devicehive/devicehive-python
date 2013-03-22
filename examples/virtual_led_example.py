@@ -100,7 +100,9 @@ class VirtualLedApp(object):
     def on_connected(self):
         def on_subscribe(result) :
             self.connected = True
-            self.factory.subscribe(self.info.id, self.info.key)
+            def on_subsc(res):
+                print '!!!! SUBSCRIBED'
+            self.factory.subscribe(self.info.id, self.info.key).addCallback(on_subsc)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
         self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
@@ -139,10 +141,6 @@ if __name__ == '__main__':
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive
-    # reactor.connectDeviceHive('ws://ecloud.dataart.com:8010', virt_led_factory)
-    reactor.connectDeviceHive('http://ecloud.dataart.com/ecapi7/', virt_led_factory)
-    try :
-        reactor.run()
-    except KeyboardInterrupt, err:
-        reactor.stop()
-
+    # virt_led_factory.connect('ws://ecloud.dataart.com:8010')
+    virt_led_factory.connect('http://ecloud.dataart.com/ecapi7/')
+    reactor.run()

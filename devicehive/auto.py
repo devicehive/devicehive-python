@@ -117,10 +117,7 @@ class AutoFactory(ClientFactory):
     def connect_poll(self):
         log.msg('Long-Polling protocol has been selected.')
         factory = PollFactory(self)
-        factory.url = self.url
-        factory.host = self.host
-        factory.port = self.port
-        reactor.connectTCP(self.host, self.port, self.factory)
+        factory.connect(self.url)
     
     # begin IProtoHandler implementation
     def on_apimeta(self, websocket_server, server_time):
@@ -150,9 +147,6 @@ class AutoFactory(ClientFactory):
     def notify(self, notification, params, device_id = None, device_key = None):
         return self.factory.notify(notification, params, device_id, device_key)
     
-    def update_command(self, command, device_id = None, device_key = None):
-        return self.factory.update_command(command, device_id, device_key)
-    
     def subscribe(self, device_id = None, device_key = None):
         return self.factory.subscribe(device_id, device_key)
     
@@ -161,5 +155,8 @@ class AutoFactory(ClientFactory):
     
     def device_save(self, info):
         return self.factory.device_save(info)
+    
+    def connect(self, url):
+        reactor.connectDeviceHive(url, self)
     # end IProtoFactory implementation
 

@@ -185,6 +185,16 @@ class WebSocketFactory(ClientFactory):
             LOG_ERR(err.message)
             on_err(err)
     
+    def update_command(self, command, device_id = None, device_key = None):
+        if not ICommand.implementedBy(command.__class__) :
+            raise DhError('{0}.update_command expects ICommand'.format(self.__class__.__name__))
+        request = {'action': 'command/update', 'commandId': command.id, 'command': command.to_dict()}
+        if device_id is not None :
+            request['deviceId'] = device_id
+        if device_key is not None :
+            request['deviceKey'] = device_key
+        return self.send_message(request)
+    
     # begin IProtoFactory implementation
     def authenticate(self, device_id, device_key):
         request = {'action': 'authenticate',
@@ -197,16 +207,6 @@ class WebSocketFactory(ClientFactory):
         if (device_id is not None) :
             request['deviceId'] = device_id
         if (device_key is not None) :
-            request['deviceKey'] = device_key
-        return self.send_message(request)
-    
-    def update_command(self, command, device_id = None, device_key = None):
-        if not ICommand.implementedBy(command.__class__) :
-            raise DhError('{0}.update_command expects ICommand'.format(self.__class__.__name__))
-        request = {'action': 'command/update', 'commandId': command.id, 'command': command.to_dict()}
-        if device_id is not None :
-            request['deviceId'] = device_id
-        if device_key is not None :
             request['deviceKey'] = device_key
         return self.send_message(request)
     

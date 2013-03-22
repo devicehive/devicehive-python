@@ -3,7 +3,6 @@
 
 import json
 from datetime import datetime
-from functools import partial
 from sys import maxint
 from zope.interface import implements, Interface, Attribute
 from twisted.python import log
@@ -21,18 +20,16 @@ from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer
 
 
-__all__ = ['JsonDataProducer', 'JsonDataConsumer', 'BaseRequest', 'RegisterRequest', 'NotifyRequest', 'ReportRequest', 'CommandRequest', 'PollFactory']
+__all__ = ['JsonDataProducer', 'JsonDataConsumer', 'BaseRequest', 'RegisterRequest', 'NotifyRequest',
+           'ReportRequest', 'CommandRequest', 'PollFactory']
 
 
-class ICommandHandler(Interface):
-    def on_command(self, cmd, finish):
-        """
-        @type cmd: C{dict}
-        @param cmd: command
-        
-        @type finish: C{Defer}
-        @param finish: a user has to callback this deferred in order to signal to the library that commad has been processed.
-        """
+def LOG_MSG(msg):
+    log.msg(msg)
+
+
+def LOG_ERR(msg):
+    log.err(msg)
 
 
 class IPollOwner(Interface):
@@ -116,15 +113,15 @@ class PollCommand(BaseCommand) :
         return res
 
 
-
 class BaseRequest(Request):
     """
     L{BaseRequest} implements base HTTP/1.1 request
     """
     
-    def __init__(self, factory, method, api, body_producer = None):
-        headers = BaseRequest.headers(factory.host, factory.info.id, factory.info.key)
-        path = url_path(factory.url, api)
+    def __init__(self, device_info, method, url, host, api, body_producer = None):
+        headers = BaseRequest.headers(host, device_info.id, device_info.key)
+        path = url_path(url, api)
+        LOG_MSG('{0} PATH {1}'.format(method, path))
         super(BaseRequest, self).__init__(method, path, headers, body_producer)
     
     @staticmethod
@@ -143,8 +140,8 @@ class RegisterRequest(BaseRequest):
     intended for an external use.
     """
     
-    def __init__(self, factory):
-        super(RegisterRequest, self).__init__(factory, 'PUT', 'device/{0:s}'.format(factory.info.id), JsonDataProducer(factory.info.to_dict()))
+    def __init__(self, device_info, url, host):
+        super(RegisterRequest, self).__init__(device_info, 'PUT', url, host, 'device/{0:s}'.format(device_info.id), JsonDataProducer(device_info.to_dict()))
 
 
 class CommandRequest(BaseRequest):
@@ -153,524 +150,324 @@ class CommandRequest(BaseRequest):
     does not contain timestamp field in this case server will use
     current time in UTC.
     """
-    def __init__(self, factory):
-        if factory.timestamp is None :
-            url = 'device/{0}/command/poll'.format(factory.info.id)
+    def __init__(self, device_info, url, host, timestamp):
+        if timestamp is None :
+            api = 'device/{0}/command/poll'.format(device_info.id)
         else :
-            url = 'device/{0}/command/poll?timestamp={1}'.format(factory.info.id, factory.timestamp.isoformat())
-        super(CommandRequest, self).__init__(factory, 'GET', url)
+            api = 'device/{0}/command/poll?timestamp={1}'.format(device_info.id, timestamp.isoformat())
+        super(CommandRequest, self).__init__(device_info, 'GET', url, host, api)
 
 
 class ReportRequest(BaseRequest):
-    def __init__(self, factory, command, result):
-        super(ReportRequest, self).__init__(factory,
+    def __init__(self, device_info, url, host, command_id, result):
+        super(ReportRequest, self).__init__(device_info,
             'PUT',
-            'device/{0}/command/{1}'.format(factory.info.id, command['id']),
+            url,
+            host,
+            'device/{0}/command/{1}'.format(device_info.id, command_id),
             JsonDataProducer(result.to_dict()))
 
 
 class NotifyRequest(BaseRequest):
-    def __init__(self, factory, notification, parameters):
-        super(NotifyRequest, self).__init__(factory,
-            'POST',
-            'device/{0}/notification'.format(factory.info.id),
+    def __init__(self, device_info, url, host, notification, parameters):
+        super(NotifyRequest, self).__init__(device_info, 'POST', url, host,
+            'device/{0}/notification'.format(device_info.id),
             JsonDataProducer({'notification': notification, 'parameters': parameters}))
 
 
-class ProtocolState(Values) :
-    """
-    Class is not intended for external use.
-    """
-    Unknown  = ValueConstant(0)
-    Register = ValueConstant(1)
-    Command  = ValueConstant(2)
-    Notify   = ValueConstant(3)
-    Report   = ValueConstant(4)
-
-
-class ReportData(object):
-    def __init__(self, command, result):
-        self._command = command
-        self._result  = result
-    command = property(fget = lambda self : self._command)
-    result  = property(fget = lambda self : self._result)
-
-
-class NotifyData(object):
-    def __init__(self, notification, parameters):
-        self._notification = notification
-        self._parameters = parameters
-    notification = property(fget = lambda self : self._notification)
-    parameters = property(fget = lambda self : self._parameters)
-
-
-class StateHolder(object):
-    """
-    TODO: Incapsulate all retry logic into state holder
-    """
-    def __init__(self, state, state_data = None, retries = 0) :
-        self._state = state
-        self._data = state_data
-        self._retries = retries
-        self._do_retry = False
-    
-    value    = property(fget = lambda self : self._state)
-    
-    data     = property(fget = lambda self : self._data)
-    
-    def retries():
-        def fget(self):
-            return self._retries
-        def fset(self, value):
-            self._retries = value
-        return locals()
-    retries = property(**retries())
-    
-    def do_retry():
-        def fget(self):
-            return self._do_retry
-        def fset(self, value):
-            self._do_retry = value
-        return locals()
-    do_retry = property(**do_retry())
-
-
-class _ReportHTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
-    """
-    L{_ReportHTTP11DeviceHiveProtocol} sends one report request to device-hive server.
-    """
-
-    def __init__(self, factory):
-        if hasattr(HTTP11ClientProtocol, '__init__'):
-            # fix for cygwin twisted distribution
+class RequestProtocol(HTTP11ClientProtocol):
+    def __init__(self, req, deferred):
+        if hasattr(HTTP11ClientProtocol, '__init__') :
             HTTP11ClientProtocol.__init__(self)
-        self.factory = factory
-        
+        self.req = req
+        self.deferred = deferred
+
     def connectionMade(self):
-        req = self.request(ReportRequest(self.factory.owner, self.factory.state.data.command, self.factory.state.data.result))
-        req.addCallbacks(self._report_done, self._critical_error)
-    
-    def _report_done(self, response):
-        if response.code == 200 :
-            log.msg('Report <{0}> response for received.'.format(self.factory.state.data))
+        LOG_MSG('Sending {0} request to devicehive server.'.format(self.req))
+        self.request(self.req).addCallbacks(self.on_success, self.on_failure)
+
+    def get_response_text(self, response, func):
+        def on_get_response_text(txt):
+            func(txt)
+        d = Deferred()
+        d.addBoth(on_get_response_text)
+        response.deliverBody(TextDataConsumer(d))
+
+    def on_success(self, response):
+        if response.code in [200, 201] :
+            def on_data(txt):
+                self.deferred.callback(txt)
+            self.get_response_text(response, on_data)
+        elif response.code == 204 :
+            self.deferred.callback(None)
         else :
-            def get_response_text(reason):
-                log.err('Failed to get report-request response. Response: <{0}>. Code: <{1}>. Reason: <{2}>.'.format(response, response.code, reason))
-            response_defer = Deferred()
-            response_defer.addCallbacks(get_response_text, get_response_text)
-            response.deliverBody(TextDataConsumer(response_defer))
-            self.factory.retry(self.transport.connector)
-    
-    def _critical_error(self, reason):
-        log.err("Device-hive report-request failure. Critical error: <{0}>".format(reason))
-        if reactor.running :
-            self.factory.on_failure(reason)
-        pass
+            def on_err(err):
+                self.deferred.errback(err)
+            self.get_response_text(response, on_err)
+
+    def on_failure(self, reason):
+        self.deferred.errback(reason)
 
 
-class _NotifyHTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
-    """
-    L{_NotifyHTTP11DeviceHiveProtocol} sends one notification request.
-    """
-    def __init__(self, factory):
-        if hasattr(HTTP11ClientProtocol, '__init__'):
-            # fix for cygwin twisted distribution
-            HTTP11ClientProtocol.__init__(self)
-        self.factory = factory
-    
-    def connectionMade(self):
-        req = self.request(NotifyRequest(self.factory.owner, self.factory.state.data.notification, self.factory.state.data.parameters))
-        req.addCallbacks(self._notification_done, self._critical_error)
-    
-    def _notification_done(self, response):
-        if response.code == 201:
-            log.msg('Notification <{0}> response for received.'.format(self.factory.state.data))
-        else :
-            def get_response_text(reason):
-                log.err('Failed to get notification-request response. Response: <{0}>. Code: <{1}>. Reason: <{2}>.'.format(response, response.code, reason))
-            response_defer = Deferred()
-            response_defer.addCallbacks(get_response_text, get_response_text)
-            response.deliverBody(TextDataConsumer(response_defer))
-            self.factory.retry(self.transport.connector)
-    
-    def _critical_error(self, reason):
-        log.err("Device-hive notify-request failure. Critical error: <{0}>".format(reason))
-        if reactor.running :
-            self.factory.on_failure(reason)
-        pass
-
-
-class HTTP11DeviceHiveProtocol(HTTP11ClientProtocol):
-    """
-    L{HTTP11DeviceHiveProtocol} represent device hive protocol.
-
-    @ivar factory Reference to DeviceHiveFactory instance
-    """
-
-    def __init__(self, factory):
-        if hasattr(HTTP11ClientProtocol, '__init__'):
-            HTTP11ClientProtocol.__init__(self)
-        self.factory = factory
-    
-    def connectionMade(self):
-        if self.factory.state.value == ProtocolState.Register :
-            log.msg('About to send registration request.')
-            self.request(RegisterRequest(self.factory)).addCallbacks(self._register_done, self._critical_error)
-        elif self.factory.state.value == ProtocolState.Command :
-            log.msg('Command acquisition has started.')
-            res = self.request(CommandRequest(self.factory))
-            res.addCallbacks(self._command_done, self._critical_error)
-        else :
-            self.factory.on_failure(DhError("Unsupported device-hive protocol state <{0}>.".format(self.factory.state.value)))
-    
-    def _critical_error(self, reason):
-        """
-        Any critical error will stop reactor.
-        """
-        log.err("Device-hive protocol failure. Critical error: <{0}>".format(reason))
-        if reactor.running :
-            if callable(self.factory.on_failure) :
-                self.factory.on_failure()
-        pass
-    
-    def _register_done(self, response):
-        """
-        Method is called when the answer to registration request is received.
-        """
-        log.msg('Has sent registration request.')
-        if response.code == 200:
-            def get_response_text(reason):
-                log.err('Registration succeed. Response code {0}. Reason: {1}.'.format(response.code, reason))
-            response_defer = Deferred()
-            response_defer.addCallbacks(get_response_text, get_response_text)
-            response.deliverBody(TextDataConsumer(response_defer))
-            
-            self.factory.registered = True
-            self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
-        else :
-            def get_response_text(reason):
-                log.err('Registration failed. Response code {0}. Reason: {1}.'.format(response.code, reason))
-            response_defer = Deferred()
-            response_defer.addCallbacks(get_response_text, get_response_text)
-            response.deliverBody(TextDataConsumer(response_defer))
-            self.factory.retry(self.transport.connector)
-    
-    def _command_done(self, response):
-        if response.code == 200 :
-            def get_response(cmd_data):
-                for cmd in cmd_data :
-                    def __command_done(result, command) :
-                        log.msg('The command "{0}" successfully processed. Result: {1}.'.format(command, result))
-                        if not isinstance(result, CommandResult) :
-                            res = CommandResult('Success', result)
-                        else :
-                            res = result
-                        self.factory.next_state(ProtocolState.Report, ReportData(command, res), self.transport.connector)
-                    ok_func = partial(__command_done, command = cmd)
-                    def __command_error(reason, command):
-                        log.err('Failed to process command "{0}". Reason: {1}.'.format(command, reason))
-                        if isinstance(reason, Exception) :
-                            res = CommandResult('Failed', reason.message)
-                        elif hasattr(reason, 'value') :
-                            if isinstance(reason.value, CommandResult) :
-                                res = CommandResult(reason.value.status, reason.value.result)
-                            elif isinstance(reason.value, Exception) :
-                                res = CommandResult('Failed', reason.value.message)
-                            else :
-                                res = CommandResult('Failed', reason.value)
-                        else :
-                            res = CommandRequest('Failed', 'Unhandled Exception')
-                        self.factory.next_state(ProtocolState.Report, ReportData(command, res), self.transport.connector)
-                    err_func = partial(__command_error, command = cmd)
-                    # Obtain only new commands next time
-                    if self.factory.timestamp is not None :
-                        self.factory.timestamp = max(self.factory.timestamp, parse_date(cmd['timestamp']))
-                    else :
-                        self.factory.timestamp = parse_date(cmd['timestamp'])
-                    # DeviceDelegate has to use this deferred object to notify us that command processing finished.
-                    cmd_defer = Deferred()
-                    cmd_defer.addCallbacks(ok_func, err_func)
-                    # Actual run of command
-                    try :
-                        self.factory.on_command(cmd, cmd_defer)
-                    except Exception, err :
-                        log.err('Failed to execute device-delegate on_command. Reason: <{0}>.'.format(err))
-                        err_func(err)
-                self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
-            def err_response(reason):
-                log.err('Failed to parse command request response. Reason: <{0}>.'.format(reason))
-                self.factory.next_state(ProtocolState.Command, connector = self.transport.connector)
-            result_proto = Deferred()
-            result_proto.addCallbacks(get_response, err_response)
-            response.deliverBody(JsonDataConsumer(result_proto))
-        else :
-            log.err('Failed to get command request response. Response: <{0}>. Code: <{1}>.'.format(response, response.code))
-            self.factory.retry(self.transport.connector)
-
-
-class ApiInfoProtocol(HTTP11ClientProtocol):
-    
-    def __init__(self, factory):
-        if hasattr(HTTP11ClientProtocol, '__init__'):
-            HTTP11ClientProtocol.__init__(self)
-        self.factory = factory
-    
-    def connectionMade(self):
-        self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.on_ok, self.on_fail)
-    
-    def on_ok(self, response):
-        if response.code == 200:
-            def ok_response(obj):
-                self.factory.api_received(obj['webSocketServerUrl'], obj['serverTimestamp'])
-            
-            def err_response(reason):
-                log.err('Failed to parse command request response. Reason: <{0}>.'.format(reason))
-            
-            res = Deferred()
-            res.addCallbacks(ok_response, err_response)
-            response.deliverBody(JsonDataConsumer(res))
-        else :
-            def err_handler(reason):
-                log.err('/info call failed. Response code: {0}. Reason: {1}.'.format(response.code, reason))
-            res = Deferred()
-            res.addBoth(err_handler)
-            response.deliverBody(TextDataConsumer(res))
-    
-    def on_fail(self, reason):
-        log.err('Failed to make API Info request. Reason: {0}.'.format(reason))
-
-
-
-class BaseHTTP11ClientFactory(ClientFactory):
-    """
-    This L{ReconnectFactory} uses different approach to reconnect than
-    Twisted`s L{ReconnectClientFactory}.
-
-    @ivar state Indicates what state this L{DeviceHiveFactory} instance
-        is in with respect to Device-Hive protocol v6.
-    @ivar retries In case of failure, DeviceHiveProtocol instance will try to
-        resend last command L{retries} count times.
-    """
-    def __init__(self, state, retries):
-        self.retries = retries
-        self.state = state
-        self.started = False
-    
-    def doStart(self) :
-        ClientFactory.doStart(self)
-        self.started = True
-    
-    def clientConnectionLost(self, connector, reason):
-        self.handleConnectionLost(connector)
-        self.started = False
-    
-    def handleConnectionLost(self, connector):
-        def reconnect(connector) :
-            connector.connect()
-        if self.state.do_retry :
-            self.state.retries -= 1
-            self.state.do_retry = False
-            reconnect(connector)
-            return True
-        return False
-    
-    def retry(self, connector = None):
-        """
-        TODO: user logic need to decide where reconnection is required
-        """
-        if self.state.retries > 0 :
-            self.state.do_retry = True
-        if (not self.started) and (connector is not None) and (connector.state == 'disconnected') :
-            self.handleConnectionLost(connector)
-
-
-class _SingleRequestHTTP11DeviceHiveFactory(BaseHTTP11ClientFactory):
+class RequestFactory(ClientFactory):
     """
     This factory is used to create and send single HTTP/1.1 request.
     """
-    def __init__(self, owner, state, retries):
-        BaseHTTP11ClientFactory.__init__(self, state, retries)
-        self.owner = owner
+    
+    def __init__(self, req, ok, err):
+        if hasattr(ClientFactory, '__init__') :
+            ClientFactory.__init__(self)
+        self.req = req
+        self.ok = ok
+        self.err = err
     
     def buildProtocol(self, addr):
-        if self.state.value == ProtocolState.Report :
-            return _ReportHTTP11DeviceHiveProtocol(self)
-        elif self.state.value == ProtocolState.Notify :
-            return _NotifyHTTP11DeviceHiveProtocol(self)
-        else :
-            raise NotImplementedError('Unsupported factory state <{0}>.'.format(self.state.value))
-    
-    def on_failure(self, reason):
-        self.owner.on_failure(reason)
+        defer = Deferred()
+        defer.addCallbacks(self.ok, self.err)
+        return RequestProtocol(self.req, defer)
 
 
-class DevicePollFactory(BaseHTTP11ClientFactory):
-    
-    implements(ICommandHandler)
-
-    def __init__(self, owner, info, poll_interval = 1.0, retries = 3):
-        BaseHTTP11ClientFactory.__init__(self, StateHolder(ProtocolState.Unknown), retries)
+class CommandPollProtocol(HTTP11ClientProtocol):
+    def __init__(self, owner):
+        if hasattr(HTTP11ClientProtocol, '__init__') :
+            HTTP11ClientProtocol.__init__(self)
         self.owner = owner
-        self.info = info
-        self.poll_interval = poll_interval
-        self.retries = retries
-        # for internal usage
-        self.registered = False
-        self.states_stack = []
+    
+    def connectionMade(self):
+        LOG_MSG('Sending command poll request for device: {0}.'.format(self.owner.info))
+        self.request(CommandRequest(self.owner.info, self.owner.url, self.owner.host, self.owner.timestamp)).addCallbacks(self.success, self.failure)
+    
+    def get_response_text(self, response, func):
+        def on_get_response_text(txt):
+            func(txt)
+        d = Deferred()
+        d.addBoth(on_get_response_text)
+        response.deliverBody(TextDataConsumer(defer))
+    
+    def command_failed(self, command, reason):
+        LOG_ERR('Failed to process command "{0}". Reason: {1}.'.format(command, reason))
+        if isinstance(reason, Exception) :
+            res = CommandResult('Failed', reason.message)
+        elif hasattr(reason, 'value') :
+            if isinstance(reason.value, CommandResult) :
+                res = CommandResult(reason.value.status, reason.value.result)
+            elif isinstance(reason.value, Exception) :
+                res = CommandResult('Failed', reason.value.message)
+            else :
+                res = CommandResult('Failed', reason.value)
+        else :
+            res = CommandRequest('Failed', 'Unhandled Exception')
+        self.owner.send_report(command['id'], res)
+    
+    def command_done(self, command, result):
+        LOG_MSG('The command "{0}" successfully processed. Result: {1}.'.format(command, result))
+        if not isinstance(result, CommandResult) :
+            res = CommandResult('Success', result)
+        else :
+            res = result
+        self.owner.send_report(command['id'], res)
+    
+    def command_received(self, cmd_data):
+        LOG_MSG('Poll command got response. Response: {0}.'.format(cmd_data))
+        for cmd in cmd_data :
+            # Obtain only new commands next time
+            cmd_date = parse_date(cmd['timestamp'])
+            if self.owner.timestamp is not None :
+                self.owner.timestamp = max(self.owner.timestamp, cmd_date)
+            else :
+                self.owner.timestamp = cmd_date
+            # device-application will use this deferred object to notify me about the command progress.
+            thiscmd = cmd
+            def ok(result):
+                self.command_done(thiscmd, result)
+            def err(reason):
+                self.command_failed(thiscmd, reason)
+            defer = Deferred()
+            defer.addCallbacks(ok, err)
+            try :
+                LOG_MSG('Executing command {0} handler.'.format(cmd))
+                self.owner.run_command(cmd, defer)
+            except Exception, err :
+                LOG_ERR('Failed to execute device-delegate on_command. Reason: <{0}>.'.format(err))
+                self.command_failed(cmd, err)
+    
+    def success(self, response):
+        LOG_MSG('Got command poll response from the server for device {0}.'.format(self.owner.info))
+        if response.code in [200, 201] :
+            def err(reason):
+                LOG_ERR('Failed to parse command request response. Reason: <{0}>.'.format(reason))
+                self.failure(reason)
+            result = Deferred()
+            result.addCallbacks(self.command_received, err)
+            response.deliverBody(JsonDataConsumer(result))
+        else :
+            def txterrf(errtxt):
+                LOG_ERR('Invalid response has been received during command polling. Reason: {0}.'.format(errtxt))
+                self.failure(DhError(errtxt))
+            self.get_response_text(response, txterrf)
+    
+    def failure(self, reason):
+        LOG_ERR('Failed to poll devicehive server for a command. Reason: {0}.'.format(reason))
+        self.owner.failure(reason)
+
+
+class DevicePollFactory(ClientFactory):
+    proto = None
+    recall = None
+    
+    def __init__(self, owner, info, deferred):
+        if not IPollOwner.implementedBy(owner.__class__) :
+            raise TypeError('owner has to implement IPollOwner interface.')
+        self.owner = owner
         self.timestamp = self.owner.timestamp
+        self.info = info
+        self.deferred = deferred
+        self.connected = False
+        self.stopped = False
     
     url = property(fget = lambda self : self.owner.url)
     
     host = property(fget = lambda self : self.owner.host)
     
-    def test_owner(self):
-        return IPollOwner.implementedBy(self.owner.__class__)
-    
-    def doStart(self) :
-        if self.state.value == ProtocolState.Unknown :
-            self.state = StateHolder(ProtocolState.Register)
-        BaseHTTP11ClientFactory.doStart(self)
+    port = property(fget = lambda self : self.owner.port)
     
     def buildProtocol(self, addr):
-        return HTTP11DeviceHiveProtocol(self)
+        LOG_MSG('Building devicehive command poll protocol object.')
+        self.proto = CommandPollProtocol(self)
+        return self.proto
     
-    def handleConnectionLost(self, connector):
+    def clientConnectionSuccess(self):
+        LOG_MSG('Client has connected to devicehive server.')
+        if not self.connected :
+            self.connected = True
+            self.deferred.callback(self.info)
+    
+    def clientConnectionFailed(self, connector, reason):
+        LOG_ERR('Client failed to connect to devicehive server.')
+        if not self.connected :
+            self.deferred.errback(reason)
+    
+    def clientConnectionLost(self, connector, reason):
+        LOG_ERR('Client has lost command poll connection to the devicehive server.')
         def reconnect(connector) :
             connector.connect()
-        if (not BaseHTTP11ClientFactory.handleConnectionLost(self, connector)) and (self.registered):
-            # Because Registration is a very first thing which is invoked I do not
-            # need to add an addition verification here
-            if len(self.states_stack) > 0 :
-                tmp_state = self.states_stack.pop(0)
-                # If user made a bunch of notifications before device got registered
-                # we send them all here at one go
-                while tmp_state.value == ProtocolState.Notify :
-                    self.single_request(tmp_state)
-                    tmp_state = None
-                    if len(self.states_stack) > 0 :
-                        tmp_state = self.states_stack.pop(0)
-                    else :
-                        return
-                # In current implementation this could be only ProtocolState.Command
-                if tmp_state is not None :
-                    self.state = tmp_state
-                    reactor.callLater(self.poll_interval, reconnect, connector)
-        pass
+        if not self.stopped :
+            LOG_MSG('Reconnecting client {0} to the server {1}:{2}.'.format(self.info, self.url, self.host))
+            self.recall = reactor.callLater(self.owner.poll_interval, reconnect, connector)
     
-    def notify(self, notification, kwargs) :
-        self.next_state(ProtocolState.Notify, data = NotifyData(notification, kwargs))
-    
-    def next_state(self, next_state, data = None, connector = None) :
-        if self.registered and (next_state == ProtocolState.Notify or next_state == ProtocolState.Report) :
-            self.single_request(StateHolder(next_state, data))
-        else :
-            self.states_stack.append(StateHolder(next_state, data, self.retries))
-            if (not self.started) and (connector is not None) and (connector.state == 'disconnected') :
-                self.handleConnectionLost(connector)
-    
-    def single_request(self, state):
-        subfactory = _SingleRequestHTTP11DeviceHiveFactory(self, state, self.retries)
-        reactor.connectTCP(self.owner.host, self.owner.port, subfactory)
-    
-    def on_failure(self, reason = None):
-        if self.test_owner() :
-            self.owner.on_failure(self.info.id, reason)
-    
-    def on_command(self, cmd, finished):
-        self.owner.on_command(self.info, cmd, finished)
+    def stop(self):
+        """ Stops command polling. """
+        # TODO: test this method (how it works)
+        self.stop_requested = True
+        if (self.recall is not None) and self.recall.active() :
+            self.recall.cancel()
+        if (self.proto is not None) and (self.proto.transport.connector.state == 'connected') :
+            self.proto.transport.loseConnection()
     
     def __repr__(self):
         return '<{0} for device {1}>'.format(self.__class__.__name__, self.info)
-
-
-class PollFactory(ClientFactory):
     
+    def send_report(self, cmdid, cmdres):
+        """ Sends command result of a command been invoked to devicehive server. """
+        def ok(result):
+            LOG_MSG('Command {0} result has been sent.'.format(cmdid))
+        def err(reason):
+            LOG_MSG('Failed to send command {0} result. Reason: {1}.'.format(cmdid, reason))
+        factory = RequestFactory(ReportRequest(self.info, self.url, self.host, cmdid, cmdres), ok, err)
+        reactor.connectTCP(self.host, self.port, factory)
+    
+    def run_command(self, cmd, fin_defer):
+        """ Executes user command handler. """
+        self.owner.on_command(self.info, cmd, fin_defer)
+    
+    def failure(self, reason):
+        self.owner.on_failure(self.info.id, reason)
+
+
+class PollFactory(object):
     implements(IProtoFactory, IPollOwner)
     
-    url  = 'http://localhost'
+    url = 'http://localhost'
     host = 'localhost'
     port = 80
     timestamp = None
-    
     poll_interval = 1.0
-    retries = 3
     
     def __init__(self, handler):
+        if not IProtoHandler.implementedBy(handler.__class__) :
+            raise TypeError('handler has to implement devicehive.interfaces.IProtoHandler interface.')
         self.handler = handler
-        if self.test_handler() :
-            self.handler.factory = self
+        self.handler.factory = self
         self.devices = {}
         self.factories = {}
+        self.timestamp = datetime.utcnow()
     
-    def test_handler(self):
-        return IProtoHandler.implementedBy(self.handler.__class__)
-    
-    def buildProtocol(self, addr):
-        return ApiInfoProtocol(self)
-    
-    # begin callbacks
-    def api_received(self, url, server_time):
-        log.msg('The call to "/info" api has finished successfully.')
-        try :
-            self.timestamp = parse_date(server_time)
-        except ValueError :
-            log.msg('Failed to parse a date-time string "{0}" returned from "/info" api call.'.format(server_time))
-            self.timestamp = datetime.utcnow()
-        self.handler.on_apimeta(url, self.timestamp)
-        self.handler.on_connected()
-    # end callbacks
+    def execute_request(self, request, ok, err):
+        factory = RequestFactory(request, ok, err)
+        reactor.connectTCP(self.host, self.port, factory)
     
     # begin IPollOwner implementation
     def on_command(self, info, cmd, finish):
-        if (info.id in self.devices) and self.test_handler() :
+        if info.id in self.devices :
             self.handler.on_command(info.id, PollCommand.create(cmd), finish)
+        else :
+            raise ValueError('Device {0} is not registered.'.format(info.id))
     
     def on_failure(self, device_id, reason):
-        if self.test_handler() and (device_id in self.devices) :
+        if device_id in self.devices :
             self.handler.on_failure(device_id, reason)
     # end IPollOwner
     
     # begin IProtoFactory implementation
     def authenticate(self, device_id, device_key):
-        """
-        Sends authentication message.
-        
-        @param device_id - device id
-        @param device_key - device key
-        @return deferred
-        """
+        raise NotImplementedError()
     
     def notify(self, notification, params, device_id = None, device_key = None):
-        if (device_id is not None) and (device_id in self.factories) :
-            factory = self.factories[device_id]
-            factory.notify(notification, params)
-            return succeed(None)
-        else :
-            return fail(DhError('device_id parameter expected'))
-    
-    def update_command(self, command, device_id = None, device_key = None):
-        if device_id in self.devices :
-            factory = self.factories[device_id]
-            factory.next_state(ProtocolState.Report, ReportData(command, command['result']), self.transport.connector)
+        if (device_id is not None) and (device_id in self.devices) :
+            defer = Deferred()
+            def ok(res):
+                LOG_MSG('Notification has been successfully sent.')
+                defer.callback(res)
+            def err(reason):
+                LOG_ERR('Failed to send notification.')
+                defer.errback(reason)
+            self.execute_request(NotifyRequest(self.devices[device_id], self.url, self.host, notification, params), ok, err)
+            return defer
         else :
             return fail(DhError('device_id parameter expected'))
     
     def subscribe(self, device_id = None, device_key = None):
         if device_id in self.devices :
-            factory = DevicePollFactory(self, self.devices[device_id])
+            defer = Deferred()
+            factory = DevicePollFactory(self, self.devices[device_id], defer)
             self.factories[device_id] = factory
-            return reactor.connectTCP(self.host, self.port, factory)
+            LOG_MSG('Connecting command poll factory to {0}:{1}.'.format(self.host, self.port))
+            reactor.connectTCP(self.host, self.port, factory)
+            return defer
         else :
             return fail(DhError('Failed to subscribe device "{0}".'.format(device_id)))
     
     def unsubscribe(self, device_id = None, device_key = None):
-        if (device_id is not None) and (device_id in self.devices) :
-            raise NotImplementedError('unsubscribe method is not immplemented')
+        if (device_id in self.devices) and (device_id in self.factories) :
+            factory = self.factories.pop(device_id)
+            return factory.stop()
         else :
             return fail(DhError('device_id parameter expected'))
     
     def device_save(self, info):
         self.devices[info.id] = info
-        return succeed(info)    
+        defer = Deferred()
+        def registration_success(result):
+            LOG_MSG('Device has been saved. Info: {0}.'.format(info))
+            defer.callback(info)
+        def registration_failure(reason):
+            LOG_MSG('Failed to save device. Info: {0}.'.format(info))
+            defer.errback(reason)
+        req = RegisterRequest(info, self.url, self.host)
+        self.execute_request(req, registration_success, registration_failure)
+        return defer
+    
+    def connect(self, url):
+        self.url, self.host, self.port = parse_url(url)
+        self.handler.on_connected()
     # end IProtoFactory implementation
-

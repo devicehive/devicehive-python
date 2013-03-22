@@ -225,7 +225,7 @@ if __name__ == '__main__' :
     # create a delegate to handle commands
     device = RasPiApp(led, tempSensor)
     led_factory = devicehive.auto.AutoFactory(device)
-    reactor.connectDeviceHive(_API_URL, led_factory)   
+    led_factory.connect(_API_URL)   
     
     # off we go!
     reactor.run()

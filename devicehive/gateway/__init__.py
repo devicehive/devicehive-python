@@ -94,7 +94,7 @@ class BaseGateway(object):
     def __init__(self, url, factory_cls) :
         super(BaseGateway, self).__init__()
         self.factory = factory_cls(handler = BaseGateway._ProtoHandler(self))
-        reactor.connectDeviceHive(url, self.factory)
+        self.factory.connect(url)
     
     def connect_device(self, info):
         def on_subscribe(result) :
