@@ -52,7 +52,7 @@ class TestApp(object):
 def main():
     log.startLogging(sys.stdout)
     transport = devicehive.client.ws.WebSocketFactory(TestApp())
-    transport.connect('ws://ecloud.dataart.com:8010')
+    transport.connect('http://pg.devicehive.com:8010')
     #transport.connect('ws://localhost:3919')
     reactor.run()
 

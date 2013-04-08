@@ -48,7 +48,7 @@ class PingApp(object):
             self.factory.subscribe([self.dev_id]).addCallbacks(on_subscribed, on_subscribed_failed)
         def on_fail(reason):
             print 'The application FAILED authentication.'
-        self.factory.authenticate('admin', 'admin_6699$$').addCallbacks(on_ok, on_fail)
+        self.factory.authenticate('YOUR_LOGIC', 'YOUR_PASSWORD').addCallbacks(on_ok, on_fail)
     
     def do_notification(self, device_id, notification):
         print 'Notification {0} has been received for device {1}.'.format(notification, device_id)
@@ -75,7 +75,7 @@ class Gateway(devicehive.gateway.BaseGateway):
         print 'Registration received from device.'
         self.ping_app = PingApp(device_info.id)
         transport = devicehive.client.ws.WebSocketFactory(self.ping_app)
-        transport.connect('ws://ecloud.dataart.com:8010')
+        transport.connect('ws://pg.devicehive.com:8010')
         super(Gateway, self).registration_received(device_info)
     
     def notification_received(self, device_info, notification):
@@ -94,7 +94,7 @@ class Gateway(devicehive.gateway.BaseGateway):
 
 def main(sport, brate):
     #log.startLogging(sys.stderr)
-    gateway = Gateway('http://ecloud.dataart.com/ecapi7/', devicehive.poll.PollFactory) # devicehive.auto.AutoFactory)
+    gateway = Gateway('http://pg.devicehive.com/api/', devicehive.poll.PollFactory) # devicehive.auto.AutoFactory)
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
                                                             sport, \

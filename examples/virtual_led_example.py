@@ -141,6 +141,6 @@ if __name__ == '__main__':
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive
-    # virt_led_factory.connect('ws://ecloud.dataart.com:8010')
-    virt_led_factory.connect('http://ecloud.dataart.com/ecapi7/')
+    # virt_led_factory.connect('ws://pg.devicehive.com:8010')
+    virt_led_factory.connect('http://pg.devicehive.com/api/')
     reactor.run()

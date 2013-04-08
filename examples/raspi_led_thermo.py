@@ -50,7 +50,7 @@ if not os.path.exists(_W1_FILENAME) :
 _LED_PIN=11
 
 # API URL (register for free playground at http://beta2.devicehive.com/playground
-_API_URL = 'http://ecloud.dataart.com/ecapi7/'
+_API_URL = 'http://pg.devicehive.com/api/'
 
 #
 # for easier reading, this class holds all registration information for DeviceHive
