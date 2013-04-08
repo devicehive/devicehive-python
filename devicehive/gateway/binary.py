@@ -449,7 +449,7 @@ class BinaryFormatter(object) :
                 raise BinarySerializationError('guid property should of uuid.UUID type or be an array of 16 elements')
             result.extend(value)
         elif type == DATA_TYPE_STRING :
-            bstr = array.array('B', value)
+            bstr = array.array('B', value.encode('utf-8'))
             bstr_len = len(bstr)
             result.extend(struct.pack('<H', bstr_len))
             result.extend(bstr)

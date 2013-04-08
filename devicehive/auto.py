@@ -112,11 +112,13 @@ class AutoFactory(ClientFactory):
         factory.url  = self.ws_url
         factory.host = self.ws_host
         factory.port = self.ws_port
+        factory.timestamp = self.server_time
         reactor.connectTCP(factory.host, factory.port, factory)
     
     def connect_poll(self):
         log.msg('Long-Polling protocol has been selected.')
         factory = PollFactory(self)
+        factory.timestamp = self.server_time
         factory.connect(self.url)
     
     # begin IProtoHandler implementation
