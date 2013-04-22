@@ -13,6 +13,7 @@ import struct
 import array
 import uuid
 # import json
+from uuid import UUID
 from collections import Iterable, OrderedDict
 from zope.interface import implements
 from twisted.internet import interfaces
