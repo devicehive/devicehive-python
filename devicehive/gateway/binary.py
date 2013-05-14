@@ -1189,16 +1189,16 @@ class BinaryFactory(ServerFactory):
         else:
             self.handle_pass_notification(address, packet)
     
-    def do_command(self, device_id, command, finish_deferred):
+    def do_command(self, device, command, finish_deferred):
         """
         This handler is called when a new command comes from DeviceHive server.
         
         @param command: C{object} which implements C{ICommand} interface
         """
-        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device_id))
+        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device))
         command_id = command.id
         command_name = command.command
-        descrs = [x for x in self.command_descriptors[device_id].values() if x.name == command_name]
+        descrs = [x for x in self.command_descriptors[device.id].values() if x.name == command_name]
         if len(descrs) > 0:
             log.msg('Has found {0} matching command {1} descriptor(s).'.format(len(descrs), command))
             command_desc = descrs[0]
@@ -1208,7 +1208,7 @@ class BinaryFactory(ServerFactory):
             self.pending_results[command_id] = finish_deferred
             self.protocol.send_command(command_desc.intent, struct.pack('<I', command_id) + BinaryFormatter.serialize_object(command_obj))
         else:
-            msg = 'Command {0} is not registered for device "{1}".'.format(command, device_id)
+            msg = 'Command {0} is not registered for device "{1}".'.format(command, device)
             log.err(msg)
             finish_deferred.errback(msg)
     

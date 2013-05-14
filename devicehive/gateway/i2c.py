@@ -1,29 +1,42 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
-"""
-Module provides one of many possible implementations of I2C protocol.
-This implementation assumes that i2c slaves on the i2c bus are conform to
-the specific interface:
-    register 0x0c - Command register. Master is supposed to write command data into
-                    this register.
-    register 0x0d - Data register. Reading from this register returns current slave device buffer.
-    register 0x0f - Flag register. If this register contains 0x00 value this means
-                    that i2c slave does not have data to read. Master device has to
-                    check this field before reading actual data and set to 0 if
-                    data were obtained successfully. The slave device cannot generate
-                    additional data if this flag is set.
-"""
 
-from threading import Event
-from struct import pack
+try:
+    from smbus import SMBus
+except ImportError:
+    class SMBus(object):
+        """
+        Mock I2C interface.
+        """
+        def __init__(self, adaptor):
+            print('SMBus adaptor 0 has been selected')
+            self.adaptor = adaptor
+            self.data = {}
+
+        def write_i2c_block_data(self, dest_address, dest_register, data):
+            if dest_address not in self.data:
+                self.data[dest_address] = {dest_register: data}
+            else:
+                if dest_register not in self.data[dest_address]:
+                    self.data[dest_address][dest_register] = data
+                else:
+                    self.data[dest_address][dest_register] += data
+
+        def read_i2c_block_data(self, dest_address, dest_register):
+            if (dest_address in self.data) and (dest_register in self.data[dest_address]):
+                result = self.data[dest_address][dest_register]
+                self.data[dest_address][dest_register] = []
+                return result
+            else:
+                return []
+
+from devicehive import Notification
+from array import array
 from thread import allocate_lock
-from smbus import SMBus
 from zope.interface import implements
 from twisted.internet import reactor, threads, interfaces
-
-
-__all__ = ['LOG_INFO', 'LOG_ERR', 'I2cTransport', 'I2cEndpoint',
-           'I2C_REG_CMD', 'I2C_REG_DATA', 'I2C_REG_FLAG']
+from twisted.internet.protocol import ServerFactory, Protocol
+from twisted.python import log
 
 
 def LOG_INFO(msg):
@@ -32,7 +45,7 @@ def LOG_INFO(msg):
     @type msg: C{str}
     @param msg: a message to be logged
     """
-    print '[info]\t{0}'.format(msg)
+    log.msg('[info]\t{0}'.format(msg))
 
 
 def LOG_ERR(msg):
@@ -41,12 +54,98 @@ def LOG_ERR(msg):
     @type msg: C{str}
     @param msg: a error message to be logged.
     """
-    print '[error]\t{0}'.format(msg)
+    log.err('[error]\t{0}'.format(msg))
 
 
-I2C_REG_CMD = 0x0c
-I2C_REG_DATA = 0x0d
-I2C_REG_FLAG = 0x0f
+class I2cProtocol(Protocol):
+    """
+    Binary protocol implementation.
+    """
+
+    def __init__(self, factory):
+        self.factory = factory
+        self._lock = allocate_lock()
+
+    def dataReceived(self, data):
+        i2c_address, value = data
+        self.factory.send_data_notification(i2c_address, value)
+
+    def write_i2c(self, i2c_address, reg, data):
+        with self._lock:
+            self.transport.set_destination_address(i2c_address)
+            self.transport.set_destination_register(reg)
+            self.transport.set_destination_direction(0)
+            return self.transport.write(data)
+
+    def read_i2c(self, i2c_address, reg):
+        with self._lock:
+            self.transport.set_destination_address(i2c_address)
+            self.transport.set_destination_register(reg)
+            self.transport.set_destination_direction(1)
+            return self.transport.write([])
+
+    def connectionLost(self, reason):
+        return Protocol.connectionLost(self, reason)
+
+    def makeConnection(self, transport):
+        return Protocol.makeConnection(self, transport)
+
+    def connectionMade(self):
+        reactor.callLater(0, self.factory.on_connection_made)
+
+
+class I2cProtoFactory(ServerFactory):
+    addresses = []
+
+    def __init__(self, gateway):
+        self.protocol = None
+        self.gateway = gateway
+        self.pending_results = {}
+
+    def on_connection_made(self):
+        """
+        This is a callback which indicates that protocol has established connection.
+        """
+        for i2c_address, info in self.addresses:
+            self.gateway.registration_received(info)
+
+    def send_data_notification(self, address, data):
+        for device_info in [info for i2c_address, info in self.addresses if address == i2c_address]:
+            self.gateway.notification_received(device_info, Notification('read-response', data))
+
+    def do_command(self, device, command, finish_deferred):
+        """
+        This handler is called when a new command comes from DeviceHive server.
+        @param device, C{object} which implements C{IDeviceInfo} interface
+        @param command: C{object} which implements C{ICommand} interface
+        """
+        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device))
+        for i2c_address, device_info in [(i2c_address, info) for i2c_address, info in self.addresses if info.id == device.id]:
+            if (command.command == 'write') and ('reg' in command.parameters) and ('data' in command.parameters):
+                def on_ok(result):
+                    finish_deferred.callback(result)
+
+                def on_err(err):
+                    finish_deferred.errback(err)
+                self.protocol.write_i2c(i2c_address, command.parameters['reg'], command.parameters['data']).addCallbacks(on_ok, on_err)
+            elif (command.command == 'read') and ('reg' in command.parameters):
+                def on_ok(result):
+                    finish_deferred.callback(result)
+
+                def on_err(err):
+                    finish_deferred.errback(err)
+                self.protocol.read_i2c(i2c_address, command.parameters['reg']).addCallbacks(on_ok, on_err)
+                finish_deferred.callback(None)
+            else:
+                finish_deferred.errback('Unsupported command {0} was received.'.format(command.command))
+            break
+        else:
+            finish_deferred.errback('Failed to find device_id {0} in the track list.'.format(device))
+
+    def buildProtocol(self, addresses):
+        self.addresses = addresses
+        self.protocol = I2cProtocol(self)
+        return self.protocol
 
 
 class I2cTransport(object):
@@ -61,28 +160,32 @@ class I2cTransport(object):
     poll_timeout = 10
     protocol = None
 
-    def __init__(self, _reactor, protocol, adaptor, addresses, poll_timeout=10):
+    dest_address = 0
+    dest_register = '\x00'
+    dest_direction = 0
+
+    def __init__(self, _reactor, protocol, adaptor, addresses):
         """
         @param _reactor: reference to twisted reactor
         @param protocol: a C{twisted.internet.interfaces.IProtocol} protocol which handles i2c channel
         @param adaptor: C{int} adaptor number
         @param addresses: C{tuple} of i2c slaves addresses
-        @param poll_timeout: C{int} polling timeout in seconds
         """
         self.adaptor = adaptor
-        self.poll_timeout = poll_timeout
-        self.bus = SMBus()
+        self.bus = SMBus(self.adaptor)
         self.addresses = addresses
-        self.dest_address = -1
-        self.is_stopped = Event()
         self.adaptor_lock = allocate_lock()
 
         def shutdown_handler():
-            LOG_INFO('A request to shutdown twisted reactor has been received.')
+            LOG_INFO('A request to shutdown twisted reactor has been received. Closing I2C adaptor {0}.'.format(self.adaptor))
             self.stop()
+
         _reactor.addSystemEventTrigger('before', 'shutdown', shutdown_handler)
         self.protocol = protocol
         self.protocol.makeConnection(self)
+
+    def set_destination_address(self, address):
+        self.dest_address = address
 
     def set_destination_device(self, index):
         """
@@ -93,65 +196,45 @@ class I2cTransport(object):
             raise TypeError('int index expected')
         if index < 0 or index > len(self.addresses):
             raise ValueError('Addresses index is out of range.')
-        self.dest_address = self.addresses[index]
+        address = self.addresses[index]
+        if address != self.dest_address:
+            self.dest_register = 0
+            self.dest_direction = 0
+        self.dest_address = address
         return self.dest_address
+
+    def set_destination_register(self, register):
+        """
+        Sets destination register for the subsequent write operations.
+
+        @param register:
+        @return:
+        """
+        if isinstance(register, int):
+            register = chr(register)
+        elif not isinstance(register, str):
+            raise TypeError('Type of register parameter should be str or int.')
+        self.dest_register = register
+
+    def set_destination_direction(self, direction):
+        """
+        Sets direction of the subsequent write operations.
+
+        @param direction: 0 means write operation, 1 - read
+        """
+        if not isinstance(direction, int):
+            raise TypeError('direction parameter should be of int type.')
+        self.dest_direction = direction
 
     def start(self):
         """
-        Starts polling loop for specified adaptor.
+        I2C gateway does not pull devices. In this implementation a read operation
+        is triggered by client side only.
         """
-        def poll_func(adaptor_lock, is_stopped, bus, addresses, poll_timeout):
-            """
-            Actual polling loop.
-            @param adaptor_lock: the code has to acquire the lock C{threading.Lock} before accessing i2c adaptor.
-            @param is_stopped: a C{threading.Event} based flag which indicates that polling loop has be to terminated.
-            @param bus: a reference to C{smbus.SMBus} object.
-            @param addresses: C{tuple} of i2c addresses to poll.
-            @param poll_timeout: C{int} polling timeout in seconds.
-            """
-            while not is_stopped.is_set():
-                for address in addresses:
-                    LOG_INFO('Reading data present flag from {0} i2c-slave.'.format(address))
-                    flag = False
-                    with adaptor_lock:
-                        try:
-                            flag = (bus.read_byte_data(address, I2C_REG_FLAG) != 0)
-                        except IOError, err:
-                            LOG_ERR('Failed to read FLAG REG in slave {0}. Reason: {1}.'.format(address, err))
-                    if flag:
-                        data = b''
-                        num_data = ()
-                        with adaptor_lock:
-                            try:
-                                num_data = bus.read_block_data(address, I2C_REG_DATA)
-                            except IOError, err:
-                                LOG_ERR('Failed to read data block from device {0}. Reason: {1}.'.format(address, err))
-                        if len(num_data) > 0:
-                            pack('B' * len(num_data), *num_data)
-                        LOG_INFO('Reset data-ready flag in i2c-salve {0}.'.format(address))
-                        with adaptor_lock:
-                            try:
-                                bus.write_byte_data(address, I2C_REG_FLAG, 0)
-                            except IOError, err:
-                                LOG_ERR('Failed to reset data-ready flag in i2c-slave {0}.'.format(address, err))
-                        self.protocol.dataReceived((address, data))
-                    LOG_INFO('Reading data from address {0}.'.format(address))
-                LOG_INFO('Timeout value = {0}.'.format(poll_timeout))
-                is_stopped.wait(poll_timeout)
-        LOG_INFO('Opening I2C-{0} adaptor.'.format(self.adaptor))
-        self.bus.open(self.adaptor)
-        LOG_INFO('I2C-{0} adaptor has been opened.'.format(self.adaptor))
-        LOG_INFO('Starting I2C-{0} adaptor polling thread.'.format(self.adaptor))
-        reactor.callInThread(poll_func, self.adaptor_lock, self.is_stopped, self.bus, self.addresses, self.poll_timeout)
+        pass
 
     def stop(self):
-        """
-        Stops polling loop if it is running.
-        @return: C{threading.Event} object to allow callee to invoke it's wait() method.
-        """
-        if not self.is_stopped.is_set():
-            self.is_stopped.set()
-        return self.is_stopped
+        return True
 
     def write(self, data):
         """
@@ -161,22 +244,30 @@ class I2cTransport(object):
         """
         if isinstance(data, str):
             raise TypeError('data should be of str type.')
-        if 0 < self.dest_address >= len(self.addresses):
-            raise ValueError('Destination address index is out of range.')
 
-        def write_thread(adaptor_lock, bus, dest_address, data):
+        def write_thread(adaptor_lock, bus, dest_address, dest_direction, dest_register, data):
             """
             The thread dedicated to write data into i2c slave.
             @param adaptor_lock: C{threading.Lock}
             @param bus: a reference to C{smbus.SMBus} object.
             @param dest_address: C{int} which represents destination address
+            @param dest_direction: C{int} determines direction of the subsequent operation
+            @param dest_register: C{int} register to be read in the subsequent read operation
             @param data: a C{str} to be written into i2c slave.
             """
             LOG_INFO('Writing data into {0} i2c slave.'.format(dest_address))
-            with adaptor_lock:
-                bus.write_block_data(dest_address, I2C_REG_CMD, data.encode('utf-8'))
-            LOG_INFO('The data has been successfully written into {0} i2c slave.'.format(dest_address))
-        return threads.deferToThread(write_thread, self.adaptor_lock, self.bus, self.dest_address, data)
+            if dest_direction == 0:
+                with adaptor_lock:
+                    if isinstance(data, str):
+                        data = list(array('B', data.encode('utf-8')))
+                    bus.write_i2c_block_data(dest_address, dest_register, data)
+                LOG_INFO('The data has been successfully written into {0} i2c slave register {1}.'.format(dest_address, dest_register))
+            else:
+                with adaptor_lock:
+                    data_out = bus.read_i2c_block_data(dest_address, dest_register)
+                LOG_INFO('The data has been successfully read from {0} i2c slave register {1}.'.format(dest_address, dest_register))
+                self.protocol.dataReceived((dest_address, data_out))
+        return threads.deferToThread(write_thread, self.adaptor_lock, self.bus, self.dest_address, self.dest_direction, self.dest_register, data)
 
     def writeSequence(self, data_list):
         """
@@ -187,21 +278,27 @@ class I2cTransport(object):
             raise TypeError('data should be of list or tuple type.')
         if 0 < self.dest_address >= len(self.addresses):
             raise ValueError('Destination address index is out of range.')
-
-        def write_thread(adaptor_lock, bus, dest_address, data_list):
+        def write_thread(adaptor_lock, bus, dest_address, dest_direction, dest_register, data_list):
             """
             This thread writes strings into i2c slave.
             @param adaptor_lock: C{threading.Lock} object which arbiters access to I2C hardware.
             @param bus: a reference to C{smbus.SMBus} object.
             @param dest_address: a C{tuple} of addresses to poll.
+            @param
             @param data_list: a C{list} of strings to send into i2c slave.
             """
             LOG_INFO('Writing list of string into i2c slave.'.format(dest_address))
-            for item in data_list:
+            if dest_direction == 0:
+                for item in data_list:
+                    with adaptor_lock:
+                        bus.write_i2c_block_data(dest_address, dest_register, list(array('B', item.encode('utf-8'))))
+                        LOG_INFO('A data has been written into i2c slave {0}.'.format(dest_address))
+            else:
                 with adaptor_lock:
-                    bus.write_block_data(dest_address, I2C_REG_CMD, item.encode('utf-8'))
-            LOG_INFO('A data has been written into i2c slave {0}.'.format(dest_address))
-        return threads.deferToThread(write_thread, self.bus, self.dest_address, data_list)
+                    data_out = bus.read_i2c_block_data(dest_address, dest_register)
+                LOG_INFO('The data has been successfully read from {0} i2c slave register {1}.'.format(dest_address, dest_register))
+                self.protocol.dataReceived((dest_address, data_out))
+        return threads.deferToThread(write_thread, self.bus, self.dest_address, self.dest_direction, self.dest_register, data_list)
 
     def lostConnection(self):
         pass
@@ -224,12 +321,11 @@ class I2cEndpoint(object):
 
     implements(interfaces.IStreamServerEndpoint)
 
-    def __init__(self, reactor, adaptor, addresses, poll_timeout):
+    def __init__(self, reactor, adaptor, addresses):
         self.reactor = reactor
         self.adaptor = adaptor
         self.addresses = addresses
-        self.poll_timeout = poll_timeout
 
     def listen(self, proto_factory):
-        proto = proto_factory.buildProtocol((self.adaptor, self.addresses))
-        return I2cTransport(proto, self.adaptor, self.addresses, self.poll_timeout)
+        proto = proto_factory.buildProtocol(self.addresses)
+        return I2cTransport(self.reactor, proto, self.adaptor, [i2c_address for i2c_address, device_info in self.addresses])
