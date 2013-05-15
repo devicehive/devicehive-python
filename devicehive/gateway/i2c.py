@@ -135,7 +135,6 @@ class I2cProtoFactory(ServerFactory):
                 def on_err(err):
                     finish_deferred.errback(err)
                 self.protocol.read_i2c(i2c_address, command.parameters['reg']).addCallbacks(on_ok, on_err)
-                finish_deferred.callback(None)
             else:
                 finish_deferred.errback('Unsupported command {0} was received.'.format(command.command))
             break
@@ -161,7 +160,7 @@ class I2cTransport(object):
     protocol = None
 
     dest_address = 0
-    dest_register = '\x00'
+    dest_register = 0
     dest_direction = 0
 
     def __init__(self, _reactor, protocol, adaptor, addresses):
@@ -206,13 +205,11 @@ class I2cTransport(object):
     def set_destination_register(self, register):
         """
         Sets destination register for the subsequent write operations.
-
         @param register:
-        @return:
         """
-        if isinstance(register, int):
-            register = chr(register)
-        elif not isinstance(register, str):
+        if isinstance(register, str):
+            register = ord(register.encode('utf-8')[0])
+        elif not isinstance(register, int):
             raise TypeError('Type of register parameter should be str or int.')
         self.dest_register = register
 
@@ -260,14 +257,20 @@ class I2cTransport(object):
                 with adaptor_lock:
                     if isinstance(data, str):
                         data = list(array('B', data.encode('utf-8')))
-                    bus.write_i2c_block_data(dest_address, dest_register, data)
+                    try:
+                        bus.write_i2c_block_data(dest_address, dest_register, data)
+                    except IOError, error:
+                        LOG_ERR(str(error))
+                        raise error
                 LOG_INFO('The data has been successfully written into {0} i2c slave register {1}.'.format(dest_address, dest_register))
             else:
+                LOG_INFO('dest address type {0}, register type {1} == {2}'.format(type(dest_address), type(dest_register), dest_register))
                 with adaptor_lock:
                     try:
                         data_out = bus.read_i2c_block_data(dest_address, dest_register)
-                    except Exception, err:
-                        LOG_ERR(err)
+                    except IOError, error:
+                        LOG_ERR(str(error))
+                        raise error
                 LOG_INFO('The data has been successfully read from {0} i2c slave register {1}.'.format(dest_address, dest_register))
                 self.protocol.dataReceived((dest_address, data_out))
         return threads.deferToThread(write_thread, self.adaptor_lock, self.bus, self.dest_address, self.dest_direction, self.dest_register, data)
