@@ -264,7 +264,10 @@ class I2cTransport(object):
                 LOG_INFO('The data has been successfully written into {0} i2c slave register {1}.'.format(dest_address, dest_register))
             else:
                 with adaptor_lock:
-                    data_out = bus.read_i2c_block_data(dest_address, dest_register)
+                    try:
+                        data_out = bus.read_i2c_block_data(dest_address, dest_register)
+                    except Exception, err:
+                        LOG_ERR(err)
                 LOG_INFO('The data has been successfully read from {0} i2c slave register {1}.'.format(dest_address, dest_register))
                 self.protocol.dataReceived((dest_address, data_out))
         return threads.deferToThread(write_thread, self.adaptor_lock, self.bus, self.dest_address, self.dest_direction, self.dest_register, data)
