@@ -26,7 +26,7 @@ DEVICE_INFO = ((0x78,
                                      equipment=[devicehive.Equipment(name='i2c-echo',
                                                                      code='i2c-echo',
                                                                      type='i2c-echo')])),
-               (0x3c,
+               (0x1e,
                devicehive.DeviceInfo(id=str('19c7ef2a-ee97-4ed2-be49-7fc7a6d6e85d'),
                                      key='0x3c',
                                      name='Compass',
@@ -69,7 +69,7 @@ def main(adaptor):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--adaptor', type=int,
-                        default=0,
+                        default=1,
                         dest='adaptor',
                         required=False,
                         help='i2c adaptor')
