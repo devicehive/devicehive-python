@@ -324,7 +324,7 @@ class CommandPollProtocol(HTTP11ClientProtocol):
             response.deliverBody(JsonDataConsumer(result))
         else:
             def on_get_response_text(error_text):
-                LOG_ERR('Invalid response has been received during command polling. Reason: {0}.'.format(errtxt))
+                LOG_ERR('Invalid response has been received during command polling. Reason: {0}.'.format(error_text))
                 self.failure(DhError(error_text))
             d = Deferred()
             d.addBoth(on_get_response_text)
