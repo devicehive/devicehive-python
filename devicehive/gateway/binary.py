@@ -19,7 +19,13 @@ from zope.interface import implements
 from twisted.internet import interfaces
 from twisted.python import log
 from twisted.internet.protocol import ServerFactory, Protocol
-from twisted.internet.serialport import SerialPort
+
+try:
+    from twisted.internet.serialport import SerialPort
+except ImportError:
+    class SerialPort(object):
+        def __init__(self, proto, port, reactor, **kwargs):
+            pass
 
 import devicehive.dhjson
 from devicehive import CommandResult, DeviceInfo as CDeviceInfo, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
