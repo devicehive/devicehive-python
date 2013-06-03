@@ -7,7 +7,7 @@ from zope.interface import implements, Interface, Attribute
 from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
-from twisted.internet.defer import Deferred, fail
+from twisted.internet.defer import Deferred, succeed, fail
 from twisted.web.iweb import IBodyProducer
 from twisted.web.client import HTTP11ClientProtocol, Request
 from twisted.web.http_headers import Headers
@@ -62,14 +62,15 @@ class JsonDataProducer(object):
     implements(IBodyProducer)
 
     def __init__(self, data):
-        self.finished = Deferred()
-        self.data = json.dumps(data)
+        self.data = data
         self.length = len(self.data)
 
     def startProducing(self, consumer):
-        self.consumer = consumer
-        self.consumer.write(self.data)
-        return self.finished
+        try:
+            consumer.write(json.dumps(self.data))
+            return succeed(None)
+        except Exception, error:
+            return fail(error)
 
     def stopProducing(self):
         pass
