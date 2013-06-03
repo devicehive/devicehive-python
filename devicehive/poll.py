@@ -3,19 +3,16 @@
 
 import json
 from datetime import datetime
-from sys import maxint
 from zope.interface import implements, Interface, Attribute
 from twisted.python import log
-from twisted.python.constants import Values, ValueConstant
 from twisted.internet import reactor
-from twisted.internet.protocol import ClientFactory, Protocol
-from twisted.internet.defer import Deferred, succeed, fail
+from twisted.internet.protocol import ClientFactory
+from twisted.internet.defer import Deferred, fail
 from twisted.web.iweb import IBodyProducer
 from twisted.web.client import HTTP11ClientProtocol, Request
 from twisted.web.http_headers import Headers
-from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
-from devicehive import ApiInfoRequest, DhError, CommandResult, BaseCommand
+from devicehive import DhError, CommandResult, BaseCommand
 from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer
 
