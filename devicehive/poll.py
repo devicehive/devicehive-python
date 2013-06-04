@@ -62,15 +62,22 @@ class JsonDataProducer(object):
     implements(IBodyProducer)
 
     def __init__(self, data):
-        self.data = data
+        try:
+            self.data = json.dumps(data)
+            self.error = None
+        except Exception, error:
+            self.error = error
         self.length = len(self.data)
 
     def startProducing(self, consumer):
-        try:
-            consumer.write(json.dumps(self.data))
-            return succeed(None)
-        except Exception, error:
-            return fail(error)
+        if self.error is None:
+            try:
+                consumer.write(self.data)
+                return succeed(None)
+            except Exception, error:
+                return fail(error)
+        else:
+            return fail(self.error)
 
     def stopProducing(self):
         pass
