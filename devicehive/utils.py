@@ -85,10 +85,10 @@ class EmptyDataProducer(object):
     
     def __init__(self):
         self.finish = Deferred()
-        self.length = 1
+        self.length = 0
     
     def startProducing(self, consumer):
-        consumer.write(' ')
+        consumer.write('')
         return self.finish
     
     def stopProducing(self):
