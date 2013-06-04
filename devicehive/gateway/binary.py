@@ -573,8 +573,8 @@ class BinaryFormatter(object) :
                 if (prop.type in BinaryFormatter.__basic_type_map__) or (prop.type == DATA_TYPE_GUID) or (prop.type == DATA_TYPE_STRING) or (prop.type == DATA_TYPE_BINARY) :
                     value, offset = BinaryFormatter.deserialize_scalar(data, offset, prop.type)
                     prop.__set__(obj, value)
-                elif prop.type == DATA_TYPE_OBJECT and isinstance(prop, object_binary_property) :
-                    subobj, offset = _deserialize(data, prop.qualifier, offset)
+                elif prop.type == DATA_TYPE_OBJECT and isinstance(prop, object_binary_property):
+                    subobj, offset = BinaryFormatter.deserialize_object(data, offset, prop.qualifier)
                     prop.__set__(obj, subobj)
                 elif prop.type == DATA_TYPE_ARRAY and isinstance(prop, array_binary_property) :
                     value, offset = BinaryFormatter.deserialize_array(data, offset, prop.qualifier)
