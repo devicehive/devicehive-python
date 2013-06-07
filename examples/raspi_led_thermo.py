@@ -150,7 +150,7 @@ class RasPiApp(object):
     
     def notify(self, notif, **params):
         if self.connected :
-            self.factory(notif, params, device_id = self.info.id, device_key = self.info.key)
+            self.factory.notify(notif, params, device_id = self.info.id, device_key = self.info.key)
         else :
             self.notifs.append({'notification': notif, 'parameters': params})
 
