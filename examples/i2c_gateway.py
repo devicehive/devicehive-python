@@ -35,7 +35,17 @@ DEVICE_INFO = ((0x78,
                                                                          version='0.1'),
                                      equipment=[devicehive.Equipment(name='compass',
                                                                      code='compass',
-                                                                     type='compass')]))
+                                                                     type='compass')])),
+               (0x68,
+               devicehive.DeviceInfo(id=str('a10467f9-1d0f-44b0-b3c7-604d84ac254d'),
+                                     key='0x68',
+                                     name='Gyro',
+                                     network=devicehive.Network(id='i2cnet', key='i2cnet', name='I2C network'),
+                                     device_class=devicehive.DeviceClass(name='Gyro',
+                                                                         version='0.01'),
+                                     equipment=[devicehive.Equipment(name='gyroscope',
+                                                                     code='ITG3200',
+                                                                     type='gyroscope')]))
 )
 
 class I2cGateway(devicehive.gateway.BaseGateway):

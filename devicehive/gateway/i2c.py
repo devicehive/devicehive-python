@@ -22,7 +22,7 @@ except ImportError:
                 else:
                     self.data[dest_address][dest_register] += data
 
-        def read_i2c_block_data(self, dest_address, dest_register):
+        def read_i2c_block_data(self, dest_address, dest_register, len=32):
             if (dest_address in self.data) and (dest_register in self.data[dest_address]):
                 result = self.data[dest_address][dest_register]
                 self.data[dest_address][dest_register] = []
@@ -77,12 +77,12 @@ class I2cProtocol(Protocol):
             self.transport.set_destination_direction(0)
             return self.transport.write(data)
 
-    def read_i2c(self, i2c_address, reg):
+    def read_i2c(self, i2c_address, reg, data):
         with self._lock:
             self.transport.set_destination_address(i2c_address)
             self.transport.set_destination_register(reg)
             self.transport.set_destination_direction(1)
-            return self.transport.write([])
+            return self.transport.write(data)
 
     def connectionLost(self, reason):
         return Protocol.connectionLost(self, reason)
@@ -128,13 +128,13 @@ class I2cProtoFactory(ServerFactory):
                 def on_err(err):
                     finish_deferred.errback(err)
                 self.protocol.write_i2c(i2c_address, command.parameters['reg'], command.parameters['data']).addCallbacks(on_ok, on_err)
-            elif (command.command == 'read') and ('reg' in command.parameters):
+            elif (command.command == 'read') and ('reg' in command.parameters) and ('data' in command.parameters):
                 def on_ok(result):
                     finish_deferred.callback(result)
 
                 def on_err(err):
                     finish_deferred.errback(err)
-                self.protocol.read_i2c(i2c_address, command.parameters['reg']).addCallbacks(on_ok, on_err)
+                self.protocol.read_i2c(i2c_address, command.parameters['reg'], command.parameters['data']).addCallbacks(on_ok, on_err)
             else:
                 finish_deferred.errback('Unsupported command {0} was received.'.format(command.command))
             break
@@ -207,10 +207,10 @@ class I2cTransport(object):
         Sets destination register for the subsequent write operations.
         @param register:
         """
-        if isinstance(register, str):
-            register = ord(register.encode('utf-8')[0])
+        if isinstance(register, unicode):
+            register = int(register)
         elif not isinstance(register, int):
-            raise TypeError('Type of register parameter should be str or int.')
+            raise TypeError('Type of register parameter should be unicode or int.')
         self.dest_register = register
 
     def set_destination_direction(self, direction):
@@ -239,8 +239,13 @@ class I2cTransport(object):
         @param data: C{str} to be sent into i2c slave.
         @return: C{twisted.internet.defer.Deferred}
         """
-        if isinstance(data, str):
-            raise TypeError('data should be of str type.')
+        if self.dest_direction == 0:
+            if (not isinstance(data, list)) or (len(data) > 32):
+                raise TypeError('data must be a list of at least one, but not more than 32 integers')
+        elif isinstance(data, unicode):
+            data = int(data)
+        elif not isinstance(data, int):
+            raise TypeError('Type of data parameter should be unicode or int.')
 
         def write_thread(adaptor_lock, bus, dest_address, dest_direction, dest_register, data):
             """
@@ -255,8 +260,6 @@ class I2cTransport(object):
             LOG_INFO('Writing data into {0} i2c slave.'.format(dest_address))
             if dest_direction == 0:
                 with adaptor_lock:
-                    if isinstance(data, str):
-                        data = list(array('B', data.encode('utf-8')))
                     try:
                         bus.write_i2c_block_data(dest_address, dest_register, data)
                     except IOError, error:
@@ -267,7 +270,7 @@ class I2cTransport(object):
                 LOG_INFO('dest address type {0}, register type {1} == {2}'.format(type(dest_address), type(dest_register), dest_register))
                 with adaptor_lock:
                     try:
-                        data_out = bus.read_i2c_block_data(dest_address, dest_register)
+                        data_out = bus.read_i2c_block_data(dest_address, dest_register, data)
                     except IOError, error:
                         LOG_ERR(str(error))
                         raise error
