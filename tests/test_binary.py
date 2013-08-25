@@ -580,9 +580,9 @@ class BinaryFactoryTests(unittest.TestCase):
     
     def test_registration(self):
         # dataReceived registration from device
-        binfactory = BinaryFactory( self.gateway )
+        binfactory = BinaryFactory(self.gateway)
         protocol = binfactory.buildProtocol(None)
-        protocol.dataReceived( self.device_reg_pkt.to_binary() )
+        protocol.dataReceived(self.device_reg_pkt.to_binary())
         self.assertTrue(self.gateway.reg_has_been_received)
         self.assertNotEquals(None, self.gateway.device_info)
         self.assertEquals(str(self.device_id), self.gateway.device_info.id)
@@ -596,9 +596,9 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertEquals('eq-1-code', eq.code)
         self.assertEquals('eq-1-typecode', eq.type)
         # test notification_descriptors
-        self.assertEquals(1, len(binfactory.notification_descriptors))
-        self.assertTrue(300 in binfactory.notification_descriptors)
-        notif = binfactory.notification_descriptors[300]
+        self.assertEquals(1, len(binfactory.notification_descriptors[self.device_id]))
+        self.assertTrue(300 in binfactory.notification_descriptors[self.device_id])
+        notif = binfactory.notification_descriptors[self.device_id][300]
         self.assertEquals(300, notif.intent)
         self.assertNotEquals(None, notif.cls)
         self.assertTrue(hasattr(notif.cls, 'word_param'))
@@ -606,9 +606,9 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertTrue(DATA_TYPE_WORD, notif.cls.word_param.type)
         self.assertTrue(DATA_TYPE_BYTE, notif.cls.byte_param.type)
         # test command_descriptors
-        self.assertEquals(1, len(binfactory.command_descriptors))
-        self.assertTrue(301 in binfactory.command_descriptors)
-        cmd = binfactory.command_descriptors[301]
+        self.assertEquals(1, len(binfactory.command_descriptors[self.device_id]))
+        self.assertTrue(301 in binfactory.command_descriptors[self.device_id])
+        cmd = binfactory.command_descriptors[self.device_id][301]
         self.assertEquals(301, cmd.intent)
         self.assertNotEquals(None, cmd.cls)
         self.assertTrue(hasattr(cmd.cls, 'sword_param'))

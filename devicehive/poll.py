@@ -3,19 +3,16 @@
 
 import json
 from datetime import datetime
-from sys import maxint
 from zope.interface import implements, Interface, Attribute
 from twisted.python import log
-from twisted.python.constants import Values, ValueConstant
 from twisted.internet import reactor
-from twisted.internet.protocol import ClientFactory, Protocol
+from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred, succeed, fail
 from twisted.web.iweb import IBodyProducer
 from twisted.web.client import HTTP11ClientProtocol, Request
 from twisted.web.http_headers import Headers
-from urlparse import urlsplit, urljoin
 from utils import parse_url, parse_date, url_path
-from devicehive import ApiInfoRequest, DhError, CommandResult, BaseCommand
+from devicehive import DhError, CommandResult, BaseCommand
 from devicehive.interfaces import IProtoFactory, IProtoHandler
 from devicehive.utils import TextDataConsumer, JsonDataConsumer
 
@@ -65,14 +62,22 @@ class JsonDataProducer(object):
     implements(IBodyProducer)
 
     def __init__(self, data):
-        self.finished = Deferred()
-        self.data = json.dumps(data)
+        try:
+            self.data = json.dumps(data)
+            self.error = None
+        except Exception, error:
+            self.error = error
         self.length = len(self.data)
 
     def startProducing(self, consumer):
-        self.consumer = consumer
-        self.consumer.write(self.data)
-        return self.finished
+        if self.error is None:
+            try:
+                consumer.write(self.data)
+                return succeed(None)
+            except Exception, error:
+                return fail(error)
+        else:
+            return fail(self.error)
 
     def stopProducing(self):
         pass
@@ -228,53 +233,77 @@ class RequestFactory(ClientFactory):
 
 
 class CommandPollProtocol(HTTP11ClientProtocol):
+    """
+    CommandPollProtocol sends command-request to the server,
+    receives command response or error, pass it for processing and
+    finally passes result back to an owner.
+    """
+
     def __init__(self, owner):
-        if hasattr(HTTP11ClientProtocol, '__init__') :
+        if hasattr(HTTP11ClientProtocol, '__init__'):
             HTTP11ClientProtocol.__init__(self)
         self.owner = owner
-    
+
     def connectionMade(self):
         LOG_MSG('Sending command poll request for device: {0}.'.format(self.owner.info))
-        self.request(CommandRequest(self.owner.info, self.owner.url, self.owner.host, self.owner.timestamp)).addCallbacks(self.success, self.failure)
-    
-    def get_response_text(self, response, func):
-        def on_get_response_text(txt):
-            func(txt)
-        d = Deferred()
-        d.addBoth(on_get_response_text)
-        response.deliverBody(TextDataConsumer(defer))
-    
+        self.request(CommandRequest(self.owner.info,
+                                    self.owner.url,
+                                    self.owner.host,
+                                    self.owner.timestamp)).addCallbacks(self.success, self.failure)
+
     def command_failed(self, command, reason):
+        """
+        This method is called when a client code throws an exception during
+        a command processing.
+
+        TODO: replace command dictionary with an object which implements
+              ICommand interface.
+
+        TODO: extract 'Success' and 'Failed' constants into common module.
+
+        @param command: a dictionary which represents a command
+        @param reason: an exception
+        @return: None
+        """
         LOG_ERR('Failed to process command "{0}". Reason: {1}.'.format(command, reason))
-        if isinstance(reason, Exception) :
+        if isinstance(reason, Exception):
             res = CommandResult('Failed', reason.message)
-        elif hasattr(reason, 'value') :
-            if isinstance(reason.value, CommandResult) :
+        elif hasattr(reason, 'value'):
+            if isinstance(reason.value, CommandResult):
                 res = CommandResult(reason.value.status, reason.value.result)
-            elif isinstance(reason.value, Exception) :
+            elif isinstance(reason.value, Exception):
                 res = CommandResult('Failed', reason.value.message)
-            else :
+            else:
                 res = CommandResult('Failed', reason.value)
-        else :
-            res = CommandRequest('Failed', 'Unhandled Exception')
+        else:
+            res = CommandResult('Failed', 'Unhandled Exception')
         self.owner.send_report(command['id'], res)
-    
+
     def command_done(self, command, result):
+        """
+        This method is called if client application successfully handled
+        received command.
+        If a command is handled then a notification will be send to the server.
+
+        @param command: a dictionary which represents a received command
+        @param result: a command object
+        @return: None
+        """
         LOG_MSG('The command "{0}" successfully processed. Result: {1}.'.format(command, result))
-        if not isinstance(result, CommandResult) :
+        if not isinstance(result, CommandResult):
             res = CommandResult('Success', result)
-        else :
+        else:
             res = result
         self.owner.send_report(command['id'], res)
-    
+
     def command_received(self, cmd_data):
         LOG_MSG('Poll command got response. Response: {0}.'.format(cmd_data))
-        for cmd in cmd_data :
+        for cmd in cmd_data:
             # Obtain only new commands next time
             cmd_date = parse_date(cmd['timestamp'])
-            if self.owner.timestamp is not None :
+            if self.owner.timestamp is not None:
                 self.owner.timestamp = max(self.owner.timestamp, cmd_date)
-            else :
+            else:
                 self.owner.timestamp = cmd_date
             # device-application will use this deferred object to notify me about the command progress.
             thiscmd = cmd
@@ -284,28 +313,30 @@ class CommandPollProtocol(HTTP11ClientProtocol):
                 self.command_failed(thiscmd, reason)
             defer = Deferred()
             defer.addCallbacks(ok, err)
-            try :
+            try:
                 LOG_MSG('Executing command {0} handler.'.format(cmd))
                 self.owner.run_command(cmd, defer)
-            except Exception, err :
+            except Exception, err:
                 LOG_ERR('Failed to execute device-delegate on_command. Reason: <{0}>.'.format(err))
                 self.command_failed(cmd, err)
-    
+
     def success(self, response):
         LOG_MSG('Got command poll response from the server for device {0}.'.format(self.owner.info))
-        if response.code in [200, 201] :
+        if response.code in [200, 201]:
             def err(reason):
                 LOG_ERR('Failed to parse command request response. Reason: <{0}>.'.format(reason))
                 self.failure(reason)
             result = Deferred()
             result.addCallbacks(self.command_received, err)
             response.deliverBody(JsonDataConsumer(result))
-        else :
-            def txterrf(errtxt):
-                LOG_ERR('Invalid response has been received during command polling. Reason: {0}.'.format(errtxt))
-                self.failure(DhError(errtxt))
-            self.get_response_text(response, txterrf)
-    
+        else:
+            def on_get_response_text(error_text):
+                LOG_ERR('Invalid response has been received during command polling. Reason: {0}.'.format(error_text))
+                self.failure(DhError(error_text))
+            d = Deferred()
+            d.addBoth(on_get_response_text)
+            response.deliverBody(TextDataConsumer(d))
+
     def failure(self, reason):
         LOG_ERR('Failed to poll devicehive server for a command. Reason: {0}.'.format(reason))
         self.owner.failure(reason)

@@ -13,12 +13,19 @@ import struct
 import array
 import uuid
 # import json
+from uuid import UUID
 from collections import Iterable, OrderedDict
 from zope.interface import implements
 from twisted.internet import interfaces
 from twisted.python import log
 from twisted.internet.protocol import ServerFactory, Protocol
-from twisted.internet.serialport import SerialPort
+
+try:
+    from twisted.internet.serialport import SerialPort
+except ImportError:
+    class SerialPort(object):
+        def __init__(self, proto, port, reactor, **kwargs):
+            pass
 
 import devicehive.dhjson
 from devicehive import CommandResult, DeviceInfo as CDeviceInfo, DeviceClass as CDeviceClass, Equipment as CEquipment, Notification as CNotification
@@ -566,8 +573,8 @@ class BinaryFormatter(object) :
                 if (prop.type in BinaryFormatter.__basic_type_map__) or (prop.type == DATA_TYPE_GUID) or (prop.type == DATA_TYPE_STRING) or (prop.type == DATA_TYPE_BINARY) :
                     value, offset = BinaryFormatter.deserialize_scalar(data, offset, prop.type)
                     prop.__set__(obj, value)
-                elif prop.type == DATA_TYPE_OBJECT and isinstance(prop, object_binary_property) :
-                    subobj, offset = _deserialize(data, prop.qualifier, offset)
+                elif prop.type == DATA_TYPE_OBJECT and isinstance(prop, object_binary_property):
+                    subobj, offset = BinaryFormatter.deserialize_object(data, offset, prop.qualifier)
                     prop.__set__(obj, subobj)
                 elif prop.type == DATA_TYPE_ARRAY and isinstance(prop, array_binary_property) :
                     value, offset = BinaryFormatter.deserialize_array(data, offset, prop.qualifier)
@@ -1048,11 +1055,18 @@ class BinaryProtocol(Protocol):
     
     def dataReceived(self, data):
         """
-        Method should throws events to the factory when complete packet is received
+        Method should throws events to the factory when complete
+        packet is received.
         """
-        self.factory.packet_buffer.append(data)
-        while self.factory.packet_buffer.has_packet() :
-            self.factory.packet_received(self.factory.packet_buffer.pop_packet())
+        if isinstance(data, tuple) and len(data) == 2:
+            address, value = data
+        else:
+            address = None
+            value = data
+        packet_buffer = self.factory.get_packet_buffer(address)
+        packet_buffer.append(value)
+        while packet_buffer.has_packet():
+            self.factory.packet_received(address, packet_buffer.pop_packet())
     
     def connectionLost(self, reason):
         return Protocol.connectionLost(self, reason)
@@ -1079,86 +1093,119 @@ class BinaryProtocol(Protocol):
 
 
 class BinaryFactory(ServerFactory):
+    """
+    @ivar hardware_address_map: defines mapping between hardware addressing and devicehive addressing.
+    """
+
+    hardware_address_map = {}
+
     class _DescrItem(object):
-        def __init__(self, intent = 0, name = None, cls = None, info = None):
+        def __init__(self, intent=0, name=None, cls=None, info=None):
             self.intent = intent
             self.name = name
             self.cls = cls
             self.info = info
     
     def __init__(self, gateway):
-        self.packet_buffer = BinaryPacketBuffer()
+        self.packet_buffers = {}
         self.protocol = None
         self.gateway = gateway
         self.command_descriptors = {}
         self.notification_descriptors = {}
         self.pending_results = {}
+
+    def get_packet_buffer(self, address):
+        if address not in self.packet_buffers:
+            self.packet_buffers[address] = BinaryPacketBuffer()
+        return self.packet_buffers[address]
     
-    def handle_registration_received(self, reg):
+    def handle_registration_received(self, address, registration_info):
         """
         Adds command to binary-serializable-class mapping and then
         calls deferred object.
         """
-        info = CDeviceInfo(id = str(reg.device_id), \
-                           key = reg.device_key, \
-                           name = reg.device_name, \
-                           device_class = CDeviceClass(name = reg.device_class_name, version = reg.device_class_version), \
-                           equipment = [CEquipment(name = e.name, code = e.code, type = e.typename) for e in reg.equipment])
-        def fill_descriptors(objs, out, info) :
-            for obj in objs :
-                okey = obj.intent
-                if not okey in out :
+        self.hardware_address_map[address] = registration_info.device_id
+
+        info = CDeviceInfo(id=str(registration_info.device_id),
+                           key=registration_info.device_key,
+                           name=registration_info.device_name,
+                           device_class=CDeviceClass(name=registration_info.device_class_name,
+                                                     version=registration_info.device_class_version),
+                           equipment=[CEquipment(name=e.name,
+                                                 code=e.code,
+                                                 type=e.typename) for e in registration_info.equipment])
+
+        def fill_descriptors(device_id, objects, output_object_set, info):
+            output_object = output_object_set[device_id] if device_id in output_object_set else {}
+            for obj in objects:
+                object_key = obj.intent
+                if not object_key in output_object:
                     cls = obj.descriptor()
-                    out[okey] = BinaryFactory._DescrItem(obj.intent, obj.name, cls, info)
-                else :
-                    out[okey].intent = obj.intent
-                    out[okey].name = obj.name
-                    out[okey].info = info
-        fill_descriptors(reg.commands, self.command_descriptors, info)
-        fill_descriptors(reg.notifications, self.notification_descriptors, info)
+                    output_object[object_key] = BinaryFactory._DescrItem(obj.intent, obj.name, cls, info)
+                else:
+                    output_object[object_key].intent = obj.intent
+                    output_object[object_key].name = obj.name
+                    output_object[object_key].info = info
+            output_object_set[device_id] = output_object
+
+        fill_descriptors(registration_info.device_id, registration_info.commands, self.command_descriptors, info)
+        fill_descriptors(registration_info.device_id, registration_info.notifications, self.notification_descriptors, info)
         self.gateway.registration_received(info)
     
-    def handle_notification_command_result(self, notification):
+    def handle_notification_command_result(self, address, notification):
         """
-        Run all callbacks attached to notification_received deferred
+        Run all callbacks attached to notification_received deferred.
         """
         log.msg('BinaryFactory.handle_notification_command_result')
-        if notification.command_id in self.pending_results :
-            deferred = self.pending_results.pop(notification.command_id)
-            deferred.callback(CommandResult(notification.status, notification.result))
+        if address in self.hardware_address_map:
+            device_id = self.hardware_address_map[address]
+            if (device_id in self.pending_results) and (notification.command_id in self.pending_results[device_id]):
+                deferred = self.pending_results[device_id].pop(notification.command_id)
+                deferred.callback(CommandResult(notification.status, notification.result))
     
-    def handle_pass_notification(self, pkt):
-        for notif in [self.notification_descriptors[intent] for intent in self.notification_descriptors if intent == pkt.intent] :
-            obj = BinaryFormatter.deserialize(pkt.data, notif.cls)
-            params = obj.to_dict()
-            self.gateway.notification_received(notif.info, CNotification(notif.name, params))
+    def handle_pass_notification(self, address, pkt):
+        """
+        Handles pass notifications.
+        """
+        if address in self.hardware_address_map:
+            device_id = self.hardware_address_map
+            notification_descriptors = self.notification_descriptors[device_id]
+            for notification in [notification_descriptors[intent] for intent in notification_descriptors if intent == pkt.intent]:
+                obj = BinaryFormatter.deserialize(pkt.data, notification.cls)
+                params = obj.to_dict()
+                self.gateway.notification_received(notification.info, CNotification(notification.name, params))
     
-    def packet_received(self, packet):
+    def packet_received(self, address, packet):
+        """
+        Method dispatches received data.
+        @param address: device address which sent information.
+        @param packet: binary packet.
+        @return: None
+        """
         log.msg('Data packet {0} has been received from device channel'.format(packet))
-        if packet.intent == SYS_INTENT_REGISTER :
-            regreq = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
-            self.handle_registration_received(regreq)
+        if packet.intent == SYS_INTENT_REGISTER:
+            register_request = BinaryFormatter.deserialize(packet.data, RegistrationPayload)
+            self.handle_registration_received(address, register_request)
         elif packet.intent == SYS_INTENT_REGISTER2:
-            regreq = BinaryFormatter.deserialize_register2(packet.data[2:])
-            self.handle_registration_received(regreq)
-        elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT :
-            notifreq = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
-            self.handle_notification_command_result(notifreq)
+            register_request = BinaryFormatter.deserialize_register2(packet.data[2:])
+            self.handle_registration_received(address, register_request)
+        elif packet.intent == SYS_INTENT_NOTIFY_COMMAND_RESULT:
+            notify_request = BinaryFormatter.deserialize(packet.data, NotificationCommandResultPayload)
+            self.handle_notification_command_result(address, notify_request)
         else:
-            self.handle_pass_notification(packet)
+            self.handle_pass_notification(address, packet)
     
-    def do_command(self, device_id, command, finish_deferred):
+    def do_command(self, device, command, finish_deferred):
         """
         This handler is called when a new command comes from DeviceHive server.
         
-        @type command: C{object}
-        @param command: object which implements C{ICommand} interface
+        @param command: C{object} which implements C{ICommand} interface
         """
-        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device_id))
+        log.msg('A new command has came from a device-hive server to device "{0}".'.format(device))
         command_id = command.id
         command_name = command.command
-        descrs = [x for x in self.command_descriptors.values() if x.name == command_name]
-        if len(descrs) > 0 :
+        descrs = [x for x in self.command_descriptors[device.id].values() if x.name == command_name]
+        if len(descrs) > 0:
             log.msg('Has found {0} matching command {1} descriptor(s).'.format(len(descrs), command))
             command_desc = descrs[0]
             command_obj = command_desc.cls()
@@ -1166,12 +1213,12 @@ class BinaryFactory(ServerFactory):
             command_obj.update(command.parameters)
             self.pending_results[command_id] = finish_deferred
             self.protocol.send_command(command_desc.intent, struct.pack('<I', command_id) + BinaryFormatter.serialize_object(command_obj))
-        else :
-            msg = 'Command {0} is not registered for device "{1}".'.format(command, device_id)
+        else:
+            msg = 'Command {0} is not registered for device "{1}".'.format(command, device)
             log.err(msg)
             finish_deferred.errback(msg)
     
-    def buildProtocol(self, addr):
+    def buildProtocol(self, address):
         log.msg('BinaryFactory.buildProtocol')
         self.protocol = BinaryProtocol(self) 
         return self.protocol

@@ -180,7 +180,7 @@ class DeviceInfo(object):
         if self.status is not None :
             res['status'] = self.status
         if self.data is not None :
-            res['data'] = data
+            res['data'] = self.data
         if self.network is not None :
             res['network'] = self.network.to_dict() if INetwork.implementedBy(self.network.__class__) else self.network
         res['deviceClass'] = self.device_class.to_dict() if IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class

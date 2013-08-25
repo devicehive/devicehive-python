@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from urlparse import urlsplit, urljoin
 from twisted.internet.protocol import Protocol
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, succeed, fail
 from twisted.web.iweb import IBodyProducer
 from zope.interface import implements
 
@@ -84,13 +84,14 @@ class EmptyDataProducer(object):
     implements(IBodyProducer)
     
     def __init__(self):
-        self.finish = Deferred()
-        self.length = 1
+        self.length = 0
     
     def startProducing(self, consumer):
-        consumer.write(' ')
-        return self.finish
+        try:
+            consumer.write('')
+            return succeed(None)
+        except Exception, error:
+            return fail(error)
     
     def stopProducing(self):
         pass
-
