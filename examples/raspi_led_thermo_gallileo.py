@@ -25,12 +25,12 @@ import devicehive.auto
 
 
 # analog pin
-ADC_PIN = 10
+ADC_PIN = 37
 ADC_DEV = 0
 ADC_CH = 0
 
 # Board's pin #11 (GPIO17)
-_LED_PIN = 11
+_LED_PIN = 27
 
 # API URL (register for free playground at http://beta2.devicehive.com/playground
 _API_URL = 'http://pg.devicehive.com/api/'
@@ -58,9 +58,11 @@ class SysFsGPIO(object):
         self.__ensure_pin_exported(io)
         with open('%s/gpio%d/direction' % (self.sysfs_path, io), 'w') as f:
             f.write(mode)
+        with open('%s/gpio%d/drive' % (self.sysfs_path, io), 'w') as f:
+            f.write('strong')
 
     def output(self, io, value):
-        with open('%/gpio%d/value' % (self.sysfs_path, io), 'w') as f:
+        with open('%s/gpio%d/value' % (self.sysfs_path, io), 'w') as f:
             f.write('1' if value else '0')
 
     def __del__(self):
@@ -199,7 +201,8 @@ class TempSensor(object):
             with open(self.ADC_PATH % (self.device, self.channel), 'r') as f:
                 data = f.read()
                 if data:
-                    return ((5000 * int(data)) / 4096) / 20.0
+                    volts = (5000 * int(data)) / 4096
+                    return (volts - 500) / 10.0
                 return 0.0
         except Exception as e:
             print 'Failed to convert temperature. Reason: %s' % e
