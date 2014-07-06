@@ -9,6 +9,7 @@ import json
 import base64
 import sha
 import struct
+import urlparse
 from time import time
 from random import Random
 from array import array
@@ -374,7 +375,8 @@ class WebSocketDeviceHiveProtocol(Protocol):
         @param timeout: timeout in seconds for requests
         """
         self.factory = factory
-        self.uri = uri
+        path = urlparse.urlparse(factory.url).path
+        self.uri = path + uri
         self.socket = None
         self.timeout = timeout
         # Each devicehive message has an accossiated response.
