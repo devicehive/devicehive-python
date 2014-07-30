@@ -93,7 +93,7 @@ class WebSocketFactory(ClientFactory):
         self.devices = {}
     
     def buildProtocol(self, addr):
-        self.proto = WebSocketDeviceHiveProtocol(self, '/device')
+        self.proto = WebSocketDeviceHiveProtocol(self, 'device')
         if not IWebSocketMessanger.implementedBy(self.proto.__class__) :
             raise TypeError('Protocol has to implement IWebSocketMessanger interface.')
         return self.proto
