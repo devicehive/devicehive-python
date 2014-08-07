@@ -128,15 +128,21 @@ class DeviceClass(object):
     
     implements(IDeviceClass)
     
-    def __init__(self, name = None, version = None, is_permanent = None):
+    def __init__(self, name = None, version = None, isPermanent = None, offlineTimeout = None, data = None):
         self.name = name
         self.version = version
-        self.is_permanent = is_permanent
+        self.isPermanent = isPermanent
+        self.offlineTimeout = offlineTiemout
+        self.data = data
     
     def to_dict(self):
         res = {'name': self.name, 'version': self.version}
-        if self.is_permanent is not None :
-            res['is_permanent'] = self.is_permanent
+        if self.isPermanent is not None :
+            res['isPermanent'] = self.isPermanent
+        if self.offlineTimeout is not None :
+            res['offlineTimeout'] = self.offlineTimeout
+        if self.data is not None :
+            res['data'] = self.data
         return res
 
 
