@@ -55,7 +55,9 @@ class INetwork(Interface):
 class IDeviceClass(Interface):
     name = Attribute('Device Class Name')
     version = Attribute('Device Class Version')
-    is_permanent = Attribute('Whether Device Class is Permanent')
+    isPermanent = Attribute('Whether Device Class is Permanent')
+    offlineTimeout = Attribute('Inactivity timeout in seconds')
+    data = Attribute('Device class data')
     def to_dict(self):
         """
         @return dict representation of the object
