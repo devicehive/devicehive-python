@@ -17,9 +17,7 @@ class TestReactorFunc(unittest.TestCase):
         self.assertTrue(hasattr(reactor, 'connectDeviceHive'))
 
 
-class TestRegisterRequest(object):
-    # TODO: fix this testcase
-
+class TestRegisterRequest(unittest.TestCase):
     class FakeDevice(object):
         implements(devicehive.interfaces.IDeviceInfo)
         id = ''
@@ -30,6 +28,8 @@ class TestRegisterRequest(object):
         network = devicehive.Network(id='netid', name='netname', key='netkey', descr='net descr')
         device_class = devicehive.DeviceClass(name='devcls-name', version='0.1')
         equipment = [devicehive.Equipment('eq-name', 'eq-code', 'eq-type'), ]
+    def to_dict(self):
+        return {}
 
     class FakeFactory(object):
         def __init__(self, device_delegate):
@@ -48,7 +48,7 @@ class TestRegisterRequest(object):
         self.protocol = HTTP11ClientProtocol()
         self.protocol.makeConnection(self.transport)
     
-    def test_request(self):
+    def __test_request(self):
         request = devicehive.poll.RegisterRequest(self.factory.info, self.factory.uri, self.factory.host)
         r = self.protocol.request(request)
 
