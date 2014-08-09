@@ -128,11 +128,11 @@ class DeviceClass(object):
     
     implements(IDeviceClass)
     
-    def __init__(self, name = None, version = None, isPermanent = None, offlineTimeout = None, data = None):
+    def __init__(self, name=None, version=None, is_permanent=None, offline_timeout=None, data=None):
         self.name = name
         self.version = version
-        self.isPermanent = isPermanent
-        self.offlineTimeout = offlineTiemout
+        self.isPermanent = is_permanent
+        self.offlineTimeout = offline_timeout
         self.data = data
     
     def to_dict(self):

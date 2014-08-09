@@ -73,7 +73,7 @@ class WebSocketFactory(ClientFactory):
     
     implements(IWebSocketProtocolCallback, IProtoFactory)
     
-    url = 'localhost'
+    url = 'ws://localhost'
     host = 'localhost'
     port = 80
     proto = None
@@ -86,9 +86,9 @@ class WebSocketFactory(ClientFactory):
         @param handler: handler has to implement C{IProtoHandler} interface
         """
         self.handler = handler
-        if IProtoHandler.implementedBy(self.handler.__class__) :
+        if IProtoHandler.implementedBy(self.handler.__class__):
             self.handler.factory = self
-        else :
+        else:
             raise TypeError('handler should implements IProtoHandler interface')
         self.devices = {}
     

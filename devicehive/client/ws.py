@@ -34,16 +34,21 @@ class WsCommand(BaseCommand):
     send 'result' field from the client to a device.
     """
     
-    def __init__(self, command, parameters = None):
+    def __init__(self, command, parameters=None):
         super(WsCommand, self).__init__()
         self.command = command
         self.parameters = parameters
     
     @staticmethod
     def create(cmd):
-        if not isinstance(cmd, dict) :
-            raise TypeError('cmd should be a dict.')
+        """
+        :param cmd:a ``dict`` which is used to construct an instance of WsCommand
+        """
+        if not isinstance(cmd, dict):
+            raise TypeError('cmd argument should be a dict')
+
         res = WsCommand(cmd['command'], cmd['parameters'] if 'parameters' in cmd else [])
+
         res.id = cmd['id']
         res.timestamp = cmd['timestamp'] if 'timestamp' in cmd else None
         res.user_id = cmd['userId'] if 'userId' in cmd else None

@@ -375,11 +375,13 @@ class WebSocketDeviceHiveProtocol(Protocol):
         @param timeout: timeout in seconds for requests
         """
         self.factory = factory
-        path = urlparse.urlparse(factory.url).path
-        self.uri = path + uri
+
+        path = urlparse.urlparse(factory.url).path or '/'
+        self.uri = urlparse.urljoin(path, uri)
         self.socket = None
         self.timeout = timeout
-        # Each devicehive message has an accossiated response.
+
+        # Each devicehive message has an associated response.
         self.msg_callbacks = {}
         self.ping_callbacks = {}
     
