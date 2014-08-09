@@ -1,4 +1,4 @@
-devicehive
+devicehive ![build status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=master)
 ==========
 *a Twisted implementation of Device-Hive client protocol v8*
 
