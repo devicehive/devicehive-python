@@ -86,6 +86,10 @@ class RasPiConfig(object):
     @property
     def equipment(self):
         return [devicehive.Equipment(name = 'LED', code = 'LED', type = 'Controllable LED'), devicehive.Equipment(name = 'THERMO', code = 'temp', type = 'TempSensor')]
+    
+    @property
+    def data(self):
+        return None
 
     def to_dict(self):
         res = {
