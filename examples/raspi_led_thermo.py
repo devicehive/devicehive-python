@@ -87,6 +87,24 @@ class RasPiConfig(object):
     def equipment(self):
         return [devicehive.Equipment(name = 'LED', code = 'LED', type = 'Controllable LED'), devicehive.Equipment(name = 'THERMO', code = 'temp', type = 'TempSensor')]
 
+    def to_dict(self):
+        res = {
+            'key': self.key,
+            'name': self.name
+        }
+
+        if self.status is not None:
+            res['status'] = self.status
+   
+        if self.network is not None:
+            res['network'] = self.network.to_dict() if devicehive.interfaces.INetwork.implementedBy(self.network.__class__) else self.network
+            res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
+
+        if self.equipment is not None:
+            res['equipment'] = [x.to_dict() for x in self.equipment]
+
+        return res
+
 #
 # This class handles DeviceHive API calls for our device
 #
@@ -214,19 +232,22 @@ class LedDevice(object):
 #
 if __name__ == '__main__' :
     log.startLogging(sys.stdout)
-    
+
     led = LedDevice(_LED_PIN)
     # Blink on start to ensure device is working
     led.blink(3)
 
     # create temp sensor and queue it to check for temperature in a separate thread
     tempSensor = TempSensor(_W1_FILENAME)
-    
+
     # create a delegate to handle commands
     device = RasPiApp(led, tempSensor)
+
     led_factory = devicehive.auto.AutoFactory(device)
+    # led_factory = devicehive.poll.PollFactory(device)
+
     led_factory.connect(_API_URL)   
-    
+
     # off we go!
     reactor.run()
 

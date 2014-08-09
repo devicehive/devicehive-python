@@ -236,6 +236,8 @@ class WebSocketFactory(ClientFactory):
             dev['status'] = info.status
         if info.network is not None :
             dev['network'] = info.network.to_dict() if INetwork.implementedBy(info.network.__class__) else info.network
+        if info.data is not None :
+            dev['data'] = info.data
         if info.device_class is not None :
             dev['deviceClass'] = info.device_class.to_dict() if IDeviceClass.implementedBy(info.device_class.__class__) else info.device_class
         request = {'action': 'device/save', 'deviceId': info.id, 'deviceKey': info.key, 'device': dev}
