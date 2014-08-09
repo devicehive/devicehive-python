@@ -2,20 +2,7 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import unittest
-import sys
-from os import path
-
-
-orig_name = __name__
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
-try :
-    utils = __import__('devicehive')
-    __import__('devicehive.utils')
-    utils = utils.utils
-finally :
-    sys.path[:] = orig_path
-    __name__ = orig_name
+from devicehive import utils
 
 
 class TestParseUrl(unittest.TestCase):
@@ -50,6 +37,6 @@ class TestParseUrl(unittest.TestCase):
         self.assertEquals(9191, port)
 
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     unittest.main()
 

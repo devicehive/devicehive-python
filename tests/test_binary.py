@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
-import sys
-from os import path
-import uuid
 import unittest
-from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
 
+from twisted.test.proto_helpers import StringTransport
 
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
-try :
-    import devicehive
-    from devicehive.gateway.binary import *
-finally :
-    sys.path[:] = orig_path
+from devicehive.gateway.binary import *
 
 
 class PacketTests(unittest.TestCase):
@@ -158,20 +149,23 @@ class _TestObject(object):
         self.arr_prop = []
         self.guid_prop = uuid.uuid1()
         self.aguid_prop = (uuid.uuid1()).bytes
+
     def gen_props(name):
         def fget(self):
             return getattr(self, name)
+
         def fset(self, value):
             setattr(self, name, value)
         return {'fget': fget, 'fset': fset}
-    byte_prop  = binary_property(DATA_TYPE_BYTE, **gen_props('_byte_prop'))
-    word_prop  = binary_property(DATA_TYPE_WORD, **gen_props('_word_prop'))
+
+    byte_prop = binary_property(DATA_TYPE_BYTE, **gen_props('_byte_prop'))
+    word_prop = binary_property(DATA_TYPE_WORD, **gen_props('_word_prop'))
     dword_prop = binary_property(DATA_TYPE_DWORD, **gen_props('_dword_prop'))
-    bool_prop  = binary_property(DATA_TYPE_BOOL, **gen_props('_bool_prop'))
+    bool_prop = binary_property(DATA_TYPE_BOOL, **gen_props('_bool_prop'))
     false_prop = binary_property(DATA_TYPE_BOOL, **gen_props('_false_prop'))
-    str_prop   = binary_property(DATA_TYPE_STRING, **gen_props('_str_prop'))
-    arr_prop   = array_binary_property(ArrayQualifier(_SubObject), **gen_props('_arr_prop'))
-    guid_prop  = binary_property(DATA_TYPE_GUID, **gen_props('_guid_prop'))
+    str_prop = binary_property(DATA_TYPE_STRING, **gen_props('_str_prop'))
+    arr_prop = array_binary_property(ArrayQualifier(_SubObject), **gen_props('_arr_prop'))
+    guid_prop = binary_property(DATA_TYPE_GUID, **gen_props('_guid_prop'))
     aguid_prop = binary_property(DATA_TYPE_GUID, **gen_props('_aguid_prop'))
     __binary_struct__ = (byte_prop, word_prop, dword_prop, bool_prop, false_prop, str_prop, arr_prop, guid_prop, aguid_prop)
 

@@ -1,24 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import unittest
-import sys
-from os import path
-from zope.interface import implements
 
-
-orig_name = __name__
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
-try :
-    devicehive = __import__('devicehive')
-    __import__('devicehive.ws')
-    __import__('devicehive.interfaces')
-    __import__('devicehive.poll')
-    __import__('devicehive.device.ws')
-    ws = devicehive.ws
-    dws = devicehive.device.ws
-    poll = devicehive.poll
-finally :
-    sys.path[:] = orig_path
-    __name__ = orig_name
+import devicehive
+from devicehive import poll
+from devicehive.device import ws as dws
 
 
 class WsCommandTests(unittest.TestCase):

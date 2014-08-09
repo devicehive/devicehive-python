@@ -1,15 +1,12 @@
 # -*- coding: utf8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
-import sys
-import os
 import unittest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from devicehive.dhjson import Parser
 
 
-class DhJsonTestCase1: #(unittest.TestCase):
+class DhJsonTestCase1(unittest.TestCase):
     def test_string(self):
         p = Parser("'hello all'")
         self.assertEquals('hello all', p.parse())
@@ -48,11 +45,11 @@ class DhJsonTestCase1: #(unittest.TestCase):
     
     def test_simple_array_1(self):
         p = Parser('[1,2,3]')
-        self.assertEquals([1,2,3], p.parse())
+        self.assertEquals([1, 2, 3, ], p.parse())
     
     def test_simple_array_2(self):
         p = Parser('[1 , 2 , 3,4 , 5,6 ]')
-        self.assertEquals([1,2,3,4,5,6], p.parse())
+        self.assertEquals([1, 2, 3, 4, 5, 6, ], p.parse())
     
     def test_empty_array_1(self):
         p = Parser('[]')
@@ -112,7 +109,6 @@ class EscapeSequenceTestCase(unittest.TestCase):
     def test_esc_3(self):
         p = Parser(r'"\\""')
         self.assertEquals('\\', p.parse())
-
 
 
 class DhJsonTestCase2(unittest.TestCase):

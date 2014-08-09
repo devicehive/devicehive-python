@@ -2,35 +2,29 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import unittest
-import sys
+
 from array import array
-from os import path
+
+from twisted.test.proto_helpers import StringTransport
 from zope.interface import implements
-from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
 
-
-orig_name = __name__
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
-try :
-    devicehive = __import__('devicehive')
-    __import__('devicehive.ws')
-    ws = devicehive.ws
-finally :
-    sys.path[:] = orig_path
-    __name__ = orig_name
+from devicehive import ws
 
 
 class TestHandler(object):
     implements(ws.IWebSocketCallback)
+
     def __init__(self):
         self.payload = None
         self.connected = False
         self.closing = False
+
     def headers_received(self):
         self.connected = True
+
     def closing_connection(self):
         self.closing = True
+
     def frame_received(self, payload):
         self.payload = payload
 
@@ -54,7 +48,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
         handler = TestHandler()
         proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
-        data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        data = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x81\x03\x01\x02\x03'
         proto.dataReceived(data)
         self.assertEquals(b'\x01\x02\x03', handler.payload)
@@ -64,12 +58,12 @@ class WebSocketProtocol13Test(unittest.TestCase):
         handler = TestHandler()
         proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
-        data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        data = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x83\x03\x01\x02\x03'
-        try :
+        try:
             proto.dataReceived(data)
             self.fail('Opcode 3 should raises an exception.')
-        except ws.WebSocketError :
+        except ws.WebSocketError:
             pass
     
     def test_closing_connection(self):
@@ -77,7 +71,7 @@ class WebSocketProtocol13Test(unittest.TestCase):
         handler = TestHandler()
         proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
-        data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        data = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x88\x00'
         proto.dataReceived(data)
         self.assertTrue(handler.closing)
@@ -87,14 +81,14 @@ class WebSocketProtocol13Test(unittest.TestCase):
         handler = TestHandler()
         proto = ws.WebSocketProtocol13(handler, trans, 'localhost', '/test')
         proto.security_key = b'dGhlIHNhbXBsZSBub25jZQ=='
-        data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s2pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
-        try :
+        data = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s2pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        try:
             proto.dataReceived(data)
             self.fail('Invalid security key should results in exception')
         except ws.WebSocketError:
             pass
 
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     unittest.main()
 

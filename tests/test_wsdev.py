@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
-import sys
-import os
 import unittest
 import struct
 import json
 from array import array
 from random import Random
 from zope.interface import implements
-from twisted.python.failure import Failure
 from twisted.internet.defer import Deferred
-from twisted.test.proto_helpers import MemoryReactor, StringTransport, AccumulatingProtocol
+from twisted.test.proto_helpers import StringTransport
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import devicehive
 from devicehive.interfaces import IDeviceInfo
-from devicehive.ws import WebSocketDeviceHiveProtocol, WebSocketError, WS_OPCODE_TEXT_FRAME
+from devicehive.ws import WebSocketDeviceHiveProtocol, WS_OPCODE_TEXT_FRAME
 from devicehive.device.ws import WebSocketFactory
 from devicehive.interfaces import IProtoHandler
 
@@ -25,15 +21,15 @@ def decode_ws_message(data):
     offset = 1
     l = struct.unpack_from('B', data, offset)[0]
     l = l & ~0x80
-    if l == 126 :
+    if l == 126:
         offset += 1
         l = struct.unpack_from('!H', data, offset)[0]
         offset += 2
-    elif l == 127 :
+    elif l == 127:
         offset += 1
         l = struct.unpack_from('!Q', data, offset)[0]
         offset += 4
-    else :
+    else:
         offset += 1
     mask = struct.unpack_from('B' * 4, data, offset)
     offset += 4
@@ -42,7 +38,7 @@ def decode_ws_message(data):
     return msg
 
 
-class Handler(object) :
+class Handler(object):
     implements(IProtoHandler)
     
     factory = None
@@ -79,19 +75,25 @@ class WsClientSendingTestCase(unittest.TestCase):
     def test_send_message(self):
         # testing headers sending
         # this should result in connected event
+
         proto = self.factory.buildProtocol(None)
         proto.makeConnection(self.transport)
-        origin = 'GET /device HTTP/1.1\r\n' + \
-        'Host: localhost\r\n' + \
-        'Upgrade: websocket\r\n' + \
-        'Connection: Upgrade\r\n' + \
-        'Sec-WebSocket-Key: {0}\r\n'.format(proto.socket.security_key) + \
-        'Origin: http://localhost\r\n' + \
-        'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
-        'Sec-WebSocket-Version: 13\r\n\r\n'
+
+        origin = ''.join((
+            'GET /device HTTP/1.1\r\n',
+            'Host: localhost\r\n',
+            'Upgrade: websocket\r\n',
+            'Connection: Upgrade\r\n',
+            'Sec-WebSocket-Key: {0}\r\n'.format(proto.socket.security_key),
+            'Origin: http://localhost\r\n',
+            'Sec-WebSocket-Protocol: device-hive, devicehive\r\n',
+            'Sec-WebSocket-Version: 13\r\n\r\n',
+        ))
         self.assertEquals(origin, self.transport.value())
+
         proto.dataReceived('HTTP/1.1 101 OK\r\n\r\n')
         self.assertTrue(self.handler.is_connected)
+
         self.transport.clear()
         # testing message sending
         proto.socket.rand = Random(1)
@@ -146,15 +148,14 @@ class WsClientMethodsTestCase(unittest.TestCase):
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
     
     def test_authenticate(self):
-        self.transport.clear()
-        defer = self.factory.authenticate('123', '321')
+        self.factory.authenticate('123', '321')
         s = decode_ws_message(self.transport.value())
         self.assertEquals({u'action': u'authenticate',
                            u'deviceId': u'123',
                            u'deviceKey': u'321',
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
-    
-    def test_device_save(self):
+
+    def create_test_device(self):
         class TestDev(object):
             implements(IDeviceInfo)
             id = 'td_id'
@@ -164,65 +165,91 @@ class WsClientMethodsTestCase(unittest.TestCase):
             status = None
             network = None
             device_class = None
-        self.transport.clear()
-        # minimal message
-        info = TestDev()
+            data = None
+
+        return TestDev()
+
+    def test_device_save_minimal_message(self):
+        info = self.create_test_device()
+
         self.factory.device_save(info)
         s = decode_ws_message(self.transport.value())
-        self.assertEquals({u'action': u'device/save',
-                           u'device':
-                                {u'equipment': [],
-                                 u'name': u'td_name',
-                                 u'key': u'td_key'},
-                            u'deviceKey': u'td_key',
-                            u'deviceId': u'td_id',
-                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
-        # with equipment
-        self.transport.clear()
-        info.equipment = [devicehive.Equipment(name = 'en', code='cd', type='tp', data = None)]
+
+        self.assertDictEqual({
+            u'action': u'device/save',
+            u'device': {
+                u'equipment': [],
+                u'name': u'td_name',
+                u'key': u'td_key',
+            },
+            u'deviceKey': u'td_key',
+            u'deviceId': u'td_id',
+            u'requestId': max(self.proto.msg_callbacks.keys()),
+        }, json.loads(s))
+
+    def test_device_save_with_equipment(self):
+        info = self.create_test_device()
+        info.equipment = (devicehive.Equipment(name='en', code='cd', type='tp', data=None), )
+
         self.factory.device_save(info)
         s = decode_ws_message(self.transport.value())
-        self.assertEquals({u'action': u'device/save',
-                           u'device':
-                                {u'equipment': [{u'name': u'en', u'code': u'cd', u'type': u'tp'}],
-                                 u'name': u'td_name',
-                                 u'key': u'td_key'},
-                            u'deviceKey': u'td_key',
-                            u'deviceId': u'td_id',
-                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
-        # equipment with data
-        self.transport.clear()
-        info.equipment = [devicehive.Equipment(name = 'en', code='cd', type='tp', data = 'dt')]
+
+        self.assertDictEqual({
+            u'action': u'device/save',
+            u'device': {
+                u'equipment': [{u'name': u'en', u'code': u'cd', u'type': u'tp', }, ],
+                u'name': u'td_name',
+                u'key': u'td_key'
+            },
+            u'deviceKey': u'td_key',
+            u'deviceId': u'td_id',
+            u'requestId': max(self.proto.msg_callbacks.keys()),
+        }, json.loads(s))
+
+    def test_device_save_with_equipment_and_data(self):
+        info = self.create_test_device()
+        info.equipment = (devicehive.Equipment(name='en', code='cd', type='tp', data='dt'), )
+
         self.factory.device_save(info)
         s = decode_ws_message(self.transport.value())
-        self.assertEquals({u'action': u'device/save',
-                           u'device':
-                                {u'equipment': [{u'name': u'en', u'code': u'cd', u'type': u'tp', u'data': u'dt'}],
-                                 u'name': u'td_name',
-                                 u'key': u'td_key'},
-                            u'deviceKey': u'td_key',
-                            u'deviceId': u'td_id',
-                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
-        # with network
-        self.transport.clear()
-        info.network = devicehive.Network(id = 'nid', key = 'nkey', name = 'nname', descr = 'ndesr')
+
+        self.assertDictEqual({
+            u'action': u'device/save',
+            u'device': {
+                u'equipment': [{u'name': u'en', u'code': u'cd', u'type': u'tp', u'data': u'dt', }, ],
+                u'name': u'td_name',
+                u'key': u'td_key'
+            },
+            u'deviceKey': u'td_key',
+            u'deviceId': u'td_id',
+            u'requestId': max(self.proto.msg_callbacks.keys()),
+        }, json.loads(s))
+
+    def test_device_save_with_network(self):
+        info = self.create_test_device()
+        info.network = devicehive.Network(id='nid', key='nkey', name='nname', descr='ndesr')
+
         self.factory.device_save(info)
-        s = decode_ws_message(self.transport.value())
-        self.assertEquals({u'action': u'device/save',
-                           u'device':
-                                {u'equipment': [{u'name': u'en', u'code': u'cd', u'type': u'tp', u'data': u'dt'}],
-                                 u'name': u'td_name',
-                                 u'key': u'td_key',
-                                 u'network': {u'id': u'nid',
-                                              u'name': u'nname',
-                                              u'key': u'nkey',
-                                              u'description': 'ndesr'}},
-                            u'deviceKey': u'td_key',
-                            u'deviceId': u'td_id',
-                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
-        # end device_save
+        result = json.loads(decode_ws_message(self.transport.value()))
+
+        self.assertDictEqual({
+            u'action': u'device/save',
+            u'device': {
+                u'equipment': [],
+                u'name': u'td_name',
+                u'key': u'td_key',
+                u'network': {
+                    u'id': u'nid',
+                    u'name': u'nname',
+                    u'key': u'nkey',
+                    u'description': 'ndesr'
+                }
+            },
+            u'deviceKey': u'td_key',
+            u'deviceId': u'td_id',
+            u'requestId': max(self.proto.msg_callbacks.keys()),
+        }, result)
 
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     unittest.main()
-

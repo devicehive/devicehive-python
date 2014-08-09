@@ -2,21 +2,10 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 import unittest
-import sys
-from os import path
+
 from zope.interface import implements
 
-
-orig_name = __name__
-orig_path = list(sys.path)
-sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
-try :
-    devicehive = __import__('devicehive')
-    __import__('devicehive.ws')
-    ws = devicehive.ws
-finally :
-    sys.path[:] = orig_path
-    __name__ = orig_name
+from devicehive import ws
 
 
 class WsHandler(object):
@@ -37,7 +26,7 @@ class WsHandler(object):
     def header_received(self, name, value):
         self.headers.append((name, value))
     
-    def headers_received(self) :
+    def headers_received(self):
         pass
     
     def frame_received(self, opcode, payload):
@@ -88,20 +77,20 @@ class WebSocketParserTest(unittest.TestCase) :
         self.assertEquals(4, len(handler.frame[1]))
     
     def test_masking(self):
-        data  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        data = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data += b'\x83\x83\x01\x02\x03'
         handler = WsHandler()
         parser = ws.WebSocketParser(handler)
-        try :
+        try:
             parser.dataReceived(data)
             self.fail('Websocket server is not allowed to mask data')
-        except ws.WebSocketError :
+        except ws.WebSocketError:
             pass
     
     def test_framing(self):
-        data1  = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
+        data1 = u'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'.encode('utf-8')
         data1 += b'\x03\x03\x01\x02\x03'
-        data2  = b'\x83\x03\x04\x05\x06'
+        data2 = b'\x83\x03\x04\x05\x06'
         handler = WsHandler()
         parser = ws.WebSocketParser(handler)
         parser.dataReceived(data1)
@@ -110,6 +99,5 @@ class WebSocketParserTest(unittest.TestCase) :
         self.assertEquals(b'\x01\x02\x03\x04\x05\x06', handler.frame[1]) 
 
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     unittest.main()
-
