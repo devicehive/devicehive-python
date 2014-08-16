@@ -33,6 +33,7 @@ setup(
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_wsdev.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_wsparser.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_wsproto.py']),
+                (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_client_ws_factory.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/basic_gateway_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/client_example.py']),
                 (path.join(get_python_lib(), 'devicehive', 'examples'), ['examples/ping_pong_example.py']),
