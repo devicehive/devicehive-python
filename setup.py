@@ -25,7 +25,6 @@ setup(
     install_requires = ['twisted'],
     requires = ['twisted (>=12.0)'],
     data_files=[(path.join(get_python_lib(), 'devicehive'),  ['LICENSE']),
-                (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/__main__.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_binary.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_command.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_dhjson.py']),
