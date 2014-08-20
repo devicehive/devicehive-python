@@ -6,6 +6,8 @@ Client API implementation for WebSocket protocol.
 """
 
 from sys import maxint
+from urlparse import urlparse, urljoin
+
 from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, fail
@@ -74,25 +76,32 @@ class WebSocketFactory(ClientFactory):
     Implements client factory over websocket protocol.
     See devicehive.interfaces.IClientTransport for methods description.
     """
-    
+
     implements(IClientTransport, IWebSocketProtocolCallback)
-    
-    url = 'localhost'
-    host = 'localhost'
-    port = 8010
+
+    url = 'ws://localhost'
     proto = None
-    
+
     def __init__(self, handler):
         if not IClientApp.implementedBy(handler.__class__) :
             raise TypeError('handler must implement devicehive.interfaces.IClientApp interface.')
         self.handler = handler
         self.handler.factory = self
         self.command_callbacks = {}
-    
+
+    def get_client_url(self):
+        if not self.url:
+            return '/client'
+        else:
+            path = urlparse(self.url).path
+            if path[-1:] != '/':
+                path += '/'
+            return urljoin(path, 'client')
+
     def buildProtocol(self, addr):
-        self.proto = WebSocketDeviceHiveProtocol(self, '/client')
+        self.proto = WebSocketDeviceHiveProtocol(self, self.get_client_url())
         return self.proto
-    
+
     def clientConnectionFailed(self, connector, reason):
         LOG_ERR('Client connection failed. Reason: {0}.'.format(reason))
         self.handler.failure(reason)
@@ -203,6 +212,8 @@ class WebSocketFactory(ClientFactory):
         return self.proto.ping()
     
     def connect(self, url):
+        LOG_MSG('Connecting to {0} server.'.format(url))
+        self.url = url
         reactor.connectDeviceHive(url, self)
     # end IClientTransport interface implementation
     

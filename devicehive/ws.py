@@ -293,7 +293,7 @@ class WebSocketProtocol13(object):
         if proto_version != 'HTTP/1.1' :
             raise WebSocketError('unsupported protocol {0}'.format(proto_version))
         if code != 101 :
-            raise WebSocketError('websocket server rejected protocol upgrade with code {0}'.format(code))
+            raise WebSocketError('websocket server rejected protocol upgrade with code {0} and status {1}.'.format(code, status))
     
     def header_received(self, name, value):
         loname = name.lower()
@@ -317,17 +317,18 @@ class WebSocketProtocol13(object):
     
     def frame_received(self, opcode, payload):
         log.msg('Websocket frame ({0}) has been received. Frame data: {1}.'.format(opcode, payload))
-        if opcode == WS_OPCODE_PING :
+        if opcode == WS_OPCODE_PING:
+            log.msg('Responding with pong packaet.')
             self.send_frame(True, WS_OPCODE_PONG, payload)
-        elif opcode == WS_OPCODE_PONG :
+        elif opcode == WS_OPCODE_PONG:
             self.handler.pong_received(payload)
         elif opcode == WS_OPCODE_CONNECTION_CLOSE :
-            if self.test_handler() :
+            if self.test_handler():
                 self.handler.closing_connection()
         elif opcode == WS_OPCODE_BINARY_FRAME or opcode == WS_OPCODE_TEXT_FRAME :
-            if self.test_handler() :
+            if self.test_handler():
                 self.handler.frame_received(payload)
-        else :
+        else:
             raise WebSocketError('opcode {0} is not supported'.format(opcode))
     
     def validate_security_answer(self, answer):
@@ -344,7 +345,9 @@ class WebSocketProtocol13(object):
                   'Origin: http://{0}\r\n' + \
                   'Sec-WebSocket-Protocol: device-hive, devicehive\r\n' + \
                   'Sec-WebSocket-Version: 13\r\n\r\n'
-        self.transport.write(header.format(self.host, self.security_key).encode('utf-8'))
+        data = header.format(self.host, self.security_key).encode('utf-8')
+        log.msg('Sending header: {0}'.format(data))
+        self.transport.write(data)
     
     def send_frame(self, fin, opcode, data) :
         prefix = (0x80 if fin else 0x00) | opcode
