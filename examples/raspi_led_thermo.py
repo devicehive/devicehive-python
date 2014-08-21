@@ -10,6 +10,7 @@
 # Distributed under MIT license
 #
 
+import glob
 import sys
 import os
 import time
@@ -31,8 +32,6 @@ except ImportError:
             print 'Set gpio {0}; Value: {1};'.format(io, vlaue)
     GPIO = FakeGPIO()
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from zope.interface import implements
 from twisted.python import log
 from twisted.internet import reactor, task
@@ -41,13 +40,20 @@ import devicehive
 import devicehive.auto
 
 
+base_dir = '/sys/bus/w1/devices/'
+device_folder = glob.glob(base_dir + '28*')
+if not device_folder:
+    print 'Make sure that DS18B20 sensor is connected'
+    exit()
+device_file = device_folder[0] + '/w1_slave'
+
 # change it to match your address for 1-wire sensor
-_W1_FILENAME='/sys/bus/w1/devices/28-00000393268a/w1_slave'
+_W1_FILENAME = device_file
 if not os.path.exists(_W1_FILENAME) :
     _W1_FILENAME = '/dev/null'
 
-# Board's pin #11 (GPIO17)
-_LED_PIN=11
+# Board's pin #11 (GPIO18)
+_LED_PIN=12
 
 # API URL (register for free playground at http://beta2.devicehive.com/playground
 _API_URL = 'http://pg.devicehive.com/api/'
