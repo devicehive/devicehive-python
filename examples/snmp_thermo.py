@@ -2,12 +2,18 @@
 
 import sys
 
+from pysnmp.entity.rfc3413.oneliner import cmdgen
 from twisted.python import log
 from twisted.internet import reactor, task
 from zope.interface import implements
 
 import devicehive
 import devicehive.auto
+
+
+# MIB_VARIABLE = ('SNMPv2-MIB', 'sysName', 0)
+MIB_VARIABLE = ('SNMPv2-MIB', 'snmpInPkts', 0)
+UPDATE_INTERVAL = 10
 
 
 class SnrEdrInfo(object):
@@ -39,7 +45,7 @@ class SnrEdrInfo(object):
     
     @property
     def equipment(self):
-        return (devicehive.Equipment(name='ThermoSensor', code='therm', type='Thermo sensor'), )
+        return [devicehive.Equipment(name='ThermoSensor', code='therm', type='ThermoSensor'), ]
     
     @property
     def data(self):
@@ -67,27 +73,29 @@ class SnrEdrInfo(object):
 class App(object):
     implements(devicehive.interfaces.IProtoHandler)
 
-    def __init__(self):
+    def __init__(self, snmp_host='demo.snmplabs.com', snmp_port=161, snmp_community='public', **kwargs):
         super(App, self).__init__()
         self.info = SnrEdrInfo()
         self.cmd_gen = cmdgen.CommandGenerator()
+        self.snmp_server = (snmp_host, snmp_port)
+        self.snmp_community = snmp_community
 
     def on_apimeta(self, websocket_server, server_time):
         log.msg('API metadata has been received.')
 
     def read_thermometr(self):
-        log.msg('Read thermometr.')
+        log.msg('Read thermometr data.')
 
-        error_indication, errorStatus, errorIndex, varBinds = self.cmd_gen.getCmd(
-                cmdgen.CommunityData('public'),
-                cmdgen.UdpTransportTarget(('demo.snmplabs.com', 161)),
-                cmdgen.MibVariable('SNMPv2-MIB', 'sysName', 0)
+        error_indication, error_status, error_index, var_binds = self.cmd_gen.getCmd(
+                cmdgen.CommunityData(self.snmp_community),
+                cmdgen.UdpTransportTarget(self.snmp_server),
+                cmdgen.MibVariable(*MIB_VARIABLE)
         )
 
         if error_indication:
             log.err('Failed to read themperature. Reason: {0}.'.format(error_indication))
         else:
-            if errorStatus:
+            if error_status:
                 log.err('%s at %s' % (
                     error_status.prettyPrint(),
                     error_index and var_binds[int(error_index) - 1] or '?'
@@ -104,9 +112,8 @@ class App(object):
     def on_connected(self):
         log.msg('Connected to devicehive server.')
 
-        task.LoopingCall(self.read_thermometr).start(1)
-
         def on_subscribe(result) :
+            task.LoopingCall(self.read_thermometr).start(UPDATE_INTERVAL, now=True)
             self.factory.subscribe(self.info.id, self.info.key)
 
         def on_failed(reason) :
@@ -136,16 +143,21 @@ class App(object):
 
 
 def parse_arguments():
-    return dict()
+    return {
+        'devicehive_url': 'http://ec2-54-88-181-211.compute-1.amazonaws.com:8080/DeviceHiveJava-1.3.0.0-SNAPSHOT/rest', # 'http://test001.cloud.devicehive.com/devicehive-test001/rest',
+        'snmp_host': 'demo.snmplabs.com',
+        'snmp_port': 161,
+        'snmp_community': 'public'
+    }
 
 
 def main():
     log.startLogging(sys.stdout)
 
-    args = parse_arguments()
+    params = parse_arguments()
 
-    connection = devicehive.auto.AutoFactory(App(**args))
-    connection.connect(_API_URL)   
+    connection = devicehive.auto.AutoFactory(App(**params))
+    connection.connect(params.get('devicehive_url'))
 
     reactor.run()
 
