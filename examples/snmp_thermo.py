@@ -191,7 +191,7 @@ def parse_arguments():
     parser.add_argument('--url', dest='url', action='store', required=True)
     parser.add_argument('--sensor-host', dest='sensor_host', action='store', required=True)
     parser.add_argument('--sensor-port', dest='sensor_port', action='store', default=161)
-    parser.add_argument('--update-interval', dest='update_interval', action='store', default=10)
+    parser.add_argument('--update-interval', dest='update_interval', action='store', default=60)
 
     options = parser.parse_args()
 
