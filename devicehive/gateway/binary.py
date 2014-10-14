@@ -695,7 +695,7 @@ class BinaryFormatter(object) :
         def _deserialize_register2(val) :
             obj = RegistrationPayload()
             if 'id' in val :
-                obj.device_id = uuid.UUID(val['id'])
+                obj.device_id = val['id']
             if 'key' in val :
                 obj.device_key = val['key']
             if 'name' in val :
@@ -999,7 +999,7 @@ class RegistrationPayload(object):
     """
     
     def __init__(self):
-        self._device_id = uuid.uuid1()
+        self._device_id = ''
         self._device_key = ''
         self._device_name = ''
         self._device_class_name = ''
@@ -1008,7 +1008,7 @@ class RegistrationPayload(object):
         self._notification = list()
         self._commands = list()
     
-    device_id = binary_property(DATA_TYPE_GUID, *define_accessors('_device_id'))
+    device_id = binary_property (DATA_TYPE_STRING, *define_accessors('_device_id'))
     
     device_key = binary_property(DATA_TYPE_STRING, *define_accessors('_device_key'))
     
