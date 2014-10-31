@@ -82,6 +82,8 @@ class JsonDataProducer(object):
     def stopProducing(self):
         pass
 
+    def pauseProducing(self):
+        pass
 
 class PollCommand(BaseCommand) :
     def to_dict(self):
@@ -405,7 +407,7 @@ class DevicePollFactory(ClientFactory):
         def err(reason):
             LOG_MSG('Failed to send command {0} result. Reason: {1}.'.format(cmdid, reason))
         factory = RequestFactory(ReportRequest(self.info, self.url, self.host, cmdid, cmdres), ok, err)
-        reactor.connectTCP(self.host, self.port, factory)
+        reactor.connectDeviceHive(self.url, factory)
     
     def run_command(self, cmd, fin_defer):
         """ Executes user command handler. """
@@ -435,7 +437,7 @@ class PollFactory(object):
     
     def execute_request(self, request, ok, err):
         factory = RequestFactory(request, ok, err)
-        reactor.connectTCP(self.host, self.port, factory)
+        reactor.connectDeviceHive(self.url, factory)
     
     # begin IPollOwner implementation
     def on_command(self, info, cmd, finish):
@@ -473,7 +475,7 @@ class PollFactory(object):
             factory = DevicePollFactory(self, self.devices[device_id], defer)
             self.factories[device_id] = factory
             LOG_MSG('Connecting command poll factory to {0}:{1}.'.format(self.host, self.port))
-            reactor.connectTCP(self.host, self.port, factory)
+            reactor.connectDeviceHive(self.url, factory)
             return defer
         else :
             return fail(DhError('Failed to subscribe device "{0}".'.format(device_id)))
@@ -499,6 +501,7 @@ class PollFactory(object):
         return defer
     
     def connect(self, url):
+        LOG_MSG('PollFactory: Connection with {0} has been established.'.format(url))
         self.url, self.host, self.port = parse_url(url)
         self.handler.on_connected()
     # end IProtoFactory implementation
