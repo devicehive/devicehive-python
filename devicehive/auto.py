@@ -26,6 +26,7 @@ class AutoProtocol(HTTP11ClientProtocol):
         self.factory = factory
     
     def connectionMade(self) :
+        log.msg('AutoProtocol: Connection with {0} has been established.'.format(self.factory.url))
         self.request(ApiInfoRequest(self.factory.url, self.factory.host)).addCallbacks(self.api_received, self.api_failed)
     
     def api_received(self, response):
@@ -86,6 +87,7 @@ class AutoFactory(ClientFactory):
         except ValueError :
             log.msg('Failed to parse a date-time string "{0}" returned from "/info" api call.'.format(server_time))
             self.server_time = datetime.utcnow()
+
         if wsurl is not None :
             wsurl = wsurl.strip().replace('ws://', 'http://', 1).replace('wss://', 'https://', 1)
             if wsurl.startswith('http://') or wsurl.startswith('https://') :
@@ -109,11 +111,8 @@ class AutoFactory(ClientFactory):
     def connect_ws(self):
         log.msg('WebSocket protocol has been selected. URL: {0}; HOST: {1}; PORT: {2};'.format(self.ws_url, self.ws_host, self.ws_port))
         factory = WebSocketFactory(self)
-        factory.url  = self.ws_url
-        factory.host = self.ws_host
-        factory.port = self.ws_port
         factory.timestamp = self.server_time
-        reactor.connectTCP(factory.host, factory.port, factory)
+        reactor.connectDeviceHive(self.ws_url, factory)
     
     def connect_poll(self):
         log.msg('Long-Polling protocol has been selected.')
@@ -126,6 +125,7 @@ class AutoFactory(ClientFactory):
         self.handler.on_apimeta(websocket_server, server_time)
     
     def on_connected(self):
+        log.msg('AutoFactory: Connection with {0} has been established.'.format(self.factory.url))
         self.handler.on_connected()
     
     def on_connection_failed(self, reason):

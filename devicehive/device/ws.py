@@ -120,6 +120,7 @@ class WebSocketFactory(ClientFactory):
         self.handler.on_failure(None, reason)
     
     def connected(self):
+        LOG_MSG('WebSocketFactory: Connection with {0} has been established.'.format(self.url))
         self.handler.on_connected()
     
     def closing_connection(self):

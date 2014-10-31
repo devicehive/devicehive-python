@@ -60,7 +60,8 @@ _W1_FILENAME = get_i2c_file()
 _LED_PIN = 12
 
 # API URL (register for free playground at http://beta2.devicehive.com/playground
-_API_URL = 'http://pg.devicehive.com/api/'
+#_API_URL = 'http://pg.devicehive.com/api/'
+_API_URL = 'https://ecloud.dataart.com/ecapi9/'
 
 
 class RasPiConfig(object):
