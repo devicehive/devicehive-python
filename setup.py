@@ -23,7 +23,6 @@ setup(
     keywords = "web cloud api embedded tutorial",
     packages = ['devicehive', 'devicehive.client', 'devicehive.device', 'devicehive.gateway'],
     install_requires = ['twisted', 'pyOpenSSL', 'service-identity'],
-    requires = ['twisted (>=12.0)', 'pyOpenSSL (>=0.14)', 'service-identity (>=14.0.0)'],
     data_files=[(path.join(get_python_lib(), 'devicehive'),  ['LICENSE']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_binary.py']),
                 (path.join(get_python_lib(), 'devicehive', 'tests'), ['tests/test_command.py']),
