@@ -126,17 +126,16 @@ class BaseRequest(Request):
     """
     
     def __init__(self, device_info, method, url, host, api, body_producer = None):
-        headers = BaseRequest.headers(host, device_info.id, device_info.key)
+        headers = BaseRequest.headers(host, device_info.access_key)
         path = url_path(url, api)
         LOG_MSG('{0} PATH {1}'.format(method, path))
         super(BaseRequest, self).__init__(method, path, headers, body_producer)
     
     @staticmethod
-    def headers(host, device_id, device_key):
+    def headers(host, access_key):
         headers = Headers({'Host': [host.encode('utf-8')],
                            'Content-Type': ['application/json',],
-                           'Auth-DeviceID': [device_id.encode('utf-8')],
-                           'Auth-DeviceKey': [device_key.encode('utf-8')],
+                           'Authorization': ["Bearer " + access_key.encode('utf-8')],
                            'Accept': ['application/json']})
         return headers
 
