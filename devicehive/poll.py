@@ -451,10 +451,10 @@ class PollFactory(object):
     # end IPollOwner
     
     # begin IProtoFactory implementation
-    def authenticate(self, device_id, device_key):
+    def authenticate(self, device_id):
         raise NotImplementedError()
     
-    def notify(self, notification, params, device_id = None, device_key = None):
+    def notify(self, notification, params, device_id = None):
         if (device_id is not None) and (device_id in self.devices) :
             defer = Deferred()
             def ok(res):
@@ -468,7 +468,7 @@ class PollFactory(object):
         else :
             return fail(DhError('device_id parameter expected'))
     
-    def subscribe(self, device_id = None, device_key = None):
+    def subscribe(self, device_id = None):
         if device_id in self.devices :
             defer = Deferred()
             factory = DevicePollFactory(self, self.devices[device_id], defer)
@@ -479,7 +479,7 @@ class PollFactory(object):
         else :
             return fail(DhError('Failed to subscribe device "{0}".'.format(device_id)))
     
-    def unsubscribe(self, device_id = None, device_key = None):
+    def unsubscribe(self, device_id = None):
         if (device_id in self.devices) and (device_id in self.factories) :
             factory = self.factories.pop(device_id)
             return factory.stop()

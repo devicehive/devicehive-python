@@ -100,7 +100,7 @@ class VirtualLedApp(object):
             self.connected = True
             def on_subsc(res):
                 print '!!!! SUBSCRIBED'
-            self.factory.subscribe(self.info.id, self.info.key).addCallback(on_subsc)
+            self.factory.subscribe(self.info.id).addCallback(on_subsc)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
         self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
@@ -121,7 +121,7 @@ class VirtualLedApp(object):
 
     def status_notify(self):
         if self.connected :
-            self.factory.notify('equipment', {'equipment': 'LED', 'state': self.led_state}, self.info.id, self.info.key)
+            self.factory.notify('equipment', {'equipment': 'LED', 'state': self.led_state}, self.info.id)
 
 
 if __name__ == '__main__':
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     # Automacti factory
     # Also it is possible to use C{devicehive.poll.PollFactory} or C{devicehive.ws.WebSocketFactory}
     # virt_led_factory = devicehive.auto.AutoFactory(virt_led)
-    #virt_led_factory = devicehive.device.ws.WebSocketFactory(virt_led)
+    # virt_led_factory = devicehive.device.ws.WebSocketFactory(virt_led)
     virt_led_factory = devicehive.poll.PollFactory(virt_led)
     # Send notification right after registration
     virt_led.status_notify()
