@@ -80,12 +80,13 @@ class WebSocketFactory(ClientFactory):
     handler = None
     callbacks = dict()
     
-    def __init__(self, handler):
+    def __init__(self, handler, access_key):
         """
         @type handler: C{object}
         @param handler: handler has to implement C{IProtoHandler} interface
         """
         self.handler = handler
+        self.access_key = access_key
         if IProtoHandler.implementedBy(self.handler.__class__):
             self.handler.factory = self
         else:
@@ -155,7 +156,7 @@ class WebSocketFactory(ClientFactory):
             else :
                 cmd.status = 'Success'
                 cmd.result = result
-            self.update_command(cmd, device_id = info.id, device_key = info.key)
+            self.update_command(cmd, device_id = info.id)
         #
         def on_err(reason):
             LOG_ERR('Failed to process command "{0}". Reason: {1}.'.format(cmd, reason))
@@ -175,7 +176,7 @@ class WebSocketFactory(ClientFactory):
             else :
                 cmd.status = 'Failed'
                 cmd.result = 'Unhandled Exception'
-            self.update_command(cmd, device_id = info.id, device_key = info.key)
+            self.update_command(cmd, device_id = info.id)
         #
         finished = Deferred()
         finished.addCallbacks(on_ok, on_err)
@@ -186,53 +187,44 @@ class WebSocketFactory(ClientFactory):
             LOG_ERR(err.message)
             on_err(err)
     
-    def update_command(self, command, device_id = None, device_key = None):
+    def update_command(self, command, device_id = None):
         if not ICommand.implementedBy(command.__class__) :
             raise DhError('{0}.update_command expects ICommand'.format(self.__class__.__name__))
         request = {'action': 'command/update', 'commandId': command.id, 'command': command.to_dict()}
         if device_id is not None :
             request['deviceId'] = device_id
-        if device_key is not None :
-            request['deviceKey'] = device_key
         return self.send_message(request)
     
     # begin IProtoFactory implementation
-    def authenticate(self, device_id, device_key):
+    def authenticate(self):
         request = {'action': 'authenticate',
-                   'deviceId': device_id,
-                   'deviceKey': device_key}
+                   'accessKey': self.access_key}
         return self.send_message(request)
     
-    def notify(self, notification, params, device_id = None, device_key = None):
+    def notify(self, notification, params, device_id = None):
         request = {'action': 'notification/insert', 'notification': {'notification': notification, 'parameters': params}}
         if (device_id is not None) :
             request['deviceId'] = device_id
-        if (device_key is not None) :
-            request['deviceKey'] = device_key
         return self.send_message(request)
     
-    def subscribe(self, device_id = None, device_key = None):
+    def subscribe(self, device_id = None):
         LOG_MSG('Subscribe device {0}.'.format(device_id))
         request = {'action': 'command/subscribe'}
         if device_id is not None :
             request['deviceId'] = device_id
-        if device_key is not None :
-            request['deviceKey'] = device_key
         return self.send_message(request)
     
-    def unsubscribe(self, device_id = None, device_key = None):
+    def unsubscribe(self, device_id = None):
         request = {'action': 'command/unsubscribe'}
         if device_id is not None :
             request['deviceId'] = device_id
-        if device_key is not None :
-            request['deviceKey'] = device_key
         return self.send_message(request)
     
     def device_save(self, info):
         LOG_MSG('device_save {0}'.format(info))
         if not IDeviceInfo.implementedBy(info.__class__) :
             raise WebSocketError('info parameter has to implement IDeviceInfo interface')
-        dev = {'key': info.key, 'name': info.name, 'equipment': [e.to_dict() for e in info.equipment]}
+        dev = {'name': info.name, 'equipment': [e.to_dict() for e in info.equipment]}
         if info.status is not None :
             dev['status'] = info.status
         if info.network is not None :
@@ -241,7 +233,7 @@ class WebSocketFactory(ClientFactory):
             dev['data'] = info.data
         if info.device_class is not None :
             dev['deviceClass'] = info.device_class.to_dict() if IDeviceClass.implementedBy(info.device_class.__class__) else info.device_class
-        request = {'action': 'device/save', 'deviceId': info.id, 'deviceKey': info.key, 'device': dev}
+        request = {'action': 'device/save', 'deviceId': info.id, 'device': dev}
         def on_ok(result):
             key = str(info.id).lower()
             self.devices[key] = info

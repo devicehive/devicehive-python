@@ -30,10 +30,6 @@ class VirtualLedInfo(object):
         return self.config.get('device', 'id')
 
     @property
-    def access_key(self):
-        return self.config.get('device', 'accesskey')
-
-    @property
     def name(self):
         return self.config.get('device', 'name')
 
@@ -135,7 +131,8 @@ if __name__ == '__main__':
     # Also it is possible to use C{devicehive.poll.PollFactory} or C{devicehive.ws.WebSocketFactory}
     # virt_led_factory = devicehive.auto.AutoFactory(virt_led)
     # virt_led_factory = devicehive.device.ws.WebSocketFactory(virt_led)
-    virt_led_factory = devicehive.poll.PollFactory(virt_led)
+    access_key = conf.get('authentication', 'accesskey')
+    virt_led_factory = devicehive.poll.PollFactory(virt_led, access_key)
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive

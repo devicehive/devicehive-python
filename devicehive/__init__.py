@@ -45,7 +45,7 @@ def connectDeviceHive(device_hive_url, factory):
     factory.url = url
     factory.host = host
     factory.port = port
-    if url.startswith('http://'):
+    if url.startswith('http://') or url.startswith('ws://'):
         log.msg('Establishing NON-SECURE connection with {0}.'.format(url))
         reactor.connectTCP(host, port, factory)
     else:
