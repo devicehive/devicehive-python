@@ -2,12 +2,13 @@
 # vim:set et tabstop=4 shiftwidth=4 nu nowrap fileencoding=utf-8:
 
 from zope.interface import implements
-from twisted.internet import reactor
+from twisted.internet import ssl, reactor
 from devicehive.interfaces import INetwork, IDeviceClass, IDeviceInfo, INotification, IEquipment, IProtoHandler, ICommand
 from devicehive.utils import parse_url, url_path, EmptyDataProducer
 from twisted.web.http_headers import Headers
 from twisted.web.client import Request
-
+from OpenSSL import SSL
+from twisted.python import log
 
 __all__ = ['DhError',
            'connectDeviceHive', 
@@ -41,10 +42,17 @@ def connectDeviceHive(device_hive_url, factory):
     @param factory: a factory object which implements C{IProtoFactory} interface.
     """
     url, host, port = parse_url(device_hive_url)
-    factory.url  = url
+    factory.url = url
     factory.host = host
     factory.port = port
-    return reactor.connectTCP(host, port, factory)
+    if url.startswith('http://') or url.startswith('ws://'):
+        log.msg('Establishing NON-SECURE connection with {0}.'.format(url))
+        reactor.connectTCP(host, port, factory)
+    else:
+        ccf = ssl.ClientContextFactory()
+        ccf.method = SSL.SSLv23_METHOD
+        log.msg('Establishing SECURE connection with {0}.'.format(url))
+        reactor.connectSSL(host, port, factory, ccf)
 reactor.connectDeviceHive = connectDeviceHive
 
 

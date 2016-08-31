@@ -82,6 +82,8 @@ class JsonDataProducer(object):
     def stopProducing(self):
         pass
 
+    def pauseProducing(self):
+        pass
 
 class PollCommand(BaseCommand) :
     def to_dict(self):
@@ -123,18 +125,17 @@ class BaseRequest(Request):
     L{BaseRequest} implements base HTTP/1.1 request
     """
     
-    def __init__(self, device_info, method, url, host, api, body_producer = None):
-        headers = BaseRequest.headers(host, device_info.id, device_info.key)
+    def __init__(self, method, url, host, api, access_key, body_producer = None):
+        headers = BaseRequest.headers(host, access_key)
         path = url_path(url, api)
         LOG_MSG('{0} PATH {1}'.format(method, path))
         super(BaseRequest, self).__init__(method, path, headers, body_producer)
     
     @staticmethod
-    def headers(host, device_id, device_key):
+    def headers(host, access_key):
         headers = Headers({'Host': [host.encode('utf-8')],
                            'Content-Type': ['application/json',],
-                           'Auth-DeviceID': [device_id.encode('utf-8')],
-                           'Auth-DeviceKey': [device_key.encode('utf-8')],
+                           'Authorization': ["Bearer " + access_key.encode('utf-8')],
                            'Accept': ['application/json']})
         return headers
 
@@ -145,9 +146,8 @@ class RegisterRequest(BaseRequest):
     intended for an external use.
     """
     
-    def __init__(self, device_info, url, host):
-        super(RegisterRequest, self).__init__(device_info, 'PUT', url, host, 'device/{0:s}'.format(device_info.id), JsonDataProducer(device_info.to_dict()))
-
+    def __init__(self, device_info, url, host, access_key):
+        super(RegisterRequest, self).__init__('PUT', url, host, 'device/{0:s}'.format(device_info.id), access_key, JsonDataProducer(device_info.to_dict()))
 
 class CommandRequest(BaseRequest):
     """
@@ -155,28 +155,30 @@ class CommandRequest(BaseRequest):
     does not contain timestamp field in this case server will use
     current time in UTC.
     """
-    def __init__(self, device_info, url, host, timestamp):
+    def __init__(self, device_info, url, host, access_key, timestamp):
         if timestamp is None :
             api = 'device/{0}/command/poll'.format(device_info.id)
         else :
             api = 'device/{0}/command/poll?timestamp={1}'.format(device_info.id, timestamp.isoformat())
-        super(CommandRequest, self).__init__(device_info, 'GET', url, host, api)
+        super(CommandRequest, self).__init__('GET', url, host, api, access_key)
 
 
 class ReportRequest(BaseRequest):
-    def __init__(self, device_info, url, host, command_id, result):
-        super(ReportRequest, self).__init__(device_info,
+    def __init__(self, device_info, url, host, access_key, command_id, result):
+        super(ReportRequest, self).__init__(
             'PUT',
             url,
             host,
             'device/{0}/command/{1}'.format(device_info.id, command_id),
+            access_key,
             JsonDataProducer(result.to_dict()))
 
 
 class NotifyRequest(BaseRequest):
-    def __init__(self, device_info, url, host, notification, parameters):
-        super(NotifyRequest, self).__init__(device_info, 'POST', url, host,
+    def __init__(self, device_info, url, host, access_key, notification, parameters):
+        super(NotifyRequest, self).__init__('POST', url, host,
             'device/{0}/notification'.format(device_info.id),
+            access_key,
             JsonDataProducer({'notification': notification, 'parameters': parameters}))
 
 
@@ -239,16 +241,18 @@ class CommandPollProtocol(HTTP11ClientProtocol):
     finally passes result back to an owner.
     """
 
-    def __init__(self, owner):
+    def __init__(self, owner, access_key):
         if hasattr(HTTP11ClientProtocol, '__init__'):
             HTTP11ClientProtocol.__init__(self)
         self.owner = owner
+        self.access_key = access_key
 
     def connectionMade(self):
         LOG_MSG('Sending command poll request for device: {0}.'.format(self.owner.info))
         self.request(CommandRequest(self.owner.info,
                                     self.owner.url,
                                     self.owner.host,
+                                    self.access_key,
                                     self.owner.timestamp)).addCallbacks(self.success, self.failure)
 
     def command_failed(self, command, reason):
@@ -346,13 +350,14 @@ class DevicePollFactory(ClientFactory):
     proto = None
     recall = None
     
-    def __init__(self, owner, info, deferred):
+    def __init__(self, owner, info, deferred, access_key):
         if not IPollOwner.implementedBy(owner.__class__) :
             raise TypeError('owner has to implement IPollOwner interface.')
         self.owner = owner
         self.timestamp = self.owner.timestamp
         self.info = info
         self.deferred = deferred
+        self.access_key = access_key
         self.connected = False
         self.stopped = False
     
@@ -364,7 +369,7 @@ class DevicePollFactory(ClientFactory):
     
     def buildProtocol(self, addr):
         LOG_MSG('Building devicehive command poll protocol object.')
-        self.proto = CommandPollProtocol(self)
+        self.proto = CommandPollProtocol(self, self.access_key)
         return self.proto
     
     def clientConnectionSuccess(self):
@@ -405,7 +410,7 @@ class DevicePollFactory(ClientFactory):
         def err(reason):
             LOG_MSG('Failed to send command {0} result. Reason: {1}.'.format(cmdid, reason))
         factory = RequestFactory(ReportRequest(self.info, self.url, self.host, cmdid, cmdres), ok, err)
-        reactor.connectTCP(self.host, self.port, factory)
+        reactor.connectDeviceHive(self.url, factory)
     
     def run_command(self, cmd, fin_defer):
         """ Executes user command handler. """
@@ -424,18 +429,19 @@ class PollFactory(object):
     timestamp = None
     poll_interval = 1.0
     
-    def __init__(self, handler):
+    def __init__(self, handler, access_key):
         if not IProtoHandler.implementedBy(handler.__class__) :
             raise TypeError('handler has to implement devicehive.interfaces.IProtoHandler interface.')
         self.handler = handler
         self.handler.factory = self
+        self.access_key = access_key
         self.devices = {}
         self.factories = {}
         self.timestamp = datetime.utcnow()
     
     def execute_request(self, request, ok, err):
         factory = RequestFactory(request, ok, err)
-        reactor.connectTCP(self.host, self.port, factory)
+        reactor.connectDeviceHive(self.url, factory)
     
     # begin IPollOwner implementation
     def on_command(self, info, cmd, finish):
@@ -450,10 +456,10 @@ class PollFactory(object):
     # end IPollOwner
     
     # begin IProtoFactory implementation
-    def authenticate(self, device_id, device_key):
+    def authenticate(self, device_id):
         raise NotImplementedError()
     
-    def notify(self, notification, params, device_id = None, device_key = None):
+    def notify(self, notification, params, device_id = None):
         if (device_id is not None) and (device_id in self.devices) :
             defer = Deferred()
             def ok(res):
@@ -462,23 +468,23 @@ class PollFactory(object):
             def err(reason):
                 LOG_ERR('Failed to send notification.')
                 defer.errback(reason)
-            self.execute_request(NotifyRequest(self.devices[device_id], self.url, self.host, notification, params), ok, err)
+            self.execute_request(NotifyRequest(self.devices[device_id], self.url, self.host, self.access_key, notification, params), ok, err)
             return defer
         else :
             return fail(DhError('device_id parameter expected'))
     
-    def subscribe(self, device_id = None, device_key = None):
+    def subscribe(self, device_id = None):
         if device_id in self.devices :
             defer = Deferred()
-            factory = DevicePollFactory(self, self.devices[device_id], defer)
+            factory = DevicePollFactory(self, self.devices[device_id], defer, self.access_key)
             self.factories[device_id] = factory
             LOG_MSG('Connecting command poll factory to {0}:{1}.'.format(self.host, self.port))
-            reactor.connectTCP(self.host, self.port, factory)
+            reactor.connectDeviceHive(self.url, factory)
             return defer
         else :
             return fail(DhError('Failed to subscribe device "{0}".'.format(device_id)))
     
-    def unsubscribe(self, device_id = None, device_key = None):
+    def unsubscribe(self, device_id = None):
         if (device_id in self.devices) and (device_id in self.factories) :
             factory = self.factories.pop(device_id)
             return factory.stop()
@@ -494,11 +500,12 @@ class PollFactory(object):
         def registration_failure(reason):
             LOG_MSG('Failed to save device. Info: {0}.'.format(info))
             defer.errback(reason)
-        req = RegisterRequest(info, self.url, self.host)
+        req = RegisterRequest(info, self.url, self.host, self.access_key)
         self.execute_request(req, registration_success, registration_failure)
         return defer
     
     def connect(self, url):
+        LOG_MSG('PollFactory: Connection with {0} has been established.'.format(url))
         self.url, self.host, self.port = parse_url(url)
         self.handler.on_connected()
     # end IProtoFactory implementation

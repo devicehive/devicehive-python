@@ -78,7 +78,6 @@ class IEquipment(Interface):
 
 class IDeviceInfo(Interface):
     id = Attribute('Device ID')
-    key = Attribute('Device Key')
     name = Attribute('Device Name')
     status = Attribute('Device Status')
     data = Attribute('Device data, a dict object with an arbitrary structure')
