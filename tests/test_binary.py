@@ -540,7 +540,7 @@ class BinaryFactoryTests(unittest.TestCase):
     
     def setUp(self):
         self.gateway = BinaryFactoryTests._GatewayMock()
-        self.device_id = uuid.uuid1()
+        self.device_id = uuid.uuid1().urn[9:]
         rp = RegistrationPayload()
         rp.device_id = self.device_id
         rp.device_key = 'test-device-key'
