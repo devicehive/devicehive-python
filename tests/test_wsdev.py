@@ -66,7 +66,7 @@ class WsClientSendingTestCase(unittest.TestCase):
     def setUp(self):
         self.transport = StringTransport()
         self.handler = Handler()
-        self.factory = WebSocketFactory(self.handler, "AccessKey")
+        self.factory = WebSocketFactory(self.handler)
     
     def test_buildProtocol(self):
         proto = self.factory.buildProtocol(None)
@@ -111,7 +111,7 @@ class WsClientMethodsTestCase(unittest.TestCase):
     def setUp(self):
         self.transport = StringTransport()
         self.handler = Handler()
-        self.factory = WebSocketFactory(self.handler, "AccessKey")
+        self.factory = WebSocketFactory(self.handler)
         self.proto = self.factory.buildProtocol(None)
         self.proto.makeConnection(self.transport)
         self.proto.dataReceived('HTTP/1.1 101 OK\r\n\r\n')
@@ -145,7 +145,7 @@ class WsClientMethodsTestCase(unittest.TestCase):
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
     
     def test_authenticate(self):
-        self.factory.authenticate()
+        self.factory.authenticate("AccessKey")
         s = decode_ws_message(self.transport.value())
         self.assertEquals({u'action': u'authenticate',
                            u'accessKey': u'AccessKey',

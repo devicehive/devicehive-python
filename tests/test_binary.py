@@ -580,7 +580,6 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertTrue(self.gateway.reg_has_been_received)
         self.assertNotEquals(None, self.gateway.device_info)
         self.assertEquals(str(self.device_id), self.gateway.device_info.id)
-        self.assertEquals('test-device-key', self.gateway.device_info.key)
         self.assertEquals('test-device-name', self.gateway.device_info.name)
         self.assertEquals('test-device-class-name', self.gateway.device_info.device_class.name)
         self.assertEquals('test-device-class-version', self.gateway.device_info.device_class.version)

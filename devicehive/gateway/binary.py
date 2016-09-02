@@ -1127,7 +1127,6 @@ class BinaryFactory(ServerFactory):
         self.hardware_address_map[address] = registration_info.device_id
 
         info = CDeviceInfo(id=str(registration_info.device_id),
-                           key=registration_info.device_key,
                            name=registration_info.device_name,
                            device_class=CDeviceClass(name=registration_info.device_class_name,
                                                      version=registration_info.device_class_version),
