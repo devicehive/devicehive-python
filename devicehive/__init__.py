@@ -175,9 +175,8 @@ class DeviceInfo(object):
     
     implements(IDeviceInfo)
     
-    def __init__(self, id = None, key = None, name = None, status = None, data = None, network = None, device_class = None, equipment = None):
+    def __init__(self, id = None, name = None, status = None, data = None, network = None, device_class = None, equipment = None):
         self.id = id
-        self.key = key
         self.name = name
         self.status = status
         self.data = data
@@ -189,8 +188,7 @@ class DeviceInfo(object):
             return '<id: "{0}", name: "{1}", ... >'.format(self.id, self.name)
     
     def to_dict(self):
-        res = {'key': self.key,
-               'name': self.name}
+        res = {'name': self.name}
         if self.status is not None :
             res['status'] = self.status
         if self.data is not None :

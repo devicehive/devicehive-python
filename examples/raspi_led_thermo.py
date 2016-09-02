@@ -76,10 +76,6 @@ class RasPiConfig(object):
         return '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
     
     @property
-    def key(self):
-        return 'device-key'
-    
-    @property
     def name(self):
         return 'Device1'
     
@@ -105,7 +101,6 @@ class RasPiConfig(object):
 
     def to_dict(self):
         res = {
-            'key': self.key,
             'name': self.name
         }
 
@@ -129,7 +124,7 @@ class RasPiApp(object):
     
     implements(devicehive.interfaces.IProtoHandler)
     
-    def __init__(self, led, sensor, lcd):
+    def __init__(self, led, sensor, lcd, access_key):
         super(RasPiApp, self).__init__()
         self.connected = False
         self.notifs = []
@@ -137,6 +132,7 @@ class RasPiApp(object):
         self.led = led
         self.sensor = sensor
         self.lcd = lcd
+        self.access_key = access_key
     
     def on_apimeta(self, websocket_server, server_time):
         log.msg('on_apimeta')
@@ -148,13 +144,15 @@ class RasPiApp(object):
         log.msg('Connected to devicehive server.')
         self.connected = True
         for onotif in self.notifs :
-            self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id, device_key = self.info.key)
+            self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id)
         self.notifs = []
         def on_subscribe(result) :
-            self.factory.subscribe(self.info.id, self.info.key)
+            self.factory.subscribe(self.info.id)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def on_connection_failed(self, reason) :
         pass
@@ -345,7 +343,7 @@ if __name__ == '__main__' :
     lcd = Lcd()
     temp_sensor = TempSensor(_W1_FILENAME)
 
-    device = RasPiApp(led, temp_sensor, lcd)
+    device = RasPiApp(led, temp_sensor, lcd, "access_key")
 
     led_factory = devicehive.auto.AutoFactory(device)
     # led_factory = devicehive.poll.PollFactory(device)

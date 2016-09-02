@@ -123,11 +123,12 @@ class SensorInfo(object):
 class App(object):
     implements(devicehive.interfaces.IProtoHandler)
 
-    def __init__(self, info, snmp_host, snmp_port, update_interval, **kwargs):
+    def __init__(self, info, snmp_host, snmp_port, update_interval, access_key, **kwargs):
         super(App, self).__init__()
         self.info = info
         self.snmp_host = snmp_host
         self.snmp_port = snmp_port
+        self.access_key = access_key
         self.update_interval = update_interval
 
     def on_apimeta(self, websocket_server, server_time):
@@ -162,7 +163,10 @@ class App(object):
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
             self.connected = False
 
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def on_connection_failed(self, reason) :
         log.err('Failed to connect to devicehive.')
@@ -188,6 +192,7 @@ class App(object):
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--access-key', dest='access_key', action='store', required=True)
     parser.add_argument('--url', dest='url', action='store', required=True)
     parser.add_argument('--sensor-host', dest='sensor_host', action='store', required=True)
     parser.add_argument('--sensor-port', dest='sensor_port', action='store', default=161)
@@ -222,7 +227,7 @@ def main():
     log.msg('Serving sensor {}.'.format(info))
 
     log.msg('Connecting to devicehive server...')
-    connection = devicehive.auto.AutoFactory(App(info, options.sensor_host, int(options.sensor_port), options.update_interval))
+    connection = devicehive.auto.AutoFactory(App(info, options.sensor_host, int(options.sensor_port), options.update_interval, options.access_key))
     connection.connect(options.url)
     reactor.run()
 

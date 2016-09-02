@@ -33,7 +33,6 @@ class LEDHiveApp():
 
     def generate_info():
         return devicehive.DeviceInfo(id='0204eede-2297-11e2-882c-e0cb4eb92129',
-                                     key='Exmaple Device Key',
                                      name='DeviceHive Python Example',
                                      status='Online',
                                      network=devicehive.Network(name='VirtualLed Sample Network',
@@ -99,8 +98,7 @@ class LEDHiveApp():
 
 if __name__ == '__main__':
     log.startLogging(sys.stdout)
-    access_key = "1jwKgLYi/CdfBTI9KByfYxwyQ6HUIEfnGSgakdpFjgk="
-    transport = devicehive.device.ws.WebSocketFactory(LEDHiveApp(), access_key)
+    transport = devicehive.device.ws.WebSocketFactory(LEDHiveApp())
     # transport.connect('ws://playground.devicehive.com/api/websocket')
     transport.connect('ws://127.0.0.1:8080/dh/websocket')
     reactor.run()

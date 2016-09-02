@@ -80,13 +80,12 @@ class WebSocketFactory(ClientFactory):
     handler = None
     callbacks = dict()
     
-    def __init__(self, handler, access_key):
+    def __init__(self, handler):
         """
         @type handler: C{object}
         @param handler: handler has to implement C{IProtoHandler} interface
         """
         self.handler = handler
-        self.access_key = access_key
         if IProtoHandler.implementedBy(self.handler.__class__):
             self.handler.factory = self
         else:
@@ -196,7 +195,8 @@ class WebSocketFactory(ClientFactory):
         return self.send_message(request)
     
     # begin IProtoFactory implementation
-    def authenticate(self):
+    def authenticate(self, access_key):
+        self.access_key = access_key
         request = {'action': 'authenticate',
                    'accessKey': self.access_key}
         return self.send_message(request)

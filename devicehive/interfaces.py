@@ -142,16 +142,15 @@ class IProtoHandler(Interface):
 
 
 class IProtoFactory(Interface):
-    def authenticate(self, device_id, device_key):
+    def authenticate(self, access_key):
         """
         Sends authentication message.
         
-        @param device_id - device id
-        @param device_key - device key
+        @param access_key - access key
         @return deferred
         """
     
-    def notify(self, notification, params, device_id = None, device_key = None):
+    def notify(self, notification, params, device_id = None):
         """
         Sends notification message to devicehive server.
         
@@ -160,7 +159,7 @@ class IProtoFactory(Interface):
         @return deferred
         """
     
-    def update_command(self, command, device_id = None, device_key = None):
+    def update_command(self, command, device_id = None):
         """
         Updates an existing device command.
         
@@ -170,7 +169,7 @@ class IProtoFactory(Interface):
         @return deferred
         """
     
-    def subscribe(self, device_id = None, device_key = None):
+    def subscribe(self, device_id = None):
         """
         Subscribes a device to commands.
         
@@ -183,7 +182,7 @@ class IProtoFactory(Interface):
         @return deferred
         """ 
     
-    def unsubscribe(self, device_id = None, device_key = None):
+    def unsubscribe(self, device_id = None):
         """
         Unsubscribe a device from commands reception.
         

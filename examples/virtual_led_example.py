@@ -76,6 +76,7 @@ class VirtualLedApp(object):
     def __init__(self, config):
         self.factory = None
         self.info = VirtualLedInfo(config)
+        self.access_key = config.get('authentication', 'accesskey')
         self.connected = False
         self.led_state = 0
 
@@ -97,9 +98,14 @@ class VirtualLedApp(object):
             def on_subsc(res):
                 print '!!!! SUBSCRIBED'
             self.factory.subscribe(self.info.id).addCallback(on_subsc)
-        def on_failed(reason) :
+
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_save, on_failed)
+
+        def on_failed(reason):
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
 
     def on_command(self, device_id, command, finished):
         if command.command == 'UpdateLedState':
@@ -131,8 +137,7 @@ if __name__ == '__main__':
     # Also it is possible to use C{devicehive.poll.PollFactory} or C{devicehive.ws.WebSocketFactory}
     # virt_led_factory = devicehive.auto.AutoFactory(virt_led)
     # virt_led_factory = devicehive.device.ws.WebSocketFactory(virt_led)
-    access_key = conf.get('authentication', 'accesskey')
-    virt_led_factory = devicehive.poll.PollFactory(virt_led, access_key)
+    virt_led_factory = devicehive.poll.PollFactory(virt_led)
     # Send notification right after registration
     virt_led.status_notify()
     # Connect to device-hive

@@ -209,7 +209,7 @@ class RequestProtocol(HTTP11ClientProtocol):
             self.deferred.callback(None)
         else :
             def on_err(err):
-                self.deferred.errback(err)
+                self.deferred.errback(Exception(err))
             self.get_response_text(response, on_err)
 
     def on_failure(self, reason):
@@ -409,7 +409,7 @@ class DevicePollFactory(ClientFactory):
             LOG_MSG('Command {0} result has been sent.'.format(cmdid))
         def err(reason):
             LOG_MSG('Failed to send command {0} result. Reason: {1}.'.format(cmdid, reason))
-        factory = RequestFactory(ReportRequest(self.info, self.url, self.host, cmdid, cmdres), ok, err)
+        factory = RequestFactory(ReportRequest(self.info, self.url, self.host, self.access_key, cmdid, cmdres), ok, err)
         reactor.connectDeviceHive(self.url, factory)
     
     def run_command(self, cmd, fin_defer):
@@ -429,12 +429,11 @@ class PollFactory(object):
     timestamp = None
     poll_interval = 1.0
     
-    def __init__(self, handler, access_key):
+    def __init__(self, handler):
         if not IProtoHandler.implementedBy(handler.__class__) :
             raise TypeError('handler has to implement devicehive.interfaces.IProtoHandler interface.')
         self.handler = handler
         self.handler.factory = self
-        self.access_key = access_key
         self.devices = {}
         self.factories = {}
         self.timestamp = datetime.utcnow()
@@ -456,8 +455,11 @@ class PollFactory(object):
     # end IPollOwner
     
     # begin IProtoFactory implementation
-    def authenticate(self, device_id):
-        raise NotImplementedError()
+    def authenticate(self, access_key):
+        self.access_key = access_key
+        defer = Deferred()
+        defer.callback(None)
+        return defer
     
     def notify(self, notification, params, device_id = None):
         if (device_id is not None) and (device_id in self.devices) :
