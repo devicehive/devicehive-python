@@ -239,7 +239,7 @@ class IClientApp(Interface):
 
 
 class IClientTransport(Interface):
-    def authenticate(self, login, password):
+    def authenticate(self, access_key):
         """
         Authenticates client in device hive server.
         @return deferred object

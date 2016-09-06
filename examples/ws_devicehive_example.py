@@ -68,7 +68,7 @@ class LEDHiveApp():
         def on_failed(reason):
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.DEVICE_INFO, reason))
 
-        self.factory.authenticate().addCallbacks(on_authenticate, on_failed)
+        self.factory.authenticate("<access_key>").addCallbacks(on_authenticate, on_failed)
 
     def do_short_command(self, finished):
         log.msg('short command handle')

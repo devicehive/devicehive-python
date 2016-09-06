@@ -196,9 +196,8 @@ class WebSocketFactory(ClientFactory):
     
     # begin IProtoFactory implementation
     def authenticate(self, access_key):
-        self.access_key = access_key
         request = {'action': 'authenticate',
-                   'accessKey': self.access_key}
+                   'accessKey': access_key}
         return self.send_message(request)
     
     def notify(self, notification, params, device_id = None):
