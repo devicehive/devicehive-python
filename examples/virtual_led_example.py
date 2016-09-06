@@ -93,7 +93,7 @@ class VirtualLedApp(object):
         pass
 
     def on_connected(self):
-        def on_subscribe(result) :
+        def on_save(result) :
             self.connected = True
             def on_subsc(res):
                 print '!!!! SUBSCRIBED'

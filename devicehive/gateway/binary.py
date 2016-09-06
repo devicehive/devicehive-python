@@ -696,8 +696,6 @@ class BinaryFormatter(object) :
             obj = RegistrationPayload()
             if 'id' in val :
                 obj.device_id = val['id']
-            if 'key' in val :
-                obj.device_key = val['key']
             if 'name' in val :
                 obj.device_name = val['name']
             if 'deviceClass' in val and isinstance(val['deviceClass'], dict) :
@@ -1000,7 +998,6 @@ class RegistrationPayload(object):
     
     def __init__(self):
         self._device_id = ''
-        self._device_key = ''
         self._device_name = ''
         self._device_class_name = ''
         self._device_class_version = ''
@@ -1009,8 +1006,6 @@ class RegistrationPayload(object):
         self._commands = list()
     
     device_id = binary_property (DATA_TYPE_STRING, *define_accessors('_device_id'))
-    
-    device_key = binary_property(DATA_TYPE_STRING, *define_accessors('_device_key'))
     
     device_name = binary_property(DATA_TYPE_STRING, *define_accessors('_device_name'))
     
@@ -1024,7 +1019,7 @@ class RegistrationPayload(object):
     
     commands = array_binary_property( ArrayQualifier(Command) )
     
-    __binary_struct__ = (device_id, device_key, device_name, device_class_name, device_class_version, equipment, notifications, commands)
+    __binary_struct__ = (device_id, device_name, device_class_name, device_class_version, equipment, notifications, commands)
 
 
 class NotificationCommandResultPayload(object):

@@ -4,7 +4,7 @@
 from twisted.internet import reactor
 from twisted.python import log
 import devicehive
-from devicehive.interfaces import IProtoHandler
+from devicehive.interfaces import IProtoHandler, IDeviceInfo
 from zope.interface import Interface, Attribute, implements
 
 
@@ -91,17 +91,22 @@ class BaseGateway(object):
         def on_failure(self, device_id, reason):
             pass
     
-    def __init__(self, url, factory_cls) :
+    def __init__(self, url, access_key, factory_cls) :
         super(BaseGateway, self).__init__()
+        self.access_key = access_key
         self.factory = factory_cls(handler = BaseGateway._ProtoHandler(self))
         self.factory.connect(url)
     
     def connect_device(self, info):
-        def on_subscribe(result) :
-            self.factory.subscribe(info.id, info.key)
+        if not IDeviceInfo.implementedBy(info.__class__) :
+            raise TypeError('info has to implement devicehive.interfaces.IDeviceInfo interface.')
+        def on_authenticate(result):
+            self.factory.device_save(info).addCallbacks(on_save, on_failed)
+        def on_save(result) :
+            self.factory.subscribe(info.id)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(info, reason))
-        self.factory.device_save(info).addCallbacks(on_subscribe, on_failed)
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def on_connected(self):
         self.connected = True
@@ -117,7 +122,7 @@ class BaseGateway(object):
     def notification_received(self, info, notification):
         log.msg('Device {0} has sent notification {1}.'.format(info, notification))
         if self.connected :
-            self.factory.notify(notification.name, notification.parameters, info.id, info.key)
+            self.factory.notify(notification.name, notification.parameters, info.id)
     
     def do_command(self, device_id, command, finish_deferred):
         if device_id in self.devices :

@@ -19,7 +19,6 @@ import devicehive.gateway.i2c
 DEVICE_INFO = ((0x78,
                devicehive.DeviceInfo(id=str('1d197265-2272-493a-b4c4-a79387111a57'),
                                      name='Echo',
-                                     key='0x78',
                                      network=devicehive.Network(id='i2cnet', key='i2cnet', name='I2C network'),
                                      device_class=devicehive.DeviceClass(name='echo',
                                                                          version='0.1'),
@@ -28,7 +27,6 @@ DEVICE_INFO = ((0x78,
                                                                      type='i2c-echo')])),
                (0x1e,
                devicehive.DeviceInfo(id=str('19c7ef2a-ee97-4ed2-be49-7fc7a6d6e85d'),
-                                     key='0x3c',
                                      name='Compass',
                                      network=devicehive.Network(id='i2cnet', key='i2cnet', name='I2C network'),
                                      device_class=devicehive.DeviceClass(name='compass',
@@ -38,7 +36,6 @@ DEVICE_INFO = ((0x78,
                                                                      type='compass')])),
                (0x68,
                devicehive.DeviceInfo(id=str('a10467f9-1d0f-44b0-b3c7-604d84ac254d'),
-                                     key='0x68',
                                      name='Gyro',
                                      network=devicehive.Network(id='i2cnet', key='i2cnet', name='I2C network'),
                                      device_class=devicehive.DeviceClass(name='Gyro',
@@ -49,8 +46,8 @@ DEVICE_INFO = ((0x78,
 )
 
 class I2cGateway(devicehive.gateway.BaseGateway):
-    def __init__(self, url, factory_cls):
-        super(I2cGateway, self).__init__(url, factory_cls)
+    def __init__(self, url, access_key, factory_cls):
+        super(I2cGateway, self).__init__(url, access_key, factory_cls)
 
     def registration_received(self, device_info):
         super(I2cGateway, self).registration_received(device_info)
@@ -65,10 +62,9 @@ class I2cGateway(devicehive.gateway.BaseGateway):
         super(I2cGateway, self).run(transport_endpoint, device_factory)
 
 
-def main(adaptor):
+def main(host, access_key, adaptor):
     log.startLogging(sys.stdout)
-    # gateway = I2cGateway('http://pg.devicehive.com/api/', devicehive.auto.AutoFactory)
-    gateway = I2cGateway('http://ecloud.dataart.com/ecapi8', devicehive.auto.AutoFactory)
+    gateway = I2cGateway(host, access_key, devicehive.auto.AutoFactory)
     endpoint = devicehive.gateway.i2c.I2cEndpoint(reactor, adaptor, DEVICE_INFO)
     factory = devicehive.gateway.i2c.I2cProtoFactory(gateway)
     # run gateway application
@@ -83,5 +79,8 @@ if __name__ == '__main__':
                         dest='adaptor',
                         required=False,
                         help='i2c adaptor')
+    parser.add_argument('-k', '--access-key', type=str, dest='access_key', required=True, help='access key')
+    parser.add_argument('-h', '--host', type=str, default='http://playground.devicehive.com/api/rest/', dest='host',
+                        required=True, help='playground url')
     r = parser.parse_args()
-    main(r.adaptor)
+    main(r.host, r.access_key, r.adaptor)
