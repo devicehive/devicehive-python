@@ -349,7 +349,7 @@ if __name__ == '__main__' :
     lcd = None # Lcd()
     temp_sensor = TempSensor(_W1_FILENAME)
 
-    device = RasPiApp(led, temp_sensor, lcd, "access_key")
+    device = RasPiApp(led, temp_sensor, lcd, _ACCESS_KEY)
 
     led_factory = devicehive.auto.AutoFactory(device)
     # led_factory = devicehive.poll.PollFactory(device)
