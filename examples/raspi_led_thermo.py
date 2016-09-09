@@ -63,6 +63,9 @@ _LED_PIN = 12
 #_API_URL = 'http://pg.devicehive.com/api/'
 _API_URL = 'https://ecloud.dataart.com/ecapi9/'
 
+# server AccessKey
+_ACCESS_KEY = '1jwKgLYi/CdfBTI9KByfYxwyQ6HUIEfnGSgakdpFjgk='
+
 
 class RasPiConfig(object):
     """
@@ -85,7 +88,8 @@ class RasPiConfig(object):
     
     @property
     def network(self):
-        return devicehive.Network(key='Netname', name='Netname', descr='RasPi/Py LED/w1 sample')
+        #return devicehive.Network(key='Netname', name='Netname', descr='RasPi/Py LED/w1 sample')
+        return None
     
     @property
     def device_class(self):
@@ -106,10 +110,11 @@ class RasPiConfig(object):
 
         if self.status is not None:
             res['status'] = self.status
-   
+
         if self.network is not None:
             res['network'] = self.network.to_dict() if devicehive.interfaces.INetwork.implementedBy(self.network.__class__) else self.network
-            res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
+
+        res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
 
         if self.equipment is not None:
             res['equipment'] = [x.to_dict() for x in self.equipment]
