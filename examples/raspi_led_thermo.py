@@ -180,7 +180,8 @@ class RasPiApp(object):
         finished.callback(devicehive.CommandResult('Completed'))
 
     def do_set_command(self, finished, text=None):
-        self.lcd.write_string(text or '')
+        if lcd != None:
+            self.lcd.write_string(text or '')
         finished.callback(devicehive.CommandResult('Completed'))
     
     def on_command(self, device_id, command, finished):
@@ -345,7 +346,7 @@ if __name__ == '__main__' :
 
     led = LedDevice(_LED_PIN)
     led.blink(3)
-    lcd = Lcd()
+    lcd = None # Lcd()
     temp_sensor = TempSensor(_W1_FILENAME)
 
     device = RasPiApp(led, temp_sensor, lcd, "access_key")
