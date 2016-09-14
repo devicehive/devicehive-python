@@ -125,7 +125,7 @@ class WsClientMethodsTestCase(unittest.TestCase):
         self.assertEquals({u'action': u'notification/insert',
                            u'notification': {u'notification': u'nt',
                                              u'parameters': {u'a': 1, u'b': 2}},
-                           u'deviceId': u'123',
+                           u'deviceGuid': u'123',
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
     
     def test_subscribe(self):
@@ -133,7 +133,7 @@ class WsClientMethodsTestCase(unittest.TestCase):
         defer = self.factory.subscribe('123')
         s = decode_ws_message(self.transport.value())
         self.assertEquals({u'action': u'command/subscribe',
-                           u'deviceId': u'123',
+                           u'deviceGuids': [u'123'],
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
     
     def test_unsubscribe(self):
@@ -141,7 +141,7 @@ class WsClientMethodsTestCase(unittest.TestCase):
         defer = self.factory.unsubscribe('123')
         s = decode_ws_message(self.transport.value())
         self.assertEquals({u'action': u'command/unsubscribe',
-                           u'deviceId': u'123',
+                           u'deviceGuids': [u'123'],
                            u'requestId': max(self.proto.msg_callbacks.keys())}, json.loads(s))
     
     def test_authenticate(self):
