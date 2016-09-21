@@ -43,7 +43,7 @@ class TestApp(object):
             self.factory.subscribe([self.dev_id]).addCallbacks(on_subscribed, on_subscribed_failed)
         def on_fail(reason):
             print 'The application FAILED authentication.'
-        self.factory.authenticate('vusr', 'password').addCallbacks(on_ok, on_fail)
+        self.factory.authenticate("<access_key>").addCallbacks(on_ok, on_fail)
     
     def do_notification(self, device_id, notification):
         print 'Notification {0} has been received for device {1}.'.format(notification, device_id)
@@ -52,8 +52,8 @@ class TestApp(object):
 def main():
     log.startLogging(sys.stdout)
     transport = devicehive.client.ws.WebSocketFactory(TestApp())
-    transport.connect('http://pg.devicehive.com:8010')
-    #transport.connect('ws://localhost:3919')
+    # transport.connect('ws://playground.devicehive.com/api/websocket')
+    transport.connect('ws://127.0.0.1:8080/dh/websocket')
     reactor.run()
 
 

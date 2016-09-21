@@ -234,8 +234,7 @@ class BinaryFormatterTest(unittest.TestCase):
     def test_deserialize_register2(self):
         payload = b'{"id":"fa8a9d6e-6555-11e2-89b8-e0cb4eb92129","key":"DEVICE_KEY","name":"DEVICE_NAME","deviceClass":{"name":"DEVICE_CLASS_NAME","version":"DEVICE_CLASS_VERSION"},"equipment":[{"code":"LED_EQP_CODE","name":"LED_EQP_NAME","type":"LED_EQP_TYPE"},{"code":"BTN_EQP_CODE","name":"BTN_EQP_NAME","type":"BTN_EQP_TYPE"}],"commands":[{"intent":257,"name":"UpdateLedState","params":{"equipment":"str","state":"bool"}}],"notifications":[{"intent":256,"name":"equipment","params":{"equipment":"str","state":"bool"}}]}'
         obj = BinaryFormatter.deserialize_register2(payload)
-        self.assertEquals(uuid.UUID('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129'), obj.device_id)
-        self.assertEquals(u'DEVICE_KEY', obj.device_key)
+        self.assertEquals('fa8a9d6e-6555-11e2-89b8-e0cb4eb92129', obj.device_id)
         self.assertEquals(u'DEVICE_NAME', obj.device_name)
         self.assertEquals(u'DEVICE_CLASS_NAME', obj.device_class_name)
         self.assertEquals(u'DEVICE_CLASS_VERSION', obj.device_class_version)
@@ -540,7 +539,7 @@ class BinaryFactoryTests(unittest.TestCase):
     
     def setUp(self):
         self.gateway = BinaryFactoryTests._GatewayMock()
-        self.device_id = uuid.uuid1()
+        self.device_id = uuid.uuid1().urn[9:]
         rp = RegistrationPayload()
         rp.device_id = self.device_id
         rp.device_key = 'test-device-key'
@@ -580,7 +579,6 @@ class BinaryFactoryTests(unittest.TestCase):
         self.assertTrue(self.gateway.reg_has_been_received)
         self.assertNotEquals(None, self.gateway.device_info)
         self.assertEquals(str(self.device_id), self.gateway.device_info.id)
-        self.assertEquals('test-device-key', self.gateway.device_info.key)
         self.assertEquals('test-device-name', self.gateway.device_info.name)
         self.assertEquals('test-device-class-name', self.gateway.device_info.device_class.name)
         self.assertEquals('test-device-class-version', self.gateway.device_info.device_class.version)

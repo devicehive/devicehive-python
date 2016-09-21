@@ -110,7 +110,7 @@ class WebSocketFactory(ClientFactory):
         pass
     
     # IClientTransport interface implementation
-    def authenticate(self, login, password):
+    def authenticate(self, access_key):
         LOG_MSG('Authenticating the client library.')
         defer = Deferred()
         def on_ok(res):
@@ -123,7 +123,7 @@ class WebSocketFactory(ClientFactory):
         def on_err(reason):
             LOG_ERR('Failed to send authentication message. Reason: {0}.'.format(reason))
             defer.errback(reason)
-        self.proto.send_message({'action': 'authenticate', 'requestId': None, 'login': login, 'password': password}).addCallbacks(on_ok, on_err)
+        self.proto.send_message({'action': 'authenticate', 'accessKey': access_key}).addCallbacks(on_ok, on_err)
         return defer
     
     def subscribe(self, device_ids):

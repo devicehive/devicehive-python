@@ -695,9 +695,7 @@ class BinaryFormatter(object) :
         def _deserialize_register2(val) :
             obj = RegistrationPayload()
             if 'id' in val :
-                obj.device_id = uuid.UUID(val['id'])
-            if 'key' in val :
-                obj.device_key = val['key']
+                obj.device_id = val['id']
             if 'name' in val :
                 obj.device_name = val['name']
             if 'deviceClass' in val and isinstance(val['deviceClass'], dict) :
@@ -999,8 +997,7 @@ class RegistrationPayload(object):
     """
     
     def __init__(self):
-        self._device_id = uuid.uuid1()
-        self._device_key = ''
+        self._device_id = ''
         self._device_name = ''
         self._device_class_name = ''
         self._device_class_version = ''
@@ -1008,9 +1005,7 @@ class RegistrationPayload(object):
         self._notification = list()
         self._commands = list()
     
-    device_id = binary_property(DATA_TYPE_GUID, *define_accessors('_device_id'))
-    
-    device_key = binary_property(DATA_TYPE_STRING, *define_accessors('_device_key'))
+    device_id = binary_property (DATA_TYPE_STRING, *define_accessors('_device_id'))
     
     device_name = binary_property(DATA_TYPE_STRING, *define_accessors('_device_name'))
     
@@ -1024,7 +1019,7 @@ class RegistrationPayload(object):
     
     commands = array_binary_property( ArrayQualifier(Command) )
     
-    __binary_struct__ = (device_id, device_key, device_name, device_class_name, device_class_version, equipment, notifications, commands)
+    __binary_struct__ = (device_id, device_name, device_class_name, device_class_version, equipment, notifications, commands)
 
 
 class NotificationCommandResultPayload(object):
@@ -1127,7 +1122,6 @@ class BinaryFactory(ServerFactory):
         self.hardware_address_map[address] = registration_info.device_id
 
         info = CDeviceInfo(id=str(registration_info.device_id),
-                           key=registration_info.device_key,
                            name=registration_info.device_name,
                            device_class=CDeviceClass(name=registration_info.device_class_name,
                                                      version=registration_info.device_class_version),

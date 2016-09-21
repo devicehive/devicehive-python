@@ -21,14 +21,13 @@ class MongoApp(object):
     
     implements(devicehive.interfaces.IClientApp)
 
-    def __init__(self, mongo_client, device_id, user, password):
+    def __init__(self, mongo_client, device_id, access_key):
         self.mongo_client = mongo_client
         self.dev_id = device_id
-        self.user = user
-        self.password = password
+        self.access_key = access_key
 
     def do_connect(self):
-        self.factory.authenticate(self.user, self.password).addCallbacks(self.on_auth_ok, self.on_auth_fail)
+        self.factory.authenticate(self.access_key).addCallbacks(self.on_auth_ok, self.on_auth_fail)
 
     def on_auth_ok(self, result):
         log.msg('The application successfully authenticated itself.')
@@ -63,7 +62,7 @@ def main():
     mongo_client = MongoClient(host='IP_OR_HOST_NAME', port=27017, document_class='DOC_CLASS')
     log.msg('Mongo client {}.'.format(mongo_client))
 
-    app = MongoApp(mongo_client, '9f33566e-1f8f-11e2-8979-c42c030dd6a5', 'USER_NAME', 'PASSWORD')
+    app = MongoApp(mongo_client, '9f33566e-1f8f-11e2-8979-c42c030dd6a5', 'ACCESS_KEY')
     transport = devicehive.client.ws.WebSocketFactory(app)
     transport.connect('ws://IP_OR_HOST_NAME:8080/DeviceHiveJava/websocket/')
     reactor.run()

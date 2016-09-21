@@ -80,13 +80,12 @@ class WebSocketFactory(ClientFactory):
     handler = None
     callbacks = dict()
     
-    def __init__(self, handler, access_key):
+    def __init__(self, handler):
         """
         @type handler: C{object}
         @param handler: handler has to implement C{IProtoHandler} interface
         """
         self.handler = handler
-        self.access_key = access_key
         if IProtoHandler.implementedBy(self.handler.__class__):
             self.handler.factory = self
         else:
@@ -192,32 +191,32 @@ class WebSocketFactory(ClientFactory):
             raise DhError('{0}.update_command expects ICommand'.format(self.__class__.__name__))
         request = {'action': 'command/update', 'commandId': command.id, 'command': command.to_dict()}
         if device_id is not None :
-            request['deviceId'] = device_id
+            request['deviceGuid'] = device_id
         return self.send_message(request)
     
     # begin IProtoFactory implementation
-    def authenticate(self):
+    def authenticate(self, access_key):
         request = {'action': 'authenticate',
-                   'accessKey': self.access_key}
+                   'accessKey': access_key}
         return self.send_message(request)
     
     def notify(self, notification, params, device_id = None):
         request = {'action': 'notification/insert', 'notification': {'notification': notification, 'parameters': params}}
         if (device_id is not None) :
-            request['deviceId'] = device_id
+            request['deviceGuid'] = device_id
         return self.send_message(request)
     
     def subscribe(self, device_id = None):
         LOG_MSG('Subscribe device {0}.'.format(device_id))
         request = {'action': 'command/subscribe'}
         if device_id is not None :
-            request['deviceId'] = device_id
+            request['deviceGuids'] = [device_id]
         return self.send_message(request)
     
     def unsubscribe(self, device_id = None):
         request = {'action': 'command/unsubscribe'}
         if device_id is not None :
-            request['deviceId'] = device_id
+            request['deviceGuids'] = [device_id]
         return self.send_message(request)
     
     def device_save(self, info):

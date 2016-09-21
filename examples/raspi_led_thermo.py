@@ -63,6 +63,9 @@ _LED_PIN = 12
 #_API_URL = 'http://pg.devicehive.com/api/'
 _API_URL = 'https://ecloud.dataart.com/ecapi9/'
 
+# server AccessKey
+_ACCESS_KEY = '1jwKgLYi/CdfBTI9KByfYxwyQ6HUIEfnGSgakdpFjgk='
+
 
 class RasPiConfig(object):
     """
@@ -76,10 +79,6 @@ class RasPiConfig(object):
         return '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
     
     @property
-    def key(self):
-        return 'device-key'
-    
-    @property
     def name(self):
         return 'Device1'
     
@@ -89,7 +88,8 @@ class RasPiConfig(object):
     
     @property
     def network(self):
-        return devicehive.Network(key='Netname', name='Netname', descr='RasPi/Py LED/w1 sample')
+        #return devicehive.Network(key='Netname', name='Netname', descr='RasPi/Py LED/w1 sample')
+        return None
     
     @property
     def device_class(self):
@@ -105,16 +105,16 @@ class RasPiConfig(object):
 
     def to_dict(self):
         res = {
-            'key': self.key,
             'name': self.name
         }
 
         if self.status is not None:
             res['status'] = self.status
-   
+
         if self.network is not None:
             res['network'] = self.network.to_dict() if devicehive.interfaces.INetwork.implementedBy(self.network.__class__) else self.network
-            res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
+
+        res['deviceClass'] = self.device_class.to_dict() if devicehive.interfaces.IDeviceClass.implementedBy(self.device_class.__class__) else self.device_class
 
         if self.equipment is not None:
             res['equipment'] = [x.to_dict() for x in self.equipment]
@@ -129,7 +129,7 @@ class RasPiApp(object):
     
     implements(devicehive.interfaces.IProtoHandler)
     
-    def __init__(self, led, sensor, lcd):
+    def __init__(self, led, sensor, lcd, access_key):
         super(RasPiApp, self).__init__()
         self.connected = False
         self.notifs = []
@@ -137,6 +137,7 @@ class RasPiApp(object):
         self.led = led
         self.sensor = sensor
         self.lcd = lcd
+        self.access_key = access_key
     
     def on_apimeta(self, websocket_server, server_time):
         log.msg('on_apimeta')
@@ -148,13 +149,15 @@ class RasPiApp(object):
         log.msg('Connected to devicehive server.')
         self.connected = True
         for onotif in self.notifs :
-            self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id, device_key = self.info.key)
+            self.factory.notify(onotif['notification'], onotif['parameters'], device_id = self.info.id)
         self.notifs = []
         def on_subscribe(result) :
-            self.factory.subscribe(self.info.id, self.info.key)
+            self.factory.subscribe(self.info.id)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def on_connection_failed(self, reason) :
         pass
@@ -177,7 +180,8 @@ class RasPiApp(object):
         finished.callback(devicehive.CommandResult('Completed'))
 
     def do_set_command(self, finished, text=None):
-        self.lcd.write_string(text or '')
+        if lcd != None:
+            self.lcd.write_string(text or '')
         finished.callback(devicehive.CommandResult('Completed'))
     
     def on_command(self, device_id, command, finished):
@@ -342,10 +346,10 @@ if __name__ == '__main__' :
 
     led = LedDevice(_LED_PIN)
     led.blink(3)
-    lcd = Lcd()
+    lcd = None # Lcd()
     temp_sensor = TempSensor(_W1_FILENAME)
 
-    device = RasPiApp(led, temp_sensor, lcd)
+    device = RasPiApp(led, temp_sensor, lcd, _ACCESS_KEY)
 
     led_factory = devicehive.auto.AutoFactory(device)
     # led_factory = devicehive.poll.PollFactory(device)

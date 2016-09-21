@@ -85,10 +85,6 @@ class RasPiConfig(object):
         return '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
     
     @property
-    def key(self):
-        return 'device-key'
-    
-    @property
     def name(self):
         return 'Device1'
     
@@ -115,13 +111,14 @@ class RasPiApp(object):
     
     implements(devicehive.interfaces.IProtoHandler)
     
-    def __init__(self, led, sensor):
+    def __init__(self, led, sensor, access_key):
         super(RasPiApp, self).__init__()
         self.connected = False
         self.notifs = []
         self.info = RasPiConfig()
         self.led = led
         self.sensor = sensor
+        self.access_key = access_key
     
     def on_apimeta(self, websocket_server, server_time):
         log.msg('on_apimeta')
@@ -139,7 +136,9 @@ class RasPiApp(object):
             self.factory.subscribe(self.info.id, self.info.key)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def on_connection_failed(self, reason) :
         pass

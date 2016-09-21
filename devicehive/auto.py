@@ -112,7 +112,7 @@ class AutoFactory(ClientFactory):
         log.msg('WebSocket protocol has been selected. URL: {0}; HOST: {1}; PORT: {2};'.format(self.ws_url, self.ws_host, self.ws_port))
         factory = WebSocketFactory(self)
         factory.timestamp = self.server_time
-        reactor.connectDeviceHive(self.ws_url, factory)
+        factory.connect(self.ws_url)
     
     def connect_poll(self):
         log.msg('Long-Polling protocol has been selected.')
@@ -143,17 +143,17 @@ class AutoFactory(ClientFactory):
     # end IProtoHandler implementation
     
     # begin IProtoFactory implementation
-    def authenticate(self, device_id, device_key):
-        return self.subfactory(device_id, device_key)
+    def authenticate(self, access_key):
+        return self.factory.authenticate(access_key)
     
-    def notify(self, notification, params, device_id = None, device_key = None):
-        return self.factory.notify(notification, params, device_id, device_key)
+    def notify(self, notification, params, device_id = None):
+        return self.factory.notify(notification, params, device_id)
     
-    def subscribe(self, device_id = None, device_key = None):
-        return self.factory.subscribe(device_id, device_key)
+    def subscribe(self, device_id = None):
+        return self.factory.subscribe(device_id)
     
-    def unsubscribe(self, device_id = None, device_key = None):
-        return self.factory.unsubscribe(device_id, device_key)
+    def unsubscribe(self, device_id = None):
+        return self.factory.unsubscribe(device_id)
     
     def device_save(self, info):
         return self.factory.device_save(info)

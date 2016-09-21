@@ -89,7 +89,7 @@ class BaseRPiApp(object):
     
     def notify(self, notification, **params):
         if self.factory is not None :
-            self.factory.notify(notification, params, self.info.id, self.info.key)
+            self.factory.notify(notification, params, self.info.id)
 
 
 class RPiApp(BaseRPiApp) :
@@ -100,13 +100,13 @@ class RPiApp(BaseRPiApp) :
     def initialize(self, config_file_path):
         self.init_config(config_file_path)
         self.init_gpio()
-    
+
     def init_config(self, config_file_path):
         conf = ConfigParser()
         conf.read(config_file_path)
         self.info.id = conf.get('device', 'id')
-        self.info.key = conf.get('device', 'key')
-    
+        self.access_key = conf.get('authentication', 'accesskey')
+
     def init_gpio(self):
         GPIO.setup(LED_PIN, GPIO.OUT) # BCM.GPIO17
         for i in range(5):
@@ -126,10 +126,12 @@ class RPiApp(BaseRPiApp) :
             sends temperature update notification. And then it starts listening for a command.
             """
             self.update_temperature()
-            self.factory.subscribe(self.info.id, self.info.key)
+            self.factory.subscribe(self.info.id)
         def on_failed(reason) :
             log.err('Failed to save device {0}. Reason: {1}.'.format(self.info, reason))
-        self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        def on_authenticate(result):
+            self.factory.device_save(self.info).addCallbacks(on_subscribe, on_failed)
+        self.factory.authenticate(self.access_key).addCallbacks(on_authenticate, on_failed)
     
     def update_temperature(self):
         try :
@@ -182,6 +184,5 @@ if __name__ == '__main__' :
     # 2.
     factory = devicehive.auto.AutoFactory(rpi_app)
     # 3.
-    factory.connect("http://pg.devicehive.com/api/")
+    factory.connect("http://playground.devicehive.com/api/rest/")
     reactor.run()
-

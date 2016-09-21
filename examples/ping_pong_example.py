@@ -67,8 +67,8 @@ class PingApp(object):
 
 
 class Gateway(devicehive.gateway.BaseGateway):
-    def __init__(self, url, factory_cls) :
-        super(Gateway, self).__init__(url, factory_cls)
+    def __init__(self, url, access_key, factory_cls) :
+        super(Gateway, self).__init__(url, access_key, factory_cls)
         self.ping_app = None
     
     def registration_received(self, device_info):
@@ -92,9 +92,9 @@ class Gateway(devicehive.gateway.BaseGateway):
         super(Gateway, self).run(transport_endpoint, device_factory)
 
 
-def main(sport, brate):
+def main(host, access_key, sport, brate):
     #log.startLogging(sys.stderr)
-    gateway = Gateway('http://pg.devicehive.com/api/', devicehive.poll.PollFactory) # devicehive.auto.AutoFactory)
+    gateway = Gateway(host, access_key, devicehive.poll.PollFactory) # devicehive.auto.AutoFactory)
     # create endpoint and factory to be used to organize communication channel to device
     endpoint = devicehive.gateway.binary.SerialPortEndpoint(reactor, \
                                                             sport, \
@@ -110,8 +110,10 @@ def main(sport, brate):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-h', '--host', type=str, default='http://playground.devicehive.com/api/rest/', dest='host', required=True, help='playground url')
+    parser.add_argument('-k', '--access-key', type=str, dest='access_key', required=True, help='access key')
     parser.add_argument('-p', '--serial', type=str, default='/dev/tty.usbmodem1411', dest='sport', required=False, help='serial port')
     parser.add_argument('-b', '--baud', type=int, default=115200, dest='brate', required=False, help='baud rate')
     r = parser.parse_args()
-    main(r.sport, r.brate)
+    main(r.host, r.access_key, r.sport, r.brate)
 
