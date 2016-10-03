@@ -53,15 +53,17 @@ import devicehive
 import devicehive.auto
 
 
-# change it to match your address for 1-wire sensor
+# change it to match your address for 1-wire sensor or leave it as is for autodetect
 _W1_FILENAME = get_i2c_file()
 
-# Board's pin #11 (GPIO18)
-_LED_PIN = 12
+# Board's pin #11 (GPIO17)
+_LED_PIN = 17
 
-# API URL (register for free playground at http://beta2.devicehive.com/playground
-#_API_URL = 'http://pg.devicehive.com/api/'
-_API_URL = 'https://ecloud.dataart.com/ecapi9/'
+# Server url
+_API_URL = 'http://playground.devicehive.com/api/rest'
+
+# DeviceId
+_DEVICE_ID = 'raspi_led_thermo_000000'
 
 # server AccessKey
 _ACCESS_KEY = '1jwKgLYi/CdfBTI9KByfYxwyQ6HUIEfnGSgakdpFjgk='
@@ -76,7 +78,7 @@ class RasPiConfig(object):
 
     @property
     def id(self):
-        return '9f33566e-1f8f-11e2-8979-c42c030dd6a5'
+        return _DEVICE_ID
     
     @property
     def name(self):
