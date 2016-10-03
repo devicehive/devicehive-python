@@ -57,7 +57,7 @@ import devicehive.auto
 _W1_FILENAME = get_i2c_file()
 
 # Board's pin #11 (GPIO17)
-_LED_PIN = 17
+_LED_PIN = 11
 
 # Server url
 _API_URL = 'http://playground.devicehive.com/api/rest'
@@ -67,6 +67,9 @@ _DEVICE_ID = 'raspi_led_thermo_000000'
 
 # server AccessKey
 _ACCESS_KEY = '1jwKgLYi/CdfBTI9KByfYxwyQ6HUIEfnGSgakdpFjgk='
+
+# visible device name
+_DEVICE_NAME = 'raspi_led_thermo'
 
 
 class RasPiConfig(object):
@@ -82,7 +85,7 @@ class RasPiConfig(object):
     
     @property
     def name(self):
-        return 'Device1'
+        return _DEVICE_NAME
     
     @property
     def status(self):
