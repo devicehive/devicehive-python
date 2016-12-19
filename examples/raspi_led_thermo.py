@@ -16,6 +16,8 @@ import os
 import time
 from time import sleep
 
+import random
+random.seed()
 
 try:
     import RPi.GPIO as GPIO
@@ -43,7 +45,7 @@ except ImportError:
     GPIO = FakeGPIO()
 
     def get_i2c_file():
-        return '/dev/null'
+        return None
 
 from zope.interface import implements
 from twisted.python import log
@@ -221,6 +223,8 @@ class TempSensor(object):
         """
         internal, get temperature readings from device and check CRC
         """
+        if self.file_name is None:
+            return random.randint(21000, 27000)/1000.0; 
         with open(self.file_name) as f:
             content = f.readlines()
             for line in content:
