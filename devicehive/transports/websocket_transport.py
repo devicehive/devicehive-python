@@ -23,8 +23,8 @@ class WebsocketTransport(BaseTransport):
         self._data_opcode = self._get_data_opcode()
 
     def _connect(self, url, options):
-        ping_interval = options.get('ping_interval', None)
         timeout = options.get('timeout', None)
+        ping_interval = options.get('ping_interval', None)
         self._websocket.connect(url, **options)
         self._websocket.settimeout(timeout)
         self._connected = True
@@ -91,12 +91,12 @@ class WebsocketTransport(BaseTransport):
 
     def request(self, action, obj, **params):
         self._assert_connected()
+        timeout = params.get('timeout', 30)
         obj_id = str(uuid.uuid1())
         obj[self._obj_id_field_name] = obj_id
         obj[self._obj_action_field_name] = action
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         send_time = time.time()
-        timeout = params.get('timeout', 30)
         while time.time() - timeout < send_time:
             obj = self._decode_data(self._websocket.recv())
             if obj.get(self._obj_id_field_name) == obj_id:
