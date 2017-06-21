@@ -5,7 +5,7 @@ class BaseTransport(object):
                  handler_class, handler_options):
         self._name = name
         self._data_format = data_format_class(**data_format_options)
-        self._handler = handler_class(**handler_options)
+        self._handler = handler_class(self, **handler_options)
         self._connected = False
 
     def _assert_not_connected(self):
@@ -24,7 +24,7 @@ class BaseTransport(object):
         return self._data_format.decode(data)
 
     def _call_handler_method(self, name, *args):
-        getattr(self._handler, name)(self, *args)
+        getattr(self._handler, name)(*args)
 
     def is_connected(self):
         return self._connected
