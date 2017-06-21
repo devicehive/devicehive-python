@@ -58,19 +58,22 @@ class WebsocketTransport(BaseTransport):
             r_list, _, _ = select.select((self._websocket.sock,), (), ())
             if not r_list:
                 return
-            opcode, frame = self._websocket.recv_data_frame(True)
-            if opcode == websocket.ABNF.OPCODE_TEXT:
-                obj = self._decode_data(frame.data.decode('utf-8'))
-                self._call_handler_method('handle_event', obj)
-                continue
-            if opcode == websocket.ABNF.OPCODE_BINARY:
-                obj = self._decode_data(frame.data)
-                self._call_handler_method('handle_event', obj)
-                continue
-            if opcode == websocket.ABNF.OPCODE_PONG:
-                self._pong_received = True
-                continue
-            if opcode == websocket.ABNF.OPCODE_CLOSE:
+            try:
+                opcode, frame = self._websocket.recv_data_frame(True)
+                if opcode == websocket.ABNF.OPCODE_TEXT:
+                    obj = self._decode_data(frame.data.decode('utf-8'))
+                    self._call_handler_method('handle_event', obj)
+                    continue
+                if opcode == websocket.ABNF.OPCODE_BINARY:
+                    obj = self._decode_data(frame.data)
+                    self._call_handler_method('handle_event', obj)
+                    continue
+                if opcode == websocket.ABNF.OPCODE_PONG:
+                    self._pong_received = True
+                    continue
+                if opcode == websocket.ABNF.OPCODE_CLOSE:
+                    return
+            except websocket.WebSocketConnectionClosedException:
                 return
 
     def _close(self):
