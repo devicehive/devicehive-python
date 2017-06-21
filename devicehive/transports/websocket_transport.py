@@ -2,7 +2,6 @@ from devicehive.transports.base_transport import BaseTransport
 import websocket
 import threading
 import time
-import select
 import uuid
 
 
@@ -55,9 +54,6 @@ class WebsocketTransport(BaseTransport):
                 obj = self._obj_queue.pop(0)
                 self._call_handler_method('handle_event', obj)
                 continue
-            r_list, _, _ = select.select((self._websocket.sock,), (), ())
-            if not r_list:
-                return
             try:
                 opcode, frame = self._websocket.recv_data_frame(True)
                 if opcode == websocket.ABNF.OPCODE_TEXT:
