@@ -51,9 +51,10 @@ class WebsocketTransport(BaseTransport):
 
     def _receive_data(self):
         while self._connected:
-            for obj in self._obj_queue:
+            if len(self._obj_queue):
+                obj = self._obj_queue.pop(0)
                 self._call_handler_method('handle_event', obj)
-            self._obj_queue = []
+                continue
             r_list, _, _ = select.select((self._websocket.sock,), (), ())
             if not r_list:
                 return
