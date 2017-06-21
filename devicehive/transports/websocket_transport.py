@@ -23,10 +23,12 @@ class WebsocketTransport(BaseTransport):
         self._data_opcode = self._get_data_opcode()
 
     def _connect(self, url, options):
+        ping_interval = options.get('ping_interval', None)
+        timeout = options.get('timeout', None)
         self._websocket.connect(url, **options)
+        self._websocket.settimeout(timeout)
         self._connected = True
         self._call_handler_method('handle_connected')
-        ping_interval = options.get('ping_interval', None)
         send_ping_thread = None
         if ping_interval:
             self._pong_received = True
