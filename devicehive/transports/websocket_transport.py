@@ -78,7 +78,7 @@ class WebsocketTransport(BaseTransport):
 
     def _close(self):
         self._pong_received = False
-        self._events = []
+        self._obj_queue = []
         self._websocket.close()
         self._call_handler_method('handle_closed')
 
