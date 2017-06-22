@@ -1,6 +1,9 @@
 class BaseDataFormat(object):
     """Base data format class."""
 
+    def __init__(self, **options):
+        pass
+
     def get_type(self):
         raise NotImplementedError
 
