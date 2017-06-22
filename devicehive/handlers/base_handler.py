@@ -1,7 +1,7 @@
 class BaseHandler(object):
     """Base handler class."""
 
-    def __init__(self, transport):
+    def __init__(self, transport, **options):
         self.transport = transport
 
     def handle_connected(self):
