@@ -14,11 +14,11 @@ class BaseTransport(object):
     def _assert_connected(self):
         assert self._connected, 'transport connection has not created'
 
-    def _encode_obj(self, obj):
-        return self._data_format.encode(obj)
-
     def _data_type(self):
         return self._data_format.get_type()
+
+    def _encode_obj(self, obj):
+        return self._data_format.encode(obj)
 
     def _decode_data(self, data):
         return self._data_format.decode(data)
