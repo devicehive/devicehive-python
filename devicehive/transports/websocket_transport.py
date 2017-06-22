@@ -101,7 +101,7 @@ class WebsocketTransport(BaseTransport):
             if obj.get(self._obj_id_field_name) == obj_id:
                 return obj
             self._obj_queue.append(obj)
-        raise websocket.WebSocketException('Object receive timeout occurred')
+        raise WebsocketTransportException('Object receive timeout occurred')
 
     def close(self):
         self._assert_connected()
@@ -109,3 +109,8 @@ class WebsocketTransport(BaseTransport):
 
     def join(self, timeout=None):
         self._connect_thread.join(timeout)
+
+
+class WebsocketTransportException(websocket.WebSocketException):
+    """Websocket transport exception."""
+    pass
