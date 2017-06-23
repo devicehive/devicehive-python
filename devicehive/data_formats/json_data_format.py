@@ -5,8 +5,8 @@ import json
 class JsonDataFormat(BaseDataFormat):
     """Json data format class."""
 
-    def get_type(self):
-        return 'text'
+    def __init__(self, **options):
+        BaseDataFormat.__init__(self, 'text', **options)
 
     def encode(self, data):
         return json.dumps(data)
