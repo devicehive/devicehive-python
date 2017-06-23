@@ -9,13 +9,10 @@ class WebsocketTransport(BaseTransport):
     """Websocket transport class."""
 
     def __init__(self, data_format_class, data_format_options, handler_class,
-                 handler_options, **options):
+                 handler_options):
         BaseTransport.__init__(self, 'websocket', data_format_class,
                                data_format_options, handler_class,
                                handler_options)
-        self._obj_id_field_name = options.get('obj_id_field_name', 'requestId')
-        self._obj_action_field_name = options.get('obj_action_field_name',
-                                                  'action')
         self._connect_thread = None
         self._websocket = websocket.WebSocket()
         self._pong_received = False
@@ -92,13 +89,13 @@ class WebsocketTransport(BaseTransport):
         self._assert_connected()
         timeout = params.get('timeout', 30)
         obj_id = str(uuid.uuid1())
-        obj[self._obj_id_field_name] = obj_id
-        obj[self._obj_action_field_name] = action
+        obj['requestId'] = obj_id
+        obj['action'] = action
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         send_time = time.time()
         while time.time() - timeout < send_time:
             obj = self._decode_data(self._websocket.recv())
-            if obj.get(self._obj_id_field_name) == obj_id:
+            if obj.get('requestId') == obj_id:
                 return obj
             self._obj_queue.append(obj)
         raise WebsocketTransportException('Object receive timeout occurred')
