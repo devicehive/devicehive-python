@@ -77,7 +77,7 @@ class WebsocketTransport(BaseTransport):
         self._call_handler_method('handle_closed')
 
     def _get_data_opcode(self):
-        if self._data_type() == 'text':
+        if self._data_type == 'text':
             return websocket.ABNF.OPCODE_TEXT
         return websocket.ABNF.OPCODE_BINARY
 

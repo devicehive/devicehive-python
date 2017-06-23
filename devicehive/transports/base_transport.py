@@ -5,6 +5,7 @@ class BaseTransport(object):
                  handler_class, handler_options):
         self._name = name
         self._data_format = data_format_class(**data_format_options)
+        self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
 
@@ -13,9 +14,6 @@ class BaseTransport(object):
 
     def _assert_connected(self):
         assert self._connected, 'transport connection has not created'
-
-    def _data_type(self):
-        return self._data_format.data_type
 
     def _encode_obj(self, obj):
         return self._data_format.encode(obj)
