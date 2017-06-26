@@ -75,6 +75,13 @@ class WebsocketTransport(BaseTransport):
             return websocket.ABNF.OPCODE_TEXT
         return websocket.ABNF.OPCODE_BINARY
 
+    def _send_obj(self, obj, **params):
+        obj_id = str(uuid.uuid1())
+        obj['requestId'] = obj_id
+        obj['action'] = params['action']
+        self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
+        return obj_id
+
     def connect(self, url, **options):
         self._assert_not_connected()
         self._connect_thread = threading.Thread(target=self._connect,
@@ -82,17 +89,12 @@ class WebsocketTransport(BaseTransport):
         self._connect_thread.daemon = True
         self._connect_thread.start()
 
-    def send_request(self, obj, **params):
+    def send_obj(self, obj, receive_obj=True, **params):
         self._assert_connected()
-        obj_id = str(uuid.uuid1())
-        obj['requestId'] = obj_id
-        obj['action'] = params['action']
-        self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
-        return obj_id
-
-    def request(self, obj, **params):
+        obj_id = self._send_obj(obj, **params)
+        if not receive_obj:
+            return
         timeout = params.get('timeout', 30)
-        obj_id = self.send_request(obj, **params)
         send_time = time.time()
         while time.time() - timeout < send_time:
             obj = self._decode_data(self._websocket.recv())
