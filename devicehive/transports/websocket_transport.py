@@ -31,7 +31,7 @@ class WebsocketTransport(BaseTransport):
                                                 args=(pong_timeout,))
             send_ping_thread.daemon = True
             send_ping_thread.start()
-        self._receive_data()
+        self._receive_obj()
         self._close()
 
     def _send_ping(self, pong_timeout):
@@ -43,7 +43,7 @@ class WebsocketTransport(BaseTransport):
                 self._connected = False
                 return
 
-    def _receive_data(self):
+    def _receive_obj(self):
         while self._connected:
             if len(self._obj_queue):
                 obj = self._obj_queue.pop(0)
