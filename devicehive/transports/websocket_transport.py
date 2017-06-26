@@ -1,4 +1,5 @@
 from devicehive.transports.base_transport import BaseTransport
+from devicehive.transports.base_transport import BaseTransportException
 import websocket
 import threading
 import time
@@ -112,6 +113,6 @@ class WebsocketTransport(BaseTransport):
         self._connection_thread.join(timeout)
 
 
-class WebsocketTransportException(websocket.WebSocketException):
+class WebsocketTransportException(BaseTransportException):
     """Websocket transport exception."""
     pass
