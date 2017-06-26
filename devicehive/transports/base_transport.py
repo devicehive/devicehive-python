@@ -38,3 +38,8 @@ class BaseTransport(object):
 
     def join(self, timeout=None):
         raise NotImplementedError
+
+
+class BaseTransportException(Exception):
+    """Base transport exception."""
+    pass
