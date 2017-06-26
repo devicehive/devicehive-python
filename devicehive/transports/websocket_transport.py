@@ -13,19 +13,15 @@ class WebsocketTransport(BaseTransport):
         BaseTransport.__init__(self, 'websocket', data_format_class,
                                data_format_options, handler_class,
                                handler_options)
-        self._connect_thread = None
+        self._connection_thread = None
         self._websocket = websocket.WebSocket()
         self._pong_received = False
         self._obj_queue = []
         self._data_opcode = self._get_data_opcode()
 
-    def _connect(self, url, options):
-        timeout = options.get('timeout', None)
+    def _connection(self, url, options):
         pong_timeout = options.get('pong_timeout', None)
-        self._websocket.connect(url, **options)
-        self._websocket.settimeout(timeout)
-        self._connected = True
-        self._call_handler_method('handle_connected')
+        self._connect(url, **options)
         if pong_timeout:
             send_ping_thread = threading.Thread(target=self._send_ping,
                                                 args=(pong_timeout,))
@@ -33,6 +29,13 @@ class WebsocketTransport(BaseTransport):
             send_ping_thread.start()
         self._receive_obj()
         self._close()
+
+    def _connect(self, url, **options):
+        timeout = options.get('timeout', None)
+        self._websocket.connect(url, **options)
+        self._websocket.settimeout(timeout)
+        self._connected = True
+        self._call_handler_method('handle_connected')
 
     def _send_ping(self, pong_timeout):
         while self._connected:
@@ -84,10 +87,10 @@ class WebsocketTransport(BaseTransport):
 
     def connect(self, url, **options):
         self._assert_not_connected()
-        self._connect_thread = threading.Thread(target=self._connect,
-                                                args=(url, options))
-        self._connect_thread.daemon = True
-        self._connect_thread.start()
+        self._connection_thread = threading.Thread(target=self._connection,
+                                                   args=(url, options))
+        self._connection_thread.daemon = True
+        self._connection_thread.start()
 
     def send_obj(self, obj, receive_obj=True, **params):
         self._assert_connected()
@@ -108,7 +111,7 @@ class WebsocketTransport(BaseTransport):
         self._connected = False
 
     def join(self, timeout=None):
-        self._connect_thread.join(timeout)
+        self._connection_thread.join(timeout)
 
 
 class WebsocketTransportException(websocket.WebSocketException):
