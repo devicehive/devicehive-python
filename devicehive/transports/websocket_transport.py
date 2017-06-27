@@ -34,7 +34,7 @@ class WebsocketTransport(BaseTransport):
             ping_thread.name = 'websocket-transport-ping'
             ping_thread.daemon = True
             ping_thread.start()
-        self._receive_obj()
+        self._receive()
         self._close()
 
     def _connect(self, url, **options):
@@ -53,7 +53,7 @@ class WebsocketTransport(BaseTransport):
                 self._connected = False
                 return
 
-    def _receive_obj(self):
+    def _receive(self):
         while self._connected:
             if len(self._obj_queue):
                 obj = self._obj_queue.pop(0)
