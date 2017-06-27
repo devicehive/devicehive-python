@@ -29,7 +29,7 @@ class WebsocketTransport(BaseTransport):
         pong_timeout = options.get('pong_timeout', None)
         self._connect(url, **options)
         if pong_timeout:
-            ping_thread = threading.Thread(target=self._send_ping,
+            ping_thread = threading.Thread(target=self._ping,
                                            args=(pong_timeout,))
             ping_thread.name = 'websocket-transport-ping'
             ping_thread.daemon = True
@@ -44,7 +44,7 @@ class WebsocketTransport(BaseTransport):
         self._connected = True
         self._call_handler_method('handle_connected')
 
-    def _send_ping(self, pong_timeout):
+    def _ping(self, pong_timeout):
         while self._connected:
             self._websocket.ping()
             self._pong_received = False
