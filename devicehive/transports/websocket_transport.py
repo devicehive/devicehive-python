@@ -19,6 +19,7 @@ class WebsocketTransport(BaseTransport):
         self._pong_received = False
         self._obj_queue = []
         self._obj_id_key = 'requestId'
+        self._obj_action_key = 'action'
         if self._data_type == 'text':
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
@@ -90,6 +91,7 @@ class WebsocketTransport(BaseTransport):
         timeout = params.get('timeout', 30)
         obj_id = str(uuid.uuid1())
         obj[self._obj_id_key] = obj_id
+        obj[self._obj_action_key] = params[self._obj_action_key]
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         send_time = time.time()
         while time.time() - timeout < send_time:
