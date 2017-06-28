@@ -1,3 +1,6 @@
+import uuid
+
+
 class BaseTransport(object):
     """Base transport class."""
 
@@ -8,6 +11,11 @@ class BaseTransport(object):
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
+        self.obj_id_key = 'requestId'
+
+    @staticmethod
+    def _uuid():
+        return str(uuid.uuid1())
 
     def _assert_not_connected(self):
         assert not self._connected, 'transport connection already created'
