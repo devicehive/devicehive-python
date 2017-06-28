@@ -79,7 +79,7 @@ class WebsocketTransport(BaseTransport):
         self._call_handler_method('handle_closed')
 
     def _send_request(self, obj, **params):
-        request_id = self._uuid()
+        request_id = self._generate_request_id()
         obj[self.request_id_key] = request_id
         obj[self._action_key] = params['action']
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
