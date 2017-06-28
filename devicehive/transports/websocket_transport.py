@@ -3,7 +3,6 @@ from devicehive.transports.base_transport import BaseTransportException
 import websocket
 import threading
 import time
-import uuid
 
 
 class WebsocketTransport(BaseTransport):
@@ -18,7 +17,6 @@ class WebsocketTransport(BaseTransport):
         self._websocket = websocket.WebSocket()
         self._pong_received = False
         self._obj_queue = []
-        self._obj_id_key = 'requestId'
         self._obj_action_key = 'action'
         if self._data_type == 'text':
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
@@ -80,6 +78,13 @@ class WebsocketTransport(BaseTransport):
         self._websocket.close()
         self._call_handler_method('handle_closed')
 
+    def _send_request(self, obj, **params):
+        obj_id = self._uuid()
+        obj[self.obj_id_key] = obj_id
+        obj[self._obj_action_key] = params['action']
+        self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
+        return obj_id
+
     def connect(self, url, **options):
         self._assert_not_connected()
         self._connection_thread = threading.Thread(target=self._connection,
@@ -88,17 +93,18 @@ class WebsocketTransport(BaseTransport):
         self._connection_thread.daemon = True
         self._connection_thread.start()
 
+    def send_request(self, obj, **params):
+        self._assert_connected()
+        return self._send_request(obj, **params)
+
     def request(self, obj, **params):
         self._assert_connected()
         timeout = params.get('timeout', 30)
-        obj_id = str(uuid.uuid1())
-        obj[self._obj_id_key] = obj_id
-        obj[self._obj_action_key] = params[self._obj_action_key]
-        self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
+        obj_id = self._send_request(obj, **params)
         send_time = time.time()
         while time.time() - timeout < send_time:
             obj = self._decode_data(self._websocket.recv())
-            if obj.get(self._obj_id_key) == obj_id:
+            if obj.get(self.obj_id_key) == obj_id:
                 return obj
             self._obj_queue.append(obj)
         raise WebsocketTransportException('Object receive timeout occurred')
