@@ -11,7 +11,7 @@ class BaseTransport(object):
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
-        self.obj_id_key = 'requestId'
+        self.request_id_key = 'requestId'
 
     @staticmethod
     def _uuid():
