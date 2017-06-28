@@ -79,7 +79,7 @@ class WebsocketTransport(BaseTransport):
 
     def _send_request(self, obj, **params):
         request_id = self._generate_request_id()
-        obj[self.request_id_key] = request_id
+        obj[self.obj_request_id_key] = request_id
         obj[self._action_key] = params['action']
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         return request_id
@@ -103,7 +103,7 @@ class WebsocketTransport(BaseTransport):
         send_time = time.time()
         while time.time() - timeout < send_time:
             obj = self._decode_data(self._websocket.recv())
-            if obj.get(self.request_id_key) == request_id:
+            if obj.get(self.obj_request_id_key) == request_id:
                 return obj
             self._receive_queue.append(obj)
         raise WebsocketTransportException('Object receive timeout occurred')

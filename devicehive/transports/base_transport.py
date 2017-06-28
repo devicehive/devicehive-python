@@ -11,7 +11,7 @@ class BaseTransport(object):
         self._handler = handler_class(self, **handler_options)
         self._connected = False
         self.name = name
-        self.request_id_key = 'requestId'
+        self.obj_request_id_key = 'requestId'
 
     @staticmethod
     def _generate_request_id():
