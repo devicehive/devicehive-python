@@ -10,9 +10,8 @@ class WebsocketTransport(BaseTransport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        BaseTransport.__init__(self, 'websocket', data_format_class,
-                               data_format_options, handler_class,
-                               handler_options)
+        BaseTransport.__init__(self, data_format_class, data_format_options,
+                               handler_class, handler_options, 'websocket')
         self._connection_thread = None
         self._websocket = websocket.WebSocket()
         self._pong_received = False

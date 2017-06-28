@@ -4,13 +4,13 @@ import uuid
 class BaseTransport(object):
     """Base transport class."""
 
-    def __init__(self, name, data_format_class, data_format_options,
-                 handler_class, handler_options):
-        self.name = name
+    def __init__(self, data_format_class, data_format_options, handler_class,
+                 handler_options, name):
         self._data_format = data_format_class(**data_format_options)
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
+        self.name = name
         self.request_id_key = 'requestId'
 
     @staticmethod
