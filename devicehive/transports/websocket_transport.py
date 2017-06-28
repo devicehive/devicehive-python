@@ -16,11 +16,11 @@ class WebsocketTransport(BaseTransport):
         self._websocket = websocket.WebSocket()
         self._pong_received = False
         self._receive_queue = []
-        self._action_key = 'action'
         if self._data_type == 'text':
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY
+        self.obj_action_key = 'action'
 
     def _connection(self, url, options):
         pong_timeout = options.get('pong_timeout', None)
@@ -80,7 +80,7 @@ class WebsocketTransport(BaseTransport):
     def _send_request(self, obj, **params):
         request_id = self._generate_request_id()
         obj[self.obj_request_id_key] = request_id
-        obj[self._action_key] = params['action']
+        obj[self.obj_action_key] = params['action']
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         return request_id
 
