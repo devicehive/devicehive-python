@@ -23,7 +23,7 @@ class WebsocketTransport(BaseTransport):
         self.obj_action_key = 'action'
 
     def _connection(self, url, options):
-        pong_timeout = options.get('pong_timeout', None)
+        pong_timeout = options.pop('pong_timeout', None)
         self._connect(url, **options)
         if pong_timeout:
             ping_thread = threading.Thread(target=self._ping,
@@ -35,7 +35,7 @@ class WebsocketTransport(BaseTransport):
         self._close()
 
     def _connect(self, url, **options):
-        timeout = options.get('timeout', None)
+        timeout = options.pop('timeout', None)
         self._websocket.connect(url, **options)
         self._websocket.settimeout(timeout)
         self._connected = True
@@ -80,7 +80,7 @@ class WebsocketTransport(BaseTransport):
     def _send_request(self, obj, **params):
         request_id = self._generate_request_id()
         obj[self.obj_request_id_key] = request_id
-        obj[self.obj_action_key] = params['action']
+        obj[self.obj_action_key] = params.pop('action')
         self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
         return request_id
 
@@ -98,7 +98,7 @@ class WebsocketTransport(BaseTransport):
 
     def request(self, obj, **params):
         self._assert_connected()
-        timeout = params.get('timeout', 30)
+        timeout = params.pop('timeout', 30)
         request_id = self._send_request(obj, **params)
         send_time = time.time()
         while time.time() - timeout < send_time:
