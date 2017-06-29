@@ -12,6 +12,7 @@ class BaseTransport(object):
         self._connected = False
         self.name = name
         self.request_id_key = 'requestId'
+        self.request_action_key = 'action'
 
     @staticmethod
     def _uuid():

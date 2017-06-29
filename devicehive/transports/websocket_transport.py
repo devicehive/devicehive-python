@@ -20,7 +20,6 @@ class WebsocketTransport(BaseTransport):
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY
-        self.request_action_key = 'action'
 
     def _connection(self, url, options):
         pong_timeout = options.pop('pong_timeout', None)
