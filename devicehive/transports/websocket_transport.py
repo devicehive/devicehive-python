@@ -15,12 +15,12 @@ class WebsocketTransport(BaseTransport):
         self._connection_thread = None
         self._websocket = websocket.WebSocket()
         self._pong_received = False
-        self._receive_queue = []
+        self._event_queue = []
         if self._data_type == 'text':
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY
-        self.obj_action_key = 'action'
+        self.request_action_key = 'action'
 
     def _connection(self, url, options):
         pong_timeout = options.pop('pong_timeout', None)
@@ -52,18 +52,18 @@ class WebsocketTransport(BaseTransport):
 
     def _receive(self):
         while self._connected:
-            if len(self._receive_queue):
-                obj = self._receive_queue.pop(0)
-                self._call_handler_method('handle_event', obj)
+            if len(self._event_queue):
+                event = self._event_queue.pop(0)
+                self._call_handler_method('handle_event', event)
                 continue
             opcode, frame = self._websocket.recv_data_frame(True)
             if opcode == websocket.ABNF.OPCODE_TEXT:
-                obj = self._decode(frame.data.decode('utf-8'))
-                self._call_handler_method('handle_event', obj)
+                event = self._decode(frame.data.decode('utf-8'))
+                self._call_handler_method('handle_event', event)
                 continue
             if opcode == websocket.ABNF.OPCODE_BINARY:
-                obj = self._decode(frame.data)
-                self._call_handler_method('handle_event', obj)
+                event = self._decode(frame.data)
+                self._call_handler_method('handle_event', event)
                 continue
             if opcode == websocket.ABNF.OPCODE_PONG:
                 self._pong_received = True
@@ -74,14 +74,14 @@ class WebsocketTransport(BaseTransport):
     def _close(self):
         self._websocket.close()
         self._pong_received = False
-        self._receive_queue = []
+        self._event_queue = []
         self._call_handler_method('handle_closed')
 
-    def _send_request(self, obj, **params):
+    def _send_request(self, request, **params):
         request_id = self._uuid()
-        obj[self.request_id_key] = request_id
-        obj[self.obj_action_key] = params.pop('action')
-        self._websocket.send(self._encode(obj), opcode=self._data_opcode)
+        request[self.request_id_key] = request_id
+        request[self.request_action_key] = params.pop('action')
+        self._websocket.send(self._encode(request), opcode=self._data_opcode)
         return request_id
 
     def connect(self, url, **options):
@@ -92,21 +92,21 @@ class WebsocketTransport(BaseTransport):
         self._connection_thread.daemon = True
         self._connection_thread.start()
 
-    def send_request(self, obj, **params):
+    def send_request(self, request, **params):
         self._assert_connected()
-        return self._send_request(obj, **params)
+        return self._send_request(request, **params)
 
-    def request(self, obj, **params):
+    def request(self, request, **params):
         self._assert_connected()
         timeout = params.pop('timeout', 30)
-        request_id = self._send_request(obj, **params)
+        request_id = self._send_request(request, **params)
         send_time = time.time()
         while time.time() - timeout < send_time:
-            obj = self._decode(self._websocket.recv())
-            if obj.get(self.request_id_key) == request_id:
-                return obj
-            self._receive_queue.append(obj)
-        raise WebsocketTransportException('Object receive timeout occurred')
+            response = self._decode(self._websocket.recv())
+            if response.get(self.request_id_key) == request_id:
+                return response
+            self._event_queue.append(response)
+        raise WebsocketTransportException('Response receive timeout occurred')
 
     def close(self):
         self._assert_connected()

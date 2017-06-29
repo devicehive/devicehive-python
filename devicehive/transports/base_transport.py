@@ -38,10 +38,10 @@ class BaseTransport(object):
     def connect(self, url, **options):
         raise NotImplementedError
 
-    def send_request(self, obj, **params):
+    def send_request(self, request, **params):
         raise NotImplementedError
 
-    def request(self, obj, **params):
+    def request(self, request, **params):
         raise NotImplementedError
 
     def close(self):
