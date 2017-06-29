@@ -58,11 +58,11 @@ class WebsocketTransport(BaseTransport):
                 continue
             opcode, frame = self._websocket.recv_data_frame(True)
             if opcode == websocket.ABNF.OPCODE_TEXT:
-                obj = self._decode_data(frame.data.decode('utf-8'))
+                obj = self._decode(frame.data.decode('utf-8'))
                 self._call_handler_method('handle_event', obj)
                 continue
             if opcode == websocket.ABNF.OPCODE_BINARY:
-                obj = self._decode_data(frame.data)
+                obj = self._decode(frame.data)
                 self._call_handler_method('handle_event', obj)
                 continue
             if opcode == websocket.ABNF.OPCODE_PONG:
@@ -81,7 +81,7 @@ class WebsocketTransport(BaseTransport):
         request_id = self._uuid()
         obj[self.request_id_key] = request_id
         obj[self.obj_action_key] = params.pop('action')
-        self._websocket.send(self._encode_obj(obj), opcode=self._data_opcode)
+        self._websocket.send(self._encode(obj), opcode=self._data_opcode)
         return request_id
 
     def connect(self, url, **options):
@@ -102,7 +102,7 @@ class WebsocketTransport(BaseTransport):
         request_id = self._send_request(obj, **params)
         send_time = time.time()
         while time.time() - timeout < send_time:
-            obj = self._decode_data(self._websocket.recv())
+            obj = self._decode(self._websocket.recv())
             if obj.get(self.request_id_key) == request_id:
                 return obj
             self._receive_queue.append(obj)

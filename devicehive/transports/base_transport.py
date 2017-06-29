@@ -23,10 +23,10 @@ class BaseTransport(object):
     def _assert_connected(self):
         assert self._connected, 'transport connection has not created'
 
-    def _encode_obj(self, obj):
+    def _encode(self, obj):
         return self._data_format.encode(obj)
 
-    def _decode_data(self, data):
+    def _decode(self, data):
         return self._data_format.decode(data)
 
     def _call_handler_method(self, name, *args):
