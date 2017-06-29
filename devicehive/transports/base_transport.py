@@ -14,7 +14,7 @@ class BaseTransport(object):
         self.request_id_key = 'requestId'
 
     @staticmethod
-    def _generate_request_id():
+    def _uuid():
         return str(uuid.uuid1())
 
     def _assert_not_connected(self):
