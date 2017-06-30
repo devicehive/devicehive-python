@@ -88,11 +88,11 @@ class HttpTransport(BaseTransport):
                 self.request_poll_id_key: poll_id}
 
     def _poll(self, action, poll_id, request, params):
+        data_key = params['data_key']
+        poll_action = params.pop('poll_action')
+        params_timestamp_key = params.pop('params_timestamp_key', 'timestamp')
+        event_timestamp_key = params.pop('event_timestamp_key', 'timestamp')
         while self._connected and self._poll_threads.get(poll_id, None):
-            data_key = params['data_key']
-            params_timestamp_key = params.pop('params_timestamp_key',
-                                              'timestamp')
-            event_timestamp_key = params.pop('event_timestamp_key', 'timestamp')
             response = self._request(action, request, **params)
             if response[self.response_status_key] != self.success_status:
                 return
@@ -103,7 +103,7 @@ class HttpTransport(BaseTransport):
             if not params.get('params'):
                 params['params'] = {}
             params['params'][params_timestamp_key] = timestamp
-            events = [{self.request_action_key: action,
+            events = [{self.request_action_key: poll_action,
                        self.request_poll_id_key: poll_id,
                        data_key: event} for event in events]
             self._events_queue.put(events)
