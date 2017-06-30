@@ -129,7 +129,18 @@ class HttpTransport(BaseTransport):
 
     def send_request(self, action, request, **params):
         self._assert_connected()
-        pass
+        poll = params.pop('poll', None)
+        if poll is None:
+            response = self._request(action, request, **params)
+            self._events_queue.put([response])
+            return response[self.request_id_key]
+        if poll:
+            response = self._poll_request(action, request, **params)
+            self._events_queue.put([response])
+            return response[self.request_id_key]
+        response = self._stop_poll_request(action, request)
+        self._events_queue.put([response])
+        return response[self.request_id_key]
 
     def request(self, action, request, **params):
         self._assert_connected()
