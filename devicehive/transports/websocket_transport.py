@@ -77,11 +77,10 @@ class WebsocketTransport(BaseTransport):
         self._call_handler_method('handle_closed')
 
     def _send_request(self, action, request):
-        request_id = self._uuid()
-        request[self.request_id_key] = request_id
+        request[self.request_id_key] = self._uuid()
         request[self.request_action_key] = action
         self._websocket.send(self._encode(request), opcode=self._data_opcode)
-        return request_id
+        return request[self.request_id_key]
 
     def connect(self, url, **options):
         self._assert_not_connected()
