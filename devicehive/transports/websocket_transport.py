@@ -76,10 +76,10 @@ class WebsocketTransport(BaseTransport):
         self._event_queue = []
         self._call_handler_method('handle_closed')
 
-    def _send_request(self, request, **params):
+    def _send_request(self, action, request):
         request_id = self._uuid()
         request[self.request_id_key] = request_id
-        request[self.request_action_key] = params.pop('action')
+        request[self.request_action_key] = action
         self._websocket.send(self._encode(request), opcode=self._data_opcode)
         return request_id
 
@@ -91,14 +91,14 @@ class WebsocketTransport(BaseTransport):
         self._connection_thread.daemon = True
         self._connection_thread.start()
 
-    def send_request(self, request, **params):
+    def send_request(self, action, request, **params):
         self._assert_connected()
-        return self._send_request(request, **params)
+        return self._send_request(action, request)
 
-    def request(self, request, **params):
+    def request(self, action, request, **params):
         self._assert_connected()
         timeout = params.pop('timeout', 30)
-        request_id = self._send_request(request, **params)
+        request_id = self._send_request(action, request)
         send_time = time.time()
         while time.time() - timeout < send_time:
             response = self._decode(self._websocket.recv())
