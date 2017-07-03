@@ -16,8 +16,8 @@ class Api(object):
 
     def _request(self, url, action, request, **params):
         req = Request(url, action, request, **params)
-        response = self._transport.request(req.action(), req.request(),
-                                           **req.params())
+        response = self._transport.request(req.action, req.request,
+                                           **req.params)
         return Response(response)
 
     def refresh_token(self, refresh_token):
