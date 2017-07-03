@@ -1,4 +1,4 @@
-class Handler(object):
+class BaseHandler(object):
 
     def __init__(self, api, options):
         self.api = api
