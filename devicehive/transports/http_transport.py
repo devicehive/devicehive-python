@@ -57,6 +57,7 @@ class HttpTransport(BaseTransport):
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
+        merge_data = params.pop('merge_data', False)
         data_key = params.pop('data_key', None)
         if request:
             params['data'] = self._encode(request)
@@ -66,6 +67,11 @@ class HttpTransport(BaseTransport):
                     self.request_action_key: action}
         if resp.status_code in self._success_codes:
             response[self.response_status_key] = self.success_status
+            if merge_data:
+                resp_data = self._decode(resp_data)
+                for field in resp_data:
+                    response[field] = resp_data[field]
+                return response
             if data_key:
                 response[data_key] = self._decode(resp_data)
             return response
