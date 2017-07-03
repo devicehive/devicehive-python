@@ -7,7 +7,7 @@ class BaseHandler(object):
     def handle_connected(self):
         raise NotImplementedError
 
-    def handle_event(self, obj):
+    def handle_event(self, event):
         raise NotImplementedError
 
     def handle_closed(self):
