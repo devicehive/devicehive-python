@@ -2,8 +2,8 @@ from devicehive.handlers.base_handler import BaseHandler
 from devicehive.api import Api
 
 
-class ConnectionHandler(BaseHandler):
-    """Connection handler class."""
+class ApiHandler(BaseHandler):
+    """Api handler class."""
 
     def __init__(self, transport, handler_class=None, handler_options=None,
                  refresh_token=None, access_token=None):
