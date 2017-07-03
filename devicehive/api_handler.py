@@ -16,9 +16,11 @@ class ApiHandler(BaseHandler):
         self._access_token = access_token
 
     def handle_connected(self):
-        if not self._access_token:
-            response = self.api.refresh_token(self._refresh_token)
-            self._access_token = response.data['accessToken']
+        token = self.api.token(self._refresh_token, self._access_token)
+        print(token.access_token())
+        if not token.access_token():
+            token.refresh()
+        print(token.access_token())
 
     def handle_event(self, event):
         # TODO: handle event here and call handler method.
