@@ -12,6 +12,7 @@ class Response(object):
     """Response class."""
 
     def __init__(self, response):
+        self.id = response.pop('requestId')
         self.action = response.pop('action')
         self.is_success = response.pop('status') == 'success'
         self.code = response.pop('code', None)
@@ -70,6 +71,26 @@ class Token(Api):
 
     def authenticate_params(self):
         return self._authenticate_params
+
+    def create(self, user_id, expiration, actions, network_ids, device_ids):
+        url = 'token/create'
+        action = url
+        request = {'userId': user_id}
+        if expiration:
+            request['expiration'] = expiration
+        if actions:
+            request['actions'] = actions
+        if network_ids:
+            request['networkIds'] = network_ids
+        if device_ids:
+            request['deviceIds'] = device_ids
+        params = self._authenticate_params
+        params['method'] = 'POST'
+        params['merge_data'] = True
+        response = self._request(url, action, request, **params)
+        assert response.is_success, 'Token create failure'
+        return {'refresh_token': response.data['refreshToken'],
+                'access_token': response.data['accessToken']}
 
     def refresh(self):
         url = 'token/refresh'

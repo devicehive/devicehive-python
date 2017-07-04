@@ -6,6 +6,11 @@ class Handler(object):
         self._token = token
         self.options = options
 
+    def create_token(self, user_id, expiration=None, actions=None,
+                     network_ids=None, device_ids=None):
+        return self._token.create(user_id, expiration, actions, network_ids,
+                                  device_ids)
+
     def refresh_token(self):
         self._token.refresh()
         return self._token.access_token()
