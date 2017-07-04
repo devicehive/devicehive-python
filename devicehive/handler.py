@@ -6,6 +6,10 @@ class Handler(object):
         self._token = token
         self.options = options
 
+    def refresh_token(self):
+        self._token.refresh()
+        return self._token.access_token()
+
     def handle_connected(self):
         raise NotImplementedError
 
