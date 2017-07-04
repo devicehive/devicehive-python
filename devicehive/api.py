@@ -19,8 +19,8 @@ class Response(object):
         self.data = response
 
 
-class ApiObject(object):
-    """Api object class."""
+class Api(object):
+    """Api class."""
 
     def __init__(self, transport):
         self._transport = transport
@@ -37,30 +37,23 @@ class ApiObject(object):
         return Response(resp)
 
 
-class Authentication(ApiObject):
-    """Authentication class."""
+class Token(Api):
+    """Token class."""
 
-    def __init__(self, transport, refresh_toke, access_token=None):
-        ApiObject.__init__(self, transport)
-        self._refresh_token = refresh_toke
-        self._access_token = access_token
-        self._header_name = 'Authorization'
-        self._header_value_prefix = 'Barer '
-        self._params = {}
+    def __init__(self, transport, authentication):
+        Api.__init__(self, transport)
+        self._login = authentication.get('login')
+        self._password = authentication.get('password')
+        self._refresh_token = authentication.get('refresh_token')
+        self._access_token = authentication.get('access_token')
+        self._authenticate_params = {}
 
-    def refresh_token(self):
-        url = 'token/refresh'
-        action = url
-        request = {'refreshToken': self._refresh_token}
-        params = {'method': 'POST',
-                  'merge_data': True}
-        response = self._request(url, action, request, **params)
-        self._access_token = response.data['accessToken']
+    def _login(self):
+        # TODO: implement token/login request.
+        # Set self._refresh_token and self._access_token after success login.
+        pass
 
-    def access_token_is_set(self):
-        return self._access_token is not None
-
-    def authenticate(self):
+    def _authenticate(self):
         if self._is_websocket_transport():
             url = None
             action = 'authenticate'
@@ -69,23 +62,27 @@ class Authentication(ApiObject):
             response = self._request(url, action, request, **params)
             assert response.is_success, 'Authentication failure'
             return
-        header_value = self._header_value_prefix + self._access_token
-        self._params = {'headers': {self._header_name: header_value}}
+        headers = {'Authorization': 'Bearer ' + self._access_token}
+        self._authenticate_params['headers'] = headers
 
-    def params(self):
-        return self._params
+    def access_token(self):
+        return self._access_token
 
+    def authenticate_params(self):
+        return self._authenticate_params
 
-class Api(object):
-    """Api class."""
+    def refresh(self):
+        url = 'token/refresh'
+        action = url
+        request = {'refreshToken': self._refresh_token}
+        params = {'method': 'POST', 'merge_data': True}
+        response = self._request(url, action, request, **params)
+        assert response.is_success, 'Token refresh failure'
+        self._access_token = response.data['accessToken']
 
-    def __init__(self, transport):
-        self._transport = transport
-        self._authentication = None
-
-    def authenticate(self, refresh_token, access_token):
-        self._authentication = Authentication(self._transport, refresh_token,
-                                              access_token)
-        if not self._authentication.access_token_is_set():
-            self._authentication.refresh_token()
-        self._authentication.authenticate()
+    def authenticate(self):
+        if self._refresh_token:
+            self.refresh()
+        else:
+            self._login()
+        self._authenticate()
