@@ -158,3 +158,18 @@ class Device(Api):
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         assert response.is_success, 'Device save failure'
+
+    def remove(self):
+        url = 'device/%s' % self.id
+        # TODO: implement websocket support when API will be added.
+        action = None
+        request = {}
+        params = {'method': 'DELETE'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Device remove failure'
+        self.id = None
+        self.name = None
+        self.data = None
+        self.network_id = None
+        self.is_blocked = None

@@ -24,8 +24,13 @@ class Handler(object):
         if device.id:
             return device
 
-    def put_device(self, device):
+    @staticmethod
+    def put_device(device):
         device.save()
+
+    @staticmethod
+    def remove_device(device):
+        device.remove()
 
     def handle_connected(self):
         raise NotImplementedError
