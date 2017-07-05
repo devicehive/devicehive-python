@@ -145,6 +145,41 @@ class Token(Api):
         self._authenticate()
 
 
+class Configuration(Api):
+    """Configuration class."""
+
+    def __init__(self, transport, token, name=None, value=None,
+                 entity_version=0):
+        Api.__init__(self, transport)
+        self._token = token
+        self.name = name
+        self.value = value
+        self.entity_version = entity_version
+
+    def get(self):
+        # TODO: implement websocket support when API will be added.
+        assert self._is_http_transport(), 'Implemented only for http transport'
+        url = 'configuration/%s' % self.name
+        action = None
+        request = {}
+        params = {'data_key': 'configuration'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+
+    def save(self):
+        # TODO: implement websocket support when API will be added.
+        assert self._is_http_transport(), 'Implemented only for http transport'
+        url = 'configuration/%s' % self.name
+        action = None
+        request = {'name': self.name,
+                   'value': self.value,
+                   'entityVersion': self.entity_version}
+        params = {'method': 'PUT'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Configuration save failure'
+
+
 class Device(Api):
     """Device class."""
 

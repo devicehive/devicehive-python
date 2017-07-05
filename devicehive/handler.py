@@ -1,4 +1,5 @@
 from devicehive.api import Info
+from devicehive.api import Configuration
 from devicehive.api import Device
 
 
@@ -26,6 +27,14 @@ class Handler(object):
     def refresh_token(self):
         self._token.refresh()
         return self._token.access_token()
+
+    def get_property(self, name):
+        configuration = Configuration(self._transport, self._token, name)
+        return configuration.get()
+
+    def set_property(self, name, value):
+        configuration = Configuration(self._transport, self._token, name, value)
+        configuration.save()
 
     def list_devices(self, **filters):
         device = Device(self._transport, self._token)
