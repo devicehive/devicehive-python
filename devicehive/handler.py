@@ -1,3 +1,4 @@
+from devicehive.api import Info
 from devicehive.api import Device
 
 
@@ -8,6 +9,14 @@ class Handler(object):
         self._transport = transport
         self._token = token
         self.options = options
+
+    def get_info(self):
+        info = Info(self._transport)
+        return info.get()
+
+    def get_cluster_info(self):
+        info = Info(self._transport)
+        return info.get_cluster_info()
 
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):
