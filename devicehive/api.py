@@ -117,14 +117,48 @@ class Token(Api):
 class Device(Api):
     """Device class."""
 
-    def __init__(self, transport, token):
+    def __init__(self, transport, token, device_id=None, name=None, data=None,
+                 network_id=None, is_blocked=None):
         Api.__init__(self, transport)
         self._token = token
-        self.id = None
-        self.name = None
-        self.data = None
-        self.network_id = None
-        self.is_blocked = None
+        self.id = device_id
+        self.name = name
+        self.data = data
+        self.network_id = network_id
+        self.is_blocked = is_blocked
+
+    def list(self, name=None, name_pattern=None, network_id=None,
+             network_name=None, sort_field=None, sort_order=None, take=None,
+             skip=None):
+        url = 'device'
+        action = 'device/list'
+        request = {}
+        params = {'data_key': 'devices', 'params': {}}
+        if name:
+            params['params']['name'] = name
+        if name_pattern:
+            params['params']['namePattern'] = name_pattern
+        if network_id:
+            params['params']['networkId'] = network_id
+        if network_name:
+            params['params']['networkName'] = network_name
+        if sort_field:
+            params['params']['sortField'] = sort_field
+        if sort_order:
+            params['params']['sortOrder'] = sort_order
+        if take:
+            params['params']['take'] = take
+        if skip:
+            params['params']['skip'] = skip
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'List devices failure'
+        devices = []
+        for device in response.data['devices']:
+            devices.append(Device(self._token, self._transport, device['id'],
+                                  device['name'], device['data'],
+                                  device['networkId'], device['isBlocked']))
+        return devices
 
     def init(self, device_id):
         url = 'device/%s' % device_id

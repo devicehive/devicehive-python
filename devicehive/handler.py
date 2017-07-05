@@ -18,6 +18,10 @@ class Handler(object):
         self._token.refresh()
         return self._token.access_token()
 
+    def list_devices(self, **filters):
+        device = Device(self._transport, self._token)
+        return device.list(**filters)
+
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
         device.init(device_id)
