@@ -38,6 +38,26 @@ class Api(object):
         return Response(resp)
 
 
+class Info(Api):
+    """Info class."""
+
+    def get(self):
+        url = 'info'
+        action = 'server/info'
+        request = {}
+        params = {'data_key': 'info'}
+        response = self._request(url, action, request, **params)
+        assert response.is_success, 'Info get failure'
+        info_data = response.data['info']
+        info = {'api_version': info_data['apiVersion'],
+                'server_timestamp': info_data['serverTimestamp']}
+        if self._is_websocket_transport():
+            info['rest_server_url'] = info_data['restServerUrl']
+        else:
+            info['web_socket_server_url'] = info_data['webSocketServerUrl']
+        return info
+
+
 class Token(Api):
     """Token class."""
 
