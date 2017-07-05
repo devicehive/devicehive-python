@@ -47,7 +47,7 @@ class Token(Api):
         self._password = authentication.get('password')
         self._refresh_token = authentication.get('refresh_token')
         self._access_token = authentication.get('access_token')
-        self._authenticate_params = {}
+        self._authentication_params = {}
 
     def _login(self):
         # TODO: implement token/login request.
@@ -60,17 +60,24 @@ class Token(Api):
             action = 'authenticate'
             request = {'token': self._access_token}
             params = {}
-            response = self._request(url, action, request, **params)
+            response = Api._request(self, url, action, request, **params)
             assert response.is_success, 'Authentication failure'
             return
         headers = {'Authorization': 'Bearer ' + self._access_token}
-        self._authenticate_params['headers'] = headers
+        self._authentication_params['headers'] = headers
+
+    def _request(self, url, action, request, **params):
+        for key in self._authentication_params:
+            params[key] = self._authentication_params[key]
+        response = Api._request(self, url, action, request, **params)
+        if response.is_success:
+            return response
+        if response.code == 401:
+            self.authenticate()
+        return Api._request(self, url, action, request, **params)
 
     def access_token(self):
         return self._access_token
-
-    def authenticate_params(self):
-        return self._authenticate_params
 
     def create(self, user_id, expiration, actions, network_ids, device_ids):
         url = 'token/create'
@@ -84,9 +91,7 @@ class Token(Api):
             request['networkIds'] = network_ids
         if device_ids:
             request['deviceIds'] = device_ids
-        params = self._authenticate_params
-        params['method'] = 'POST'
-        params['merge_data'] = True
+        params = {'method': 'POST', 'merge_data': True}
         response = self._request(url, action, request, **params)
         assert response.is_success, 'Token create failure'
         return {'refresh_token': response.data['refreshToken'],
@@ -97,7 +102,7 @@ class Token(Api):
         action = url
         request = {'refreshToken': self._refresh_token}
         params = {'method': 'POST', 'merge_data': True}
-        response = self._request(url, action, request, **params)
+        response = Api._request(self, url, action, request, **params)
         assert response.is_success, 'Token refresh failure'
         self._access_token = response.data['accessToken']
 
