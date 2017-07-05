@@ -186,7 +186,7 @@ class Device(Api):
         assert response.is_success, 'List devices failure'
         devices = []
         for device in response.data['devices']:
-            devices.append(Device(self._token, self._transport, device['id'],
+            devices.append(Device(self._transport, self._token, device['id'],
                                   device['name'], device['data'],
                                   device['networkId'], device['isBlocked']))
         return devices
