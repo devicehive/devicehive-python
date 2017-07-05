@@ -1,19 +1,18 @@
 from devicehive.handlers.base_handler import BaseHandler
-from devicehive.api import Token
 
 
 class ConnectionHandler(BaseHandler):
     """Connection handler class."""
 
-    def __init__(self, transport, handler_class, handler_options,
-                 authentication):
+    def __init__(self, transport, authentication, handler_class,
+                 handler_options):
         BaseHandler.__init__(self, transport)
-        self._token = Token(transport, authentication)
-        self._handler = handler_class(transport, self._token, handler_options)
+        self._handler = handler_class(transport, authentication,
+                                      handler_options)
         self._handle_connected = False
 
     def handle_connected(self):
-        self._token.authenticate()
+        self._handler.token.authenticate()
         if not self._handle_connected:
             self._handler.handle_connected()
             self._handle_connected = True
