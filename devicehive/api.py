@@ -57,6 +57,17 @@ class Info(Api):
             info['web_socket_server_url'] = info_data['webSocketServerUrl']
         return info
 
+    def get_cluster_info(self):
+        # TODO: implement websocket support when API will be added.
+        assert self._is_http_transport(), 'Implemented only for http transport'
+        url = 'info/config/cluster'
+        action = None
+        request = {}
+        params = {'data_key': 'cluster_info'}
+        response = self._request(url, action, request, **params)
+        assert response.is_success, 'Cluster info get failure'
+        return response.data['cluster_info']
+
 
 class Token(Api):
     """Token class."""
@@ -214,8 +225,9 @@ class Device(Api):
         assert response.is_success, 'Device save failure'
 
     def remove(self):
-        url = 'device/%s' % self.id
         # TODO: implement websocket support when API will be added.
+        assert self._is_http_transport(), 'Implemented only for http transport'
+        url = 'device/%s' % self.id
         action = None
         request = {}
         params = {'method': 'DELETE'}
