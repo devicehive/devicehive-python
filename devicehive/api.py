@@ -126,7 +126,7 @@ class Device(Api):
         self.network_id = None
         self.is_blocked = None
 
-    def get(self, device_id):
+    def init(self, device_id):
         url = 'device/%s' % device_id
         action = 'device/get'
         request = {}
@@ -141,3 +141,20 @@ class Device(Api):
             self.data = response.data['device']['data']
             self.network_id = response.data['device']['networkId']
             self.is_blocked = response.data['device']['isBlocked']
+
+    def save(self):
+        url = 'device/%s' % self.id
+        action = 'device/save'
+        device = {'id': self.id,
+                  'name': self.name,
+                  'data': self.data,
+                  'networkId': self.network_id,
+                  'isBlocked': self.is_blocked}
+        if self._is_websocket_transport():
+            request = {'deviceId': self.id, 'device': device}
+        else:
+            request = device
+        params = {'method': 'PUT'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Device save failure'

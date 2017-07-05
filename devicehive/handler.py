@@ -20,9 +20,12 @@ class Handler(object):
 
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
-        device.get(device_id)
+        device.init(device_id)
         if device.id:
             return device
+
+    def put_device(self, device):
+        device.save()
 
     def handle_connected(self):
         raise NotImplementedError
