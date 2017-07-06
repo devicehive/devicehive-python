@@ -226,7 +226,7 @@ class Device(Api):
                                   device['networkId'], device['isBlocked']))
         return devices
 
-    def init(self, device_id):
+    def get(self, device_id):
         url = 'device/%s' % device_id
         action = 'device/get'
         request = {}

@@ -42,7 +42,7 @@ class Handler(object):
 
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
-        device.init(device_id)
+        device.get(device_id)
         if device.id:
             return device
 
