@@ -6,7 +6,12 @@ class DeviceHive(object):
     """Device hive class."""
 
     def __init__(self, transport_url, handler_class, handler_options, **params):
-        self._transport_name = params.get('transport_name', 'http')
+        self._transport_name = None
+        if transport_url[0:4] == 'http':
+            self._transport_name = 'http'
+        if transport_url[0:2] == 'ws':
+            self._transport_name = 'websocket'
+        assert self._transport_name is not None, 'Unexpected url scheme'
         self._transport_url = transport_url
         self._data_format_class = JsonDataFormat
         self._data_format_options = {}
