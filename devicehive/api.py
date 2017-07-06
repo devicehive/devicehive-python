@@ -67,5 +67,14 @@ class Api(object):
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
         device.get(device_id)
-        if device.id:
+        if device.id():
             return device
+
+    def put_device(self, device_id, name=None, data=None, network_id=None,
+                   is_blocked=False):
+        if not name:
+            name = device_id
+        device = Device(self._transport, self._token, device_id, name, data,
+                        network_id, is_blocked)
+        device.save()
+        return device
