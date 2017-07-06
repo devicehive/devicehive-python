@@ -187,11 +187,14 @@ class Device(ApiUnit):
                  network_id=None, is_blocked=None):
         ApiUnit.__init__(self, transport)
         self._token = token
-        self.id = device_id
+        self._id = device_id
         self.name = name
         self.data = data
         self.network_id = network_id
         self.is_blocked = is_blocked
+
+    def id(self):
+        return self._id
 
     def get(self, device_id):
         url = 'device/%s' % device_id
@@ -203,22 +206,22 @@ class Device(ApiUnit):
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         if response.is_success:
-            self.id = response.data['device']['id']
+            self._id = response.data['device']['id']
             self.name = response.data['device']['name']
             self.data = response.data['device']['data']
             self.network_id = response.data['device']['networkId']
             self.is_blocked = response.data['device']['isBlocked']
 
     def save(self):
-        url = 'device/%s' % self.id
+        url = 'device/%s' % self._id
         action = 'device/save'
-        device = {'id': self.id,
+        device = {'id': self._id,
                   'name': self.name,
                   'data': self.data,
                   'networkId': self.network_id,
                   'isBlocked': self.is_blocked}
         if self._is_websocket_transport():
-            request = {'deviceId': self.id, 'device': device}
+            request = {'deviceId': self._id, 'device': device}
         else:
             request = device
         params = {'method': 'PUT'}
@@ -229,14 +232,14 @@ class Device(ApiUnit):
     def remove(self):
         # TODO: implement websocket support when API will be added.
         assert self._is_http_transport(), 'Implemented only for http transport'
-        url = 'device/%s' % self.id
+        url = 'device/%s' % self._id
         action = None
         request = {}
         params = {'method': 'DELETE'}
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         assert response.is_success, 'Device remove failure'
-        self.id = None
+        self._id = None
         self.name = None
         self.data = None
         self.network_id = None
