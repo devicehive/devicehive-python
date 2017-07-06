@@ -35,4 +35,6 @@ class DeviceHive(object):
         self._handler_options['authentication'] = authentication
         self._init_transport()
         self._transport.connect(self._transport_url, **self._transport_options)
-        # transport.join()
+
+    def join(self):
+        self._transport.join()
