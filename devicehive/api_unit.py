@@ -245,13 +245,30 @@ class Device(ApiUnit):
         self.network_id = None
         self.is_blocked = None
 
-    def list_commands(self):
+    def list_commands(self, start=None, end=None, command=None, status=None,
+                      sort_field=None, sort_order=None, take=None, skip=None):
         # TODO: implement websocket support when API will be added.
         assert self._is_http_transport(), 'Implemented only for http transport'
         url = 'device/%s/command' % self._id
         action = None
         request = {}
-        params = {'data_key': 'commands'}
+        params = {'data_key': 'commands', 'params': {}}
+        if start:
+            params['params']['start'] = start
+        if end:
+            params['params']['end'] = end
+        if command:
+            params['params']['command'] = command
+        if status:
+            params['params']['status'] = status
+        if sort_field:
+            params['params']['sortField'] = sort_field
+        if sort_order:
+            params['params']['sortOrder'] = sort_order
+        if take:
+            params['params']['take'] = take
+        if skip:
+            params['params']['skip'] = skip
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         assert response.is_success, 'List device commands failure'
