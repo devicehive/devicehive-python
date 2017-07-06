@@ -196,6 +196,7 @@ class Device(Api):
     def list(self, name=None, name_pattern=None, network_id=None,
              network_name=None, sort_field=None, sort_order=None, take=None,
              skip=None):
+        # TODO: implement filters for websocket when API will be extended.
         url = 'device'
         action = 'device/list'
         request = {}
