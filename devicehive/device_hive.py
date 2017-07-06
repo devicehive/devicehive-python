@@ -27,10 +27,10 @@ class DeviceHive(object):
         self._transport = transport_class(JsonDataFormat, {}, ConnectionHandler,
                                           self._handler_options)
 
-    def connect(self, user_login=None, user_password=None, refresh_token=None,
+    def connect(self, login=None, password=None, refresh_token=None,
                 access_token=None):
-        authentication = {'user_login': user_login,
-                          'user_password': user_password,
+        authentication = {'login': login,
+                          'password': password,
                           'refresh_token': refresh_token,
                           'access_token': access_token}
         self._handler_options['authentication'] = authentication
