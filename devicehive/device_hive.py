@@ -13,8 +13,6 @@ class DeviceHive(object):
             self._transport_name = 'websocket'
         assert self._transport_name is not None, 'Unexpected url scheme'
         self._transport_url = transport_url
-        self._data_format_class = JsonDataFormat
-        self._data_format_options = {}
         self._handler_options = {'handler_class': handler_class,
                                  'handler_options': handler_options}
         self._transport_options = params.get('transport_options', {})
@@ -26,9 +24,7 @@ class DeviceHive(object):
             'devicehive.transports.%s_transport' % self._transport_name,
             fromlist=[transport_class_name])
         transport_class = getattr(transport_module, transport_class_name)
-        self._transport = transport_class(self._data_format_class,
-                                          self._data_format_options,
-                                          ConnectionHandler,
+        self._transport = transport_class(JsonDataFormat, {}, ConnectionHandler,
                                           self._handler_options)
 
     def connect(self, user_login=None, user_password=None, refresh_token=None,
