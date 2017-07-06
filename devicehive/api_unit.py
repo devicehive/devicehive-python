@@ -205,7 +205,7 @@ class Device(ApiUnit):
         params = {'data_key': 'device'}
         response = self._token.authorized_request(url, action, request,
                                                   **params)
-        if response.is_success:
+        if response.is_success and response.data.get('device'):
             self._id = response.data['device']['id']
             self.name = response.data['device']['name']
             self.data = response.data['device']['data']
