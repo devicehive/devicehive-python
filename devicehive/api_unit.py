@@ -244,3 +244,64 @@ class Device(ApiUnit):
         self.data = None
         self.network_id = None
         self.is_blocked = None
+
+    def list_commands(self):
+        # TODO: implement websocket support when API will be added.
+        assert self._is_http_transport(), 'Implemented only for http transport'
+        url = 'device/%s/command' % self._id
+        action = None
+        request = {}
+        params = {'data_key': 'commands'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'List device commands failure'
+        commands = []
+        for command in response.data['commands']:
+            commands.append(DeviceCommand(self._transport, self._token,
+                                          command['id'], command['deviceId'],
+                                          command['userId'], command['command'],
+                                          command['parameters'],
+                                          command['timestamp'],
+                                          command['lifetime'],
+                                          command['status'], command['result']))
+        return commands
+
+
+class DeviceCommand(ApiUnit):
+    """Device command class."""
+
+    def __init__(self, transport, token, command_id=None, device_id=None,
+                 user_id=None, command=None, parameters=None, timestamp=None,
+                 lifetime=None, status=None, result=None):
+        ApiUnit.__init__(self, transport)
+        self._token = token
+        self._id = command_id
+        self._device_id = device_id
+        self._user_id = user_id
+        self._command = command
+        self._parameters = parameters
+        self._timestamp = timestamp
+        self._lifetime = lifetime
+        self.status = status
+        self.result = result
+
+    def id(self):
+        return self._id
+
+    def device_id(self):
+        return self._device_id
+
+    def user_id(self):
+        return self._user_id
+
+    def command(self):
+        return self._command
+
+    def parameters(self):
+        return self._parameters
+
+    def timestamp(self):
+        return self._timestamp
+
+    def lifetime(self):
+        return self._lifetime
