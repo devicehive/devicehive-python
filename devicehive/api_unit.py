@@ -283,6 +283,35 @@ class Device(ApiUnit):
                                           command['status'], command['result']))
         return commands
 
+    def send_command(self, command_name, parameters=None, timestamp=None,
+                     lifetime=None, status=None, result=None):
+        url = 'device/%s/command' % self._id
+        action = 'command/insert'
+        command = {'command': command_name}
+        if parameters:
+            command['parameters'] = parameters
+        if timestamp:
+            command['timestamp'] = timestamp
+        if lifetime:
+            command['lifetime'] = lifetime
+        if status:
+            command['status'] = status
+        if result:
+            command['result'] = result
+        if self._is_websocket_transport():
+            request = {'deviceId': self._id, 'command': command}
+        else:
+            request = command
+        params = {'method': 'POST', 'data_key': 'command'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Device command send failure'
+        return DeviceCommand(self._transport, self._token,
+                             response.data['command']['id'], self._id,
+                             response.data['command']['userId'], command_name,
+                             parameters, response.data['command']['timestamp'],
+                             lifetime, status, result)
+
 
 class DeviceCommand(ApiUnit):
     """Device command class."""
@@ -322,3 +351,19 @@ class DeviceCommand(ApiUnit):
 
     def lifetime(self):
         return self._lifetime
+
+    def save(self):
+        url = 'device/%s/command/%s' % (self._device_id, self._id)
+        action = 'command/update'
+        command = {'status': self.status,
+                   'result': self.result}
+        if self._is_websocket_transport():
+            request = {'deviceId': self._device_id,
+                       'commandId': self._id,
+                       'command': command}
+        else:
+            request = command
+        params = {'method': 'PUT'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Device command save failure'
