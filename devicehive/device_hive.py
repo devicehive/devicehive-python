@@ -1,6 +1,5 @@
 from devicehive.data_formats.json_data_format import JsonDataFormat
 from devicehive.connection_handler import ConnectionHandler
-from devicehive.transport import init
 
 
 class DeviceHive(object):
@@ -14,6 +13,18 @@ class DeviceHive(object):
         self._handler_options = {'handler_class': handler_class,
                                  'handler_options': handler_options}
         self._transport_options = params.get('transport_options', {})
+        self._transport = None
+
+    def _init_transport(self):
+        transport_class_name = '%sTransport' % self._transport_name.title()
+        transport_module = __import__(
+            'devicehive.transports.%s_transport' % self._transport_name,
+            fromlist=[transport_class_name])
+        transport_class = getattr(transport_module, transport_class_name)
+        self._transport = transport_class(self._data_format_class,
+                                          self._data_format_options,
+                                          ConnectionHandler,
+                                          self._handler_options)
 
     def initialize(self, user_login=None, user_password=None,
                    refresh_token=None, access_token=None):
@@ -22,8 +33,6 @@ class DeviceHive(object):
                           'refresh_token': refresh_token,
                           'access_token': access_token}
         self._handler_options['authentication'] = authentication
-        transport = init(self._transport_name, self._data_format_class,
-                         self._data_format_options, ConnectionHandler,
-                         self._handler_options)
-        transport.connect(self._transport_url, **self._transport_options)
-        transport.join()
+        self._init_transport()
+        self._transport.connect(self._transport_url, **self._transport_options)
+        # transport.join()
