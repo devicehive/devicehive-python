@@ -26,8 +26,8 @@ class DeviceHive(object):
                                           ConnectionHandler,
                                           self._handler_options)
 
-    def initialize(self, user_login=None, user_password=None,
-                   refresh_token=None, access_token=None):
+    def connect(self, user_login=None, user_password=None, refresh_token=None,
+                access_token=None):
         authentication = {'user_login': user_login,
                           'user_password': user_password,
                           'refresh_token': refresh_token,
