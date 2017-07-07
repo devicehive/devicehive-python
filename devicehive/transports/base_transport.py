@@ -37,7 +37,7 @@ class BaseTransport(object):
     def name(self):
         return self._name
 
-    def is_connected(self):
+    def connected(self):
         return self._connected
 
     def connect(self, url, **options):
