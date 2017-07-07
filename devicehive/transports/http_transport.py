@@ -52,7 +52,7 @@ class HttpTransport(BaseTransport):
     def _close(self):
         self._events_queue = queue.Queue()
         self._poll_threads = {}
-        self._call_handler_method('handle_closed')
+        self._call_handler_method('handle_close')
 
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')

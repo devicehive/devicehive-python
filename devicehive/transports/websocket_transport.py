@@ -74,7 +74,7 @@ class WebsocketTransport(BaseTransport):
         self._websocket.close()
         self._pong_received = False
         self._event_queue = []
-        self._call_handler_method('handle_closed')
+        self._call_handler_method('handle_close')
 
     def _send_request(self, action, request):
         request[self.request_id_key] = self._uuid()

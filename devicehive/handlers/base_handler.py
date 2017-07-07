@@ -10,5 +10,5 @@ class BaseHandler(object):
     def handle_event(self, event):
         raise NotImplementedError
 
-    def handle_closed(self):
+    def handle_close(self):
         raise NotImplementedError

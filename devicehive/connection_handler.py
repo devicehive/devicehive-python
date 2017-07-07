@@ -22,6 +22,6 @@ class ConnectionHandler(BaseHandler):
         # TODO: handle events here.
         pass
 
-    def handle_closed(self):
-        # TODO: handle closed here.
+    def handle_close(self):
+        # TODO: handle close here.
         pass
