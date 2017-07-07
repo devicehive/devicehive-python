@@ -11,6 +11,7 @@ class HttpTransport(BaseTransport):
     RESPONSE_SUCCESS_STATUS = 'success'
     RESPONSE_ERROR_STATUS = 'error'
     RESPONSE_STATUS_KEY = 'status'
+    RESPONSE_CODE_KEY = 'code'
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
@@ -23,7 +24,6 @@ class HttpTransport(BaseTransport):
         self._poll_threads = {}
         self._success_codes = [200, 201, 204]
         self.request_poll_id_key = 'subscriptionId'
-        self.response_code_key = 'code'
         self.response_error_key = 'error'
 
     def _connection(self, url):
@@ -77,7 +77,7 @@ class HttpTransport(BaseTransport):
                 response[data_key] = self._decode(resp_data)
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
-        response[self.response_code_key] = resp.status_code
+        response[self.RESPONSE_CODE_KEY] = resp.status_code
         response[self.response_error_key] = self._decode(resp_data)['message']
         return response
 
