@@ -55,6 +55,12 @@ class HttpTransport(BaseTransport):
         self._poll_threads = {}
         self._call_handler_method('handle_close')
 
+    def _http_request(self, method, url, **params):
+        response = requests.request(method, url, **params)
+        code = response.status_code
+        data = response.text if self._data_type == 'text' else response.content
+        return code, data
+
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
@@ -68,23 +74,22 @@ class HttpTransport(BaseTransport):
             if request_key:
                 request = request[request_key]
             params['data'] = self._encode(request)
-        r = requests.request(method, url, **params)
-        resp_data = r.text if self._data_type == 'text' else r.content
+        code, data = self._http_request(method, url, **params)
         response = {self.REQUEST_ID_KEY: self._uuid(),
                     self.REQUEST_ACTION_KEY: action}
-        if r.status_code in self._success_codes:
+        if code in self._success_codes:
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
             if response_join:
-                resp_data = self._decode(resp_data)
-                for field in resp_data:
-                    response[field] = resp_data[field]
+                response_data = self._decode(data)
+                for key in response_data:
+                    response[key] = response_data[key]
                 return response
             if response_key:
-                response[response_key] = self._decode(resp_data)
+                response[response_key] = self._decode(data)
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
-        response[self.RESPONSE_CODE_KEY] = r.status_code
-        response[self.RESPONSE_ERROR_KEY] = self._decode(resp_data)['message']
+        response[self.RESPONSE_CODE_KEY] = code
+        response[self.RESPONSE_ERROR_KEY] = self._decode(data).get('message')
         return response
 
     def _poll_request(self, action, request, **params):
