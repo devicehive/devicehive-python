@@ -8,6 +8,9 @@ import queue
 class HttpTransport(BaseTransport):
     """Http transport class."""
 
+    RESPONSE_SUCCESS_STATUS = 'success'
+    RESPONSE_ERROR_STATUS = 'error'
+
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
         BaseTransport.__init__(self, data_format_class,
@@ -19,8 +22,6 @@ class HttpTransport(BaseTransport):
         self._poll_threads = {}
         self._success_codes = [200, 201, 204]
         self.request_poll_id_key = 'subscriptionId'
-        self.success_status = 'success'
-        self.error_status = 'error'
         self.response_status_key = 'status'
         self.response_code_key = 'code'
         self.response_error_key = 'error'
@@ -66,7 +67,7 @@ class HttpTransport(BaseTransport):
         response = {self.REQUEST_ID_KEY: self._uuid(),
                     self.REQUEST_ACTION_KEY: action}
         if resp.status_code in self._success_codes:
-            response[self.response_status_key] = self.success_status
+            response[self.response_status_key] = self.RESPONSE_SUCCESS_STATUS
             if merge_data:
                 resp_data = self._decode(resp_data)
                 for field in resp_data:
@@ -75,7 +76,7 @@ class HttpTransport(BaseTransport):
             if data_key:
                 response[data_key] = self._decode(resp_data)
             return response
-        response[self.response_status_key] = self.error_status
+        response[self.response_status_key] = self.RESPONSE_ERROR_STATUS
         response[self.response_code_key] = resp.status_code
         response[self.response_error_key] = self._decode(resp_data)['message']
         return response
@@ -90,7 +91,7 @@ class HttpTransport(BaseTransport):
         self._poll_threads[poll_id].start()
         return {self.REQUEST_ID_KEY: self._uuid(),
                 self.REQUEST_ACTION_KEY: action,
-                self.response_status_key: self.success_status,
+                self.response_status_key: self.RESPONSE_SUCCESS_STATUS,
                 self.request_poll_id_key: poll_id}
 
     def _poll(self, action, poll_id, request, params):
@@ -100,7 +101,8 @@ class HttpTransport(BaseTransport):
         event_timestamp_key = params.pop('event_timestamp_key', 'timestamp')
         while self._connected and self._poll_threads.get(poll_id, None):
             response = self._request(action, request, **params)
-            if response[self.response_status_key] != self.success_status:
+            if response[self.response_status_key] != \
+                    self.RESPONSE_SUCCESS_STATUS:
                 return
             events = response[data_key]
             if not len(events):
@@ -123,7 +125,7 @@ class HttpTransport(BaseTransport):
         poll_thread.join()
         return {self.REQUEST_ID_KEY: self._uuid(),
                 self.REQUEST_ACTION_KEY: action,
-                self.response_status_key: self.success_status}
+                self.response_status_key: self.RESPONSE_SUCCESS_STATUS}
 
     def connect(self, url, **options):
         self._assert_not_connected()
