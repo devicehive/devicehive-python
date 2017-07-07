@@ -312,6 +312,28 @@ class Device(ApiUnit):
                              parameters, response.data['command']['timestamp'],
                              lifetime, status, result)
 
+    def send_notification(self, notification_name, parameters=None,
+                          timestamp=None):
+        url = 'device/%s/notification' % self._id
+        action = 'notification/insert'
+        notification = {'notification': notification_name}
+        if parameters:
+            notification['parameters'] = parameters
+        if timestamp:
+            notification['timestamp'] = timestamp
+        if self._is_websocket_transport():
+            request = {'deviceId': self._id, 'notification': notification}
+        else:
+            request = notification
+        params = {'method': 'POST', 'data_key': 'notification'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        assert response.is_success, 'Device command send failure'
+        return DeviceNotification(self._transport, self._token,
+                                  response.data['notification']['id'],
+                                  self._id, parameters,
+                                  response.data['notification']['timestamp'])
+
 
 class DeviceCommand(ApiUnit):
     """Device command class."""
@@ -367,3 +389,28 @@ class DeviceCommand(ApiUnit):
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         assert response.is_success, 'Device command save failure'
+
+
+class DeviceNotification(ApiUnit):
+    """Device notification class."""
+
+    def __init__(self, transport, token, notification_id=None, device_id=None,
+                 parameters=None, timestamp=None):
+        ApiUnit.__init__(self, transport)
+        self._token = token
+        self._id = notification_id
+        self._device_id = device_id
+        self._parameters = parameters
+        self._timestamp = timestamp
+
+    def id(self):
+        return self._id
+
+    def device_id(self):
+        return self._device_id
+
+    def parameters(self):
+        return self._parameters
+
+    def timestamp(self):
+        return self._timestamp
