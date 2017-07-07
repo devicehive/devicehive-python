@@ -59,7 +59,7 @@ class HttpTransport(BaseTransport):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
         response_join = params.pop('response_join', False)
-        data_key = params.pop('data_key', None)
+        response_key = params.pop('response_key', None)
         if request:
             params['data'] = self._encode(request)
         resp = requests.request(method, url, **params)
@@ -73,8 +73,8 @@ class HttpTransport(BaseTransport):
                 for field in resp_data:
                     response[field] = resp_data[field]
                 return response
-            if data_key:
-                response[data_key] = self._decode(resp_data)
+            if response_key:
+                response[response_key] = self._decode(resp_data)
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
         response[self.RESPONSE_CODE_KEY] = resp.status_code
