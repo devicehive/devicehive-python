@@ -66,7 +66,6 @@ class HttpTransport(BaseTransport):
         url = self._base_url + params.pop('url')
         request_delete_keys = params.pop('request_delete_keys', [])
         request_key = params.pop('request_key', None)
-        response_join = params.pop('response_join', False)
         response_key = params.pop('response_key', None)
         for request_delete_key in request_delete_keys:
             del request[request_delete_key]
@@ -79,13 +78,12 @@ class HttpTransport(BaseTransport):
                     self.REQUEST_ACTION_KEY: action}
         if code in self._success_codes:
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
-            if response_join:
-                response_data = self._decode(data)
-                for key in response_data:
-                    response[key] = response_data[key]
-                return response
+            response_data = self._decode(data)
             if response_key:
-                response[response_key] = self._decode(data)
+                response[response_key] = response_data
+                return response
+            for key in response_data:
+                response[key] = response_data[key]
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
         response[self.RESPONSE_CODE_KEY] = code
