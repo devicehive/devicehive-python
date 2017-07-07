@@ -62,17 +62,17 @@ class HttpTransport(BaseTransport):
         request_key = params.pop('request_key', None)
         response_join = params.pop('response_join', False)
         response_key = params.pop('response_key', None)
-        for delete_key in request_delete_keys:
-            del request[delete_key]
+        for request_delete_key in request_delete_keys:
+            del request[request_delete_key]
         if request:
             if request_key:
                 request = request[request_key]
             params['data'] = self._encode(request)
-        resp = requests.request(method, url, **params)
-        resp_data = resp.text if self._data_type == 'text' else resp.content
+        r = requests.request(method, url, **params)
+        resp_data = r.text if self._data_type == 'text' else r.content
         response = {self.REQUEST_ID_KEY: self._uuid(),
                     self.REQUEST_ACTION_KEY: action}
-        if resp.status_code in self._success_codes:
+        if r.status_code in self._success_codes:
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
             if response_join:
                 resp_data = self._decode(resp_data)
@@ -83,7 +83,7 @@ class HttpTransport(BaseTransport):
                 response[response_key] = self._decode(resp_data)
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
-        response[self.RESPONSE_CODE_KEY] = resp.status_code
+        response[self.RESPONSE_CODE_KEY] = r.status_code
         response[self.RESPONSE_ERROR_KEY] = self._decode(resp_data)['message']
         return response
 
