@@ -10,13 +10,13 @@ class ConnectionHandler(BaseHandler):
         BaseHandler.__init__(self, transport)
         self._api = Api(self.transport, authentication)
         self._handler = handler_class(self._api, handler_options)
-        self._handle_connected = False
+        self._handle_connect = False
 
     def handle_connect(self):
         self._api.authenticate()
-        if not self._handle_connected:
-            self._handler.handle_connected()
-            self._handle_connected = True
+        if not self._handle_connect:
+            self._handler.handle_connect()
+            self._handle_connect = True
 
     def handle_event(self, event):
         # TODO: handle events here.
