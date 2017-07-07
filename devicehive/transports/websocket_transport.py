@@ -77,10 +77,10 @@ class WebsocketTransport(BaseTransport):
         self._call_handler_method('handle_close')
 
     def _send_request(self, action, request):
-        request[self.request_id_key] = self._uuid()
-        request[self.request_action_key] = action
+        request[self.REQUEST_ID_KEY] = self._uuid()
+        request[self.REQUEST_ACTION_KEY] = action
         self._websocket.send(self._encode(request), opcode=self._data_opcode)
-        return request[self.request_id_key]
+        return request[self.REQUEST_ID_KEY]
 
     def connect(self, url, **options):
         self._assert_not_connected()
@@ -101,7 +101,7 @@ class WebsocketTransport(BaseTransport):
         send_time = time.time()
         while time.time() - timeout < send_time:
             response = self._decode(self._websocket.recv())
-            if response.get(self.request_id_key) == request_id:
+            if response.get(self.REQUEST_ID_KEY) == request_id:
                 return response
             self._event_queue.append(response)
         raise WebsocketTransportException('Response receive timeout occurred')
