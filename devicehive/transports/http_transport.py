@@ -58,9 +58,12 @@ class HttpTransport(BaseTransport):
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
+        request_key = params.pop('request_key', None)
         response_join = params.pop('response_join', False)
         response_key = params.pop('response_key', None)
         if request:
+            if request_key:
+                request = request[request_key]
             params['data'] = self._encode(request)
         resp = requests.request(method, url, **params)
         resp_data = resp.text if self._data_type == 'text' else resp.content
