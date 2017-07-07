@@ -13,7 +13,7 @@ class BaseTransport(object):
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
-        self.name = name
+        self._name = name
 
     @staticmethod
     def _uuid():
@@ -33,6 +33,9 @@ class BaseTransport(object):
 
     def _call_handler_method(self, name, *args):
         getattr(self._handler, name)(*args)
+
+    def name(self):
+        return self._name
 
     def is_connected(self):
         return self._connected
