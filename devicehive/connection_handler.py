@@ -12,7 +12,7 @@ class ConnectionHandler(BaseHandler):
         self._handler = handler_class(self._api, handler_options)
         self._handle_connected = False
 
-    def handle_connected(self):
+    def handle_connect(self):
         self._api.authenticate()
         if not self._handle_connected:
             self._handler.handle_connected()

@@ -38,7 +38,7 @@ class WebsocketTransport(BaseTransport):
         self._websocket.connect(url, **options)
         self._websocket.settimeout(timeout)
         self._connected = True
-        self._call_handler_method('handle_connected')
+        self._call_handler_method('handle_connect')
 
     def _ping(self, pong_timeout):
         while self._connected:

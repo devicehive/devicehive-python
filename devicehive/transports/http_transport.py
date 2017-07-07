@@ -35,7 +35,7 @@ class HttpTransport(BaseTransport):
 
     def _connect(self):
         self._connected = True
-        self._call_handler_method('handle_connected')
+        self._call_handler_method('handle_connect')
 
     def _receive(self):
         while self._connected:

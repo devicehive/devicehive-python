@@ -4,7 +4,7 @@ class BaseHandler(object):
     def __init__(self, transport):
         self.transport = transport
 
-    def handle_connected(self):
+    def handle_connect(self):
         raise NotImplementedError
 
     def handle_event(self, event):
