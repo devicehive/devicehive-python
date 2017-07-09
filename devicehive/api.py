@@ -1,6 +1,6 @@
-from devicehive.api_unit import Info
-from devicehive.api_unit import Token
-from devicehive.api_unit import Device
+from devicehive.info import Info
+from devicehive.token import Token
+from devicehive.device import Device
 
 
 class Api(object):
@@ -33,11 +33,11 @@ class Api(object):
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
-        # TODO: implement filters for websocket when API will be extended.
+        # TODO: implement params for websocket when API will be extended.
         url = 'device'
         action = 'device/list'
         request = {}
-        params = {'data_key': 'devices', 'params': {}}
+        params = {'response_key': 'devices', 'params': {}}
         if name:
             params['params']['name'] = name
         if name_pattern:
@@ -56,25 +56,26 @@ class Api(object):
             params['params']['skip'] = skip
         response = self._token.authorized_request(url, action, request,
                                                   **params)
-        assert response.is_success, 'List devices failure'
-        devices = []
-        for device in response.data['devices']:
-            devices.append(Device(self._transport, self._token, device['id'],
-                                  device['name'], device['data'],
-                                  device['networkId'], device['isBlocked']))
-        return devices
+        # TODO: replace assert with exception.
+        assert response.success(), 'List devices failure'
+        devices = response.response('devices')
+        return [Device(self._transport, self._token, device)
+                for device in devices]
 
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
         device.get(device_id)
-        if device.id():
-            return device
+        return device
 
     def put_device(self, device_id, name=None, data=None, network_id=None,
                    is_blocked=False):
         if not name:
             name = device_id
-        device = Device(self._transport, self._token, device_id, name, data,
-                        network_id, is_blocked)
+        device = {Device.ID_KEY: device_id,
+                  Device.NAME_KEY: name,
+                  Device.DATA_KEY: data,
+                  Device.NETWORK_ID_KEY: network_id,
+                  Device.IS_BLOCKED_KEY: is_blocked}
+        device = Device(self._transport, self._token, device)
         device.save()
         return device
