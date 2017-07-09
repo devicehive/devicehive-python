@@ -1,13 +1,13 @@
-from devicehive.handlers.base_handler import BaseHandler
+from devicehive.handlers.handler import Handler
 from devicehive.api import Api
 
 
-class ConnectionHandler(BaseHandler):
+class ConnectionHandler(Handler):
     """Connection handler class."""
 
     def __init__(self, transport, authentication, handler_class,
                  handler_options):
-        BaseHandler.__init__(self, transport)
+        Handler.__init__(self, transport)
         self._api = Api(self.transport, authentication)
         self._handler = handler_class(self._api, handler_options)
         self._handle_connect = False

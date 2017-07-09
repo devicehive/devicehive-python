@@ -1,5 +1,5 @@
-class BaseHandler(object):
-    """Base handler class."""
+class Handler(object):
+    """Handler class."""
 
     def __init__(self, transport):
         self.transport = transport
