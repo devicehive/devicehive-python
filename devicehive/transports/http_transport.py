@@ -1,5 +1,5 @@
 from devicehive.transports.transport import Transport
-from devicehive.transports.transport import BaseTransportException
+from devicehive.transports.transport import TransportRequestException
 import requests
 import threading
 import queue
@@ -127,7 +127,7 @@ class HttpTransport(Transport):
     def _stop_poll_request(self, action, request):
         poll_id = request[self.request_poll_id_key]
         if poll_id not in self._poll_threads:
-            raise HttpTransportException('Polling does not exist')
+            raise HttpTransportRequestException('Polling does not exist')
         poll_thread = self._poll_threads[poll_id]
         del self._poll_threads[poll_id]
         poll_thread.join()
@@ -136,7 +136,7 @@ class HttpTransport(Transport):
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
 
     def connect(self, url, **options):
-        self._assert_not_connected()
+        self._ensure_not_connected()
         self._connection_thread = threading.Thread(target=self._connection,
                                                    args=(url,))
         self._connection_thread.daemon = True
@@ -144,7 +144,7 @@ class HttpTransport(Transport):
         self._connection_thread.start()
 
     def send_request(self, action, request, **params):
-        self._assert_connected()
+        self._ensure_connected()
         poll = params.pop('poll', None)
         if poll is None:
             response = self._request(action, request, **params)
@@ -159,7 +159,7 @@ class HttpTransport(Transport):
         return response[self.REQUEST_ID_KEY]
 
     def request(self, action, request, **params):
-        self._assert_connected()
+        self._ensure_connected()
         poll = params.pop('poll', None)
         if poll is None:
             return self._request(action, request, **params)
@@ -168,13 +168,13 @@ class HttpTransport(Transport):
         return self._stop_poll_request(action, request)
 
     def close(self):
-        self._assert_connected()
+        self._ensure_connected()
         self._connected = False
 
     def join(self, timeout=None):
         self._connection_thread.join(timeout)
 
 
-class HttpTransportException(BaseTransportException):
-    """Http transport exception."""
+class HttpTransportRequestException(TransportRequestException):
+    """Http transport request exception."""
     pass

@@ -1,5 +1,5 @@
 from devicehive.transports.transport import Transport
-from devicehive.transports.transport import BaseTransportException
+from devicehive.transports.transport import TransportResponseException
 import websocket
 import threading
 import time
@@ -83,7 +83,7 @@ class WebsocketTransport(Transport):
         return request[self.REQUEST_ID_KEY]
 
     def connect(self, url, **options):
-        self._assert_not_connected()
+        self._ensure_not_connected()
         self._connection_thread = threading.Thread(target=self._connection,
                                                    args=(url, options))
         self._connection_thread.name = 'websocket-transport-connection'
@@ -91,11 +91,11 @@ class WebsocketTransport(Transport):
         self._connection_thread.start()
 
     def send_request(self, action, request, **params):
-        self._assert_connected()
+        self._ensure_connected()
         return self._send_request(action, request)
 
     def request(self, action, request, **params):
-        self._assert_connected()
+        self._ensure_connected()
         timeout = params.pop('timeout', 30)
         request_id = self._send_request(action, request)
         send_time = time.time()
@@ -104,16 +104,16 @@ class WebsocketTransport(Transport):
             if response.get(self.REQUEST_ID_KEY) == request_id:
                 return response
             self._event_queue.append(response)
-        raise WebsocketTransportException('Response receive timeout occurred')
+        raise WebsocketTransportResponseException('Receive timeout occurred')
 
     def close(self):
-        self._assert_connected()
+        self._ensure_connected()
         self._connected = False
 
     def join(self, timeout=None):
         self._connection_thread.join(timeout)
 
 
-class WebsocketTransportException(BaseTransportException):
-    """Websocket transport exception."""
+class WebsocketTransportResponseException(TransportResponseException):
+    """Websocket transport response exception."""
     pass

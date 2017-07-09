@@ -19,11 +19,13 @@ class Transport(object):
     def _uuid():
         return str(uuid.uuid1())
 
-    def _assert_not_connected(self):
-        assert not self._connected, 'transport connection already created'
+    def _ensure_not_connected(self):
+        if self._connected:
+            raise TransportConnectionException('Connection has already created')
 
-    def _assert_connected(self):
-        assert self._connected, 'transport connection has not created'
+    def _ensure_connected(self):
+        if not self._connected:
+            raise TransportConnectionException('Connection has not created')
 
     def _encode(self, obj):
         return self._data_format.encode(obj)
@@ -56,6 +58,21 @@ class Transport(object):
         raise NotImplementedError
 
 
-class BaseTransportException(Exception):
-    """Base transport exception."""
+class TransportException(Exception):
+    """Transport exception."""
+    pass
+
+
+class TransportConnectionException(TransportException):
+    """Transport connection exception."""
+    pass
+
+
+class TransportRequestException(TransportException):
+    """Transport request exception."""
+    pass
+
+
+class TransportResponseException(TransportException):
+    """Transport response exception."""
     pass
