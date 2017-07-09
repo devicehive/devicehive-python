@@ -29,14 +29,17 @@ class Token(ApiObject):
         headers = {'Authorization': 'Bearer ' + self._access_token}
         self._authentication_params['headers'] = headers
 
-    def authorized_request(self, url, action, request, **params):
+    def _set_authentication_params(self, params):
         for key in self._authentication_params:
             params[key] = self._authentication_params[key]
-        response = self._request(url, action, request, **params)
-        if response.success():
+
+    def authorized_request(self, url, action, request, **params):
+        self._set_authentication_params(params)
+        response = self._request(url, action, request.copy(), **params)
+        if response.success() or response.code() != 401:
             return response
-        if response.code() == 401:
-            self.authenticate()
+        self.authenticate()
+        self._set_authentication_params(params)
         return self._request(url, action, request, **params)
 
     def access_token(self):
