@@ -1,12 +1,12 @@
-from devicehive.data_formats.base_data_format import BaseDataFormat
+from devicehive.data_formats.data_format import DataFormat
 import json
 
 
-class JsonDataFormat(BaseDataFormat):
+class JsonDataFormat(DataFormat):
     """Json data format class."""
 
     def __init__(self):
-        BaseDataFormat.__init__(self, 'text')
+        DataFormat.__init__(self, 'text')
 
     def encode(self, data):
         return json.dumps(data)
