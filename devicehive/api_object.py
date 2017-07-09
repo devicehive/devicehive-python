@@ -70,7 +70,7 @@ class ApiObject(object):
 
     def _ensure_success_response(self, response, message):
         if not response.success():
-            raise ResponseApiObjectException(message, self._transport_name,
+            raise ApiObjectResponseException(message, self._transport_name,
                                              response.code(), response.error())
 
     def _ensure_http_transport(self):
@@ -83,8 +83,8 @@ class ApiObjectException(Exception):
     pass
 
 
-class ResponseApiObjectException(ApiObjectException):
-    """Response api object exception."""
+class ApiObjectResponseException(ApiObjectException):
+    """Api object response exception."""
 
     def __init__(self, message, transport_name, code, error):
         message = '%s. Transport: %s. Code: %s. Error: %s.' % (message,
