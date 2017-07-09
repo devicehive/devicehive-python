@@ -1,4 +1,5 @@
 from devicehive.api_object import ApiObject
+from devicehive.command import Command
 
 
 class Device(ApiObject):
@@ -71,3 +72,65 @@ class Device(ApiObject):
         self.data = None
         self.network_id = None
         self.is_blocked = None
+
+    def list_commands(self, start=None, end=None, command=None, status=None,
+                      sort_field=None, sort_order=None, take=None, skip=None):
+        # TODO: implement websocket support when API will be added.
+        self._ensure_http_transport()
+        url = 'device/%s/command' % self._id
+        action = None
+        request = {}
+        params = {'response_key': 'commands', 'params': {}}
+        if start:
+            params['params']['start'] = start
+        if end:
+            params['params']['end'] = end
+        if command:
+            params['params']['command'] = command
+        if status:
+            params['params']['status'] = status
+        if sort_field:
+            params['params']['sortField'] = sort_field
+        if sort_order:
+            params['params']['sortOrder'] = sort_order
+        if take:
+            params['params']['take'] = take
+        if skip:
+            params['params']['skip'] = skip
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        self._ensure_success_response(response, 'List device commands failure')
+        commands = response.response('commands')
+        return [Command(self._transport, self._token, command)
+                for command in commands]
+
+    def send_command(self, command_name, parameters=None, lifetime=None,
+                     timestamp=None, status=None, result=None):
+        url = 'device/%s/command' % self._id
+        action = 'command/insert'
+        command = {Command.COMMAND_KEY: command_name}
+        if parameters:
+            command[Command.PARAMETERS_KEY] = parameters
+        if lifetime:
+            command[Command.LIFETIME_KEY] = lifetime
+        if timestamp:
+            command[Command.TIMESTAMP_KEY] = timestamp
+        if status:
+            command[Command.STATUS_KEY] = status
+        if result:
+            command[Command.RESULT_KEY] = result
+        request = {'deviceId': self._id, 'command': command}
+        params = {'method': 'POST',
+                  'request_key': 'command',
+                  'response_key': 'command'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        self._ensure_success_response(response, 'Command send failure')
+        command = response.response('command')
+        command[Command.DEVICE_ID_KEY] = self._id
+        command[Command.COMMAND_KEY] = command_name
+        command[Command.PARAMETERS_KEY] = parameters
+        command[Command.LIFETIME_KEY] = lifetime
+        command[Command.STATUS_KEY] = status
+        command[Command.RESULT_KEY] = result
+        return Command(self._transport, self._token, command)
