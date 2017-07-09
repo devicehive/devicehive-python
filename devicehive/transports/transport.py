@@ -7,13 +7,13 @@ class Transport(object):
     REQUEST_ID_KEY = 'requestId'
     REQUEST_ACTION_KEY = 'action'
 
-    def __init__(self, data_format_class, data_format_options, handler_class,
-                 handler_options, name):
+    def __init__(self, name, data_format_class, data_format_options,
+                 handler_class, handler_options):
+        self._name = name
         self._data_format = data_format_class(**data_format_options)
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connected = False
-        self._name = name
 
     @staticmethod
     def _uuid():

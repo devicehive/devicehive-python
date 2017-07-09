@@ -16,8 +16,8 @@ class HttpTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        Transport.__init__(self, data_format_class, data_format_options,
-                           handler_class, handler_options, 'http')
+        Transport.__init__(self, 'http', data_format_class, data_format_options,
+                           handler_class, handler_options)
         self._connection_thread = None
         self._base_url = None
         self._events_queue = queue.Queue()
