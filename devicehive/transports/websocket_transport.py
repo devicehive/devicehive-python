@@ -1,17 +1,17 @@
-from devicehive.transports.base_transport import BaseTransport
-from devicehive.transports.base_transport import BaseTransportException
+from devicehive.transports.transport import Transport
+from devicehive.transports.transport import BaseTransportException
 import websocket
 import threading
 import time
 
 
-class WebsocketTransport(BaseTransport):
+class WebsocketTransport(Transport):
     """Websocket transport class."""
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        BaseTransport.__init__(self, data_format_class, data_format_options,
-                               handler_class, handler_options, 'websocket')
+        Transport.__init__(self, data_format_class, data_format_options,
+                           handler_class, handler_options, 'websocket')
         self._connection_thread = None
         self._websocket = websocket.WebSocket()
         self._pong_received = False

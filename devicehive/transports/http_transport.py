@@ -1,11 +1,11 @@
-from devicehive.transports.base_transport import BaseTransport
-from devicehive.transports.base_transport import BaseTransportException
+from devicehive.transports.transport import Transport
+from devicehive.transports.transport import BaseTransportException
 import requests
 import threading
 import queue
 
 
-class HttpTransport(BaseTransport):
+class HttpTransport(Transport):
     """Http transport class."""
 
     RESPONSE_SUCCESS_STATUS = 'success'
@@ -16,9 +16,8 @@ class HttpTransport(BaseTransport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        BaseTransport.__init__(self, data_format_class,
-                               data_format_options, handler_class,
-                               handler_options, 'http')
+        Transport.__init__(self, data_format_class, data_format_options,
+                           handler_class, handler_options, 'http')
         self._connection_thread = None
         self._base_url = None
         self._events_queue = queue.Queue()

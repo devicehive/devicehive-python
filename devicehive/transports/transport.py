@@ -1,8 +1,8 @@
 import uuid
 
 
-class BaseTransport(object):
-    """Base transport class."""
+class Transport(object):
+    """Transport class."""
 
     REQUEST_ID_KEY = 'requestId'
     REQUEST_ACTION_KEY = 'action'
