@@ -77,6 +77,8 @@ class HttpTransport(Transport):
                     self.REQUEST_ACTION_KEY: action}
         if code in self._success_codes:
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
+            if not data:
+                return response
             response_data = self._decode(data)
             if response_key:
                 response[response_key] = response_data
@@ -86,7 +88,10 @@ class HttpTransport(Transport):
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
         response[self.RESPONSE_CODE_KEY] = code
-        response[self.RESPONSE_ERROR_KEY] = self._decode(data).get('message')
+        if not data:
+            return response
+        response_data = self._decode(data)
+        response[self.RESPONSE_ERROR_KEY] = response_data.get('message')
         return response
 
     def _poll_request(self, action, request, **params):
