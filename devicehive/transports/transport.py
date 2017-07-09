@@ -71,8 +71,3 @@ class TransportConnectionException(TransportException):
 class TransportRequestException(TransportException):
     """Transport request exception."""
     pass
-
-
-class TransportResponseException(TransportException):
-    """Transport response exception."""
-    pass
