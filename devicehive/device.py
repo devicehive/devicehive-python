@@ -134,3 +134,29 @@ class Device(ApiObject):
         command[Command.STATUS_KEY] = status
         command[Command.RESULT_KEY] = result
         return Command(self._transport, self._token, command)
+
+    def subscribe_commands(self, names=None, limit=None, timestamp=None):
+        # TODO: finish HTTP support after server changes will be ready.
+        url = 'device/%s/command/poll' % self._id
+        action = 'command/subscribe'
+        request = {'deviceId': self._id}
+        params = {'subscribe': True,
+                  'request_delete_keys': ['deviceId'],
+                  'response_key': 'command',
+                  'params': {}}
+        if names:
+            request['names'] = names
+            params['request_delete_keys'].append('names')
+            params['params']['names'] = names
+        if limit:
+            request['limit'] = limit
+            params['request_delete_keys'].append('limit')
+            params['params']['limit'] = limit
+        if timestamp:
+            request['timestamp'] = timestamp
+            params['request_delete_keys'].append('timestamp')
+            params['params']['timestamp'] = timestamp
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        self._ensure_success_response(response, 'Commands subscribe failure')
+        return response.response('subscriptionId')
