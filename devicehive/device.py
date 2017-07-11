@@ -1,5 +1,6 @@
 from devicehive.api_object import ApiObject
 from devicehive.command import Command
+from devicehive.notification import Notification
 
 
 class Device(ApiObject):
@@ -160,3 +161,25 @@ class Device(ApiObject):
                                                   **params)
         self._ensure_success_response(response, 'Commands subscribe failure')
         return response.response('subscriptionId')
+
+    def send_notification(self, notification_name, parameters=None,
+                          timestamp=None):
+        url = 'device/%s/notification' % self._id
+        action = 'notification/insert'
+        notification = {'notification': notification_name}
+        if parameters:
+            notification['parameters'] = parameters
+        if timestamp:
+            notification['timestamp'] = timestamp
+        request = {'deviceId': self._id, 'notification': notification}
+        params = {'method': 'POST',
+                  'request_key': 'notification',
+                  'response_key': 'notification'}
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        self._ensure_success_response(response, 'Notification send failure')
+        notification = response.response('notification')
+        notification[Notification.DEVICE_ID_KEY] = self._id
+        notification[Notification.NOTIFICATION_KEY] = notification_name
+        notification[Notification.PARAMETERS_KEY] = parameters
+        return Notification(self._transport, self._token, notification)
