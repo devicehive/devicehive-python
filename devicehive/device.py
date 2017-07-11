@@ -100,7 +100,7 @@ class Device(ApiObject):
             params['params']['skip'] = skip
         response = self._token.authorized_request(url, action, request,
                                                   **params)
-        self._ensure_success_response(response, 'List device commands failure')
+        self._ensure_success_response(response, 'List commands failure')
         commands = response.response('commands')
         return [Command(self._transport, self._token, command)
                 for command in commands]
@@ -161,6 +161,36 @@ class Device(ApiObject):
                                                   **params)
         self._ensure_success_response(response, 'Commands subscribe failure')
         return response.response('subscriptionId')
+
+    def list_notifications(self, start=None, end=None, notification=None,
+                           sort_field=None, sort_order=None, take=None,
+                           skip=None):
+        # TODO: implement websocket support when API will be added.
+        self._ensure_http_transport()
+        url = 'device/%s/notification' % self._id
+        action = None
+        request = {}
+        params = {'response_key': 'notifications', 'params': {}}
+        if start:
+            params['params']['start'] = start
+        if end:
+            params['params']['end'] = end
+        if notification:
+            params['params']['notification'] = notification
+        if sort_field:
+            params['params']['sortField'] = sort_field
+        if sort_order:
+            params['params']['sortOrder'] = sort_order
+        if take:
+            params['params']['take'] = take
+        if skip:
+            params['params']['skip'] = skip
+        response = self._token.authorized_request(url, action, request,
+                                                  **params)
+        self._ensure_success_response(response, 'List notifications failure')
+        notifications = response.response('notifications')
+        return [Notification(self._transport, self._token, notification)
+                for notification in notifications]
 
     def send_notification(self, notification_name, parameters=None,
                           timestamp=None):
