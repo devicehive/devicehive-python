@@ -13,6 +13,7 @@ class Transport(object):
         self._data_format = data_format_class(**data_format_options)
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
+        self._exception = None
         self._connected = False
 
     @staticmethod
@@ -38,6 +39,9 @@ class Transport(object):
 
     def name(self):
         return self._name
+
+    def exception(self):
+        return self._exception
 
     def connected(self):
         return self._connected
