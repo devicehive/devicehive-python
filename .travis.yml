@@ -10,4 +10,5 @@ install:
     - pip install -r test_requirements.txt
 before_install:
     - openssl aes-256-cbc -K $encrypted_1ea9ebbf5537_key -iv $encrypted_1ea9ebbf5537_iv -in refresh_token.txt.enc -out refresh_token.txt -d
+    - export DEVICE_HIVE_REFRESH_TOKEN=$(cat refresh_token.txt)
 script: nosetests
