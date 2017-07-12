@@ -79,3 +79,7 @@ class Api(object):
         device = Device(self._transport, self._token, device)
         device.save()
         return device
+
+    def disconnect(self):
+        if self._transport.connected():
+            self._transport.close()
