@@ -1,0 +1,28 @@
+from devicehive import Handler
+from devicehive import DeviceHive
+
+
+class TestHandler(Handler):
+    """Test handler class."""
+
+    def handle_connect(self):
+        self.options['handle_connect'](self)
+
+    def handle_event(self, event):
+        pass
+
+
+class Test(object):
+    """Test class."""
+
+    def __init__(self, transport_url, refresh_token):
+        self._transport_url = transport_url
+        self._refresh_token = refresh_token
+
+    def run(self, handle_connect, handle_event=None):
+        handler_options = {'handle_connect': handle_connect,
+                           'handle_event': handle_event}
+        device_hive = DeviceHive(self._transport_url, TestHandler,
+                                 handler_options)
+        device_hive.connect(self._refresh_token)
+        device_hive.join()
