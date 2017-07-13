@@ -1,4 +1,5 @@
 from tests.types import string
+from tests.conftest import not_implemented_skip
 
 
 def test_get(test):
@@ -15,3 +16,8 @@ def test_get(test):
         assert info['rest_server_url'] is None
 
     test.run(handle_connect)
+
+
+@not_implemented_skip
+def test_get_cluster(test):
+    pass
