@@ -35,7 +35,7 @@ class WebsocketTransport(Transport):
             self._receive()
             self._close()
         except BaseException:
-            self._exception = sys.exc_info()
+            self._exception_info = sys.exc_info()
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)

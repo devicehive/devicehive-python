@@ -40,7 +40,7 @@ class DeviceHive(object):
 
     def join(self, timeout=None):
         self._transport.join(timeout)
-        exception = self._transport.exception()
+        exception = self._transport.exception_info()
         if not exception:
             return
         traceback.print_exception(exception[0], exception[1], exception[2])
