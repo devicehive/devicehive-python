@@ -24,6 +24,12 @@ class Test(object):
     def transport_name(self):
         return self._transport_name
 
+    def http_transport(self):
+        return self._transport_name == 'http'
+
+    def websocket_transport(self):
+        return self._transport_name == 'websocket'
+
     def run(self, handle_connect, handle_event=None):
         handler_options = {'handle_connect': handle_connect,
                            'handle_event': handle_event}
