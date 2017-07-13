@@ -1,6 +1,5 @@
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportRequestException
-import queue
 import sys
 import threading
 import requests
@@ -21,8 +20,7 @@ class HttpTransport(Transport):
         Transport.__init__(self, 'http', data_format_class, data_format_options,
                            handler_class, handler_options)
         self._base_url = None
-        # TODO: replace queue with list.
-        self._events_queue = queue.Queue()
+        self._events_queue = []
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
 
@@ -46,15 +44,15 @@ class HttpTransport(Transport):
             for subscribe_thread in self._subscribe_threads.values():
                 if not subscribe_thread.is_alive():
                     return
-            if self._events_queue.empty():
+            if not self._events_queue:
                 continue
-            for event in self._events_queue.get():
+            for event in self._events_queue.pop(0):
                 self._call_handler_method('handle_event', event)
                 if not self._connected:
                     return
 
     def _close(self):
-        self._events_queue = queue.Queue()
+        self._events_queue = []
         self._subscribe_threads = {}
         self._call_handler_method('handle_close')
 
@@ -136,7 +134,7 @@ class HttpTransport(Transport):
             events = [{response_key: event,
                        self.RESPONSE_SUBSCRIBE_ID_KEY: subscribe_id}
                       for event in events]
-            self._events_queue.put(events)
+            self._events_queue.append(events)
 
     def _unsubscribe_request(self, action, request):
         subscribe_id = request[self.RESPONSE_SUBSCRIBE_ID_KEY]
@@ -155,14 +153,14 @@ class HttpTransport(Transport):
         unsubscribe = params.pop('unsubscribe', False)
         if subscribe:
             response = self._subscribe_request(action, request, **params)
-            self._events_queue.put([response])
+            self._events_queue.append([response])
             return response[self.REQUEST_ID_KEY]
         if unsubscribe:
             response = self._unsubscribe_request(action, request)
-            self._events_queue.put([response])
+            self._events_queue.append([response])
             return response[self.REQUEST_ID_KEY]
         response = self._request(action, request, **params)
-        self._events_queue.put([response])
+        self._events_queue.append([response])
         return response[self.REQUEST_ID_KEY]
 
     def request(self, action, request, **params):
