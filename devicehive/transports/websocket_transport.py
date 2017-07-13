@@ -54,7 +54,7 @@ class WebsocketTransport(Transport):
 
     def _receive(self):
         while self._connected:
-            if len(self._event_queue):
+            if self._event_queue:
                 event = self._event_queue.pop(0)
                 self._call_handler_method('handle_event', event)
                 continue
