@@ -20,13 +20,12 @@ class HttpTransport(Transport):
                  handler_options):
         Transport.__init__(self, 'http', data_format_class, data_format_options,
                            handler_class, handler_options)
-        self._connection_thread = None
         self._base_url = None
         self._events_queue = queue.Queue()
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
 
-    def _connection(self, url):
+    def _connection(self, url, options):
         self._base_url = url
         if not self._base_url.endswith('/'):
             self._base_url += '/'
@@ -103,7 +102,8 @@ class HttpTransport(Transport):
         subscribe_thread = threading.Thread(target=self._subscribe,
                                             args=(subscribe_id, action, request,
                                                   params))
-        subscribe_thread_name = 'http-transport-subscribe-%s' % subscribe_id
+        subscribe_thread_name = '%s-transport-subscribe-%s' % (self._name,
+                                                               subscribe_id)
         self._subscribe_threads[subscribe_id] = subscribe_thread
         self._subscribe_threads[subscribe_id].daemon = True
         self._subscribe_threads[subscribe_id].name = subscribe_thread_name
@@ -148,14 +148,6 @@ class HttpTransport(Transport):
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
 
-    def connect(self, url, **options):
-        self._ensure_not_connected()
-        self._connection_thread = threading.Thread(target=self._connection,
-                                                   args=(url,))
-        self._connection_thread.daemon = True
-        self._connection_thread.name = 'http-transport-connection'
-        self._connection_thread.start()
-
     def send_request(self, action, request, **params):
         self._ensure_connected()
         subscribe = params.pop('subscribe', False)
@@ -181,13 +173,6 @@ class HttpTransport(Transport):
         if unsubscribe:
             return self._unsubscribe_request(action, request)
         return self._request(action, request, **params)
-
-    def close(self):
-        self._ensure_connected()
-        self._connected = False
-
-    def join(self, timeout=None):
-        self._connection_thread.join(timeout)
 
 
 class HttpTransportRequestException(TransportRequestException):
