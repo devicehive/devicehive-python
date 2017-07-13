@@ -59,7 +59,7 @@ class Transport(object):
         self._connection_thread.daemon = True
         self._connection_thread.start()
 
-    def close(self):
+    def disconnect(self):
         self._ensure_connected()
         self._connected = False
 

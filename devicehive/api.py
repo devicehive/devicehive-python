@@ -83,4 +83,4 @@ class Api(object):
     def disconnect(self):
         if not self._transport.connected():
             return
-        self._transport.close()
+        self._transport.disconnect()
