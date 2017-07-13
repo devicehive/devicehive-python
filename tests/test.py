@@ -19,7 +19,6 @@ class Test(object):
     def __init__(self, transport_url, refresh_token):
         self._transport_url = transport_url
         self._refresh_token = refresh_token
-        self._exception = None
 
     def run(self, handle_connect, handle_event=None):
         handler_options = {'test': self,
