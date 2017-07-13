@@ -1,3 +1,6 @@
+from builtins import str
+
+
 def test_get(test):
 
     def handle_connect(handler):
