@@ -1,5 +1,6 @@
 from devicehive.data_formats.json_data_format import JsonDataFormat
 from devicehive.connection_handler import ConnectionHandler
+import traceback
 
 
 class DeviceHive(object):
@@ -37,5 +38,9 @@ class DeviceHive(object):
         self._init_transport()
         self._transport.connect(self._transport_url, **self._transport_options)
 
-    def join(self):
-        self._transport.join()
+    def join(self, timeout=None):
+        self._transport.join(timeout)
+        exception = self._transport.exception()
+        if not exception:
+            return
+        traceback.print_exception(exception[0], exception[1], exception[2])
