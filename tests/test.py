@@ -6,11 +6,7 @@ class TestHandler(Handler):
     """Test handler class."""
 
     def handle_connect(self):
-        try:
-            if not self.options['handle_connect'](self):
-                self.api.disconnect()
-        except Exception as exception:
-            self.options['test'].set_exception(exception)
+        if not self.options['handle_connect'](self):
             self.api.disconnect()
 
     def handle_event(self, event):
@@ -25,12 +21,6 @@ class Test(object):
         self._refresh_token = refresh_token
         self._exception = None
 
-    def set_exception(self, exception):
-        self._exception = exception
-
-    def exception(self):
-        return self._exception
-
     def run(self, handle_connect, handle_event=None):
         handler_options = {'test': self,
                            'handle_connect': handle_connect,
@@ -38,7 +28,6 @@ class Test(object):
         device_hive = DeviceHive(self._transport_url, TestHandler,
                                  handler_options)
         device_hive.connect(refresh_token=self._refresh_token)
-        device_hive.join()
-        exception = self.exception()
-        if exception:
-            raise exception
+        exception_info = device_hive.join(print_exception=False)
+        if exception_info:
+            raise exception_info[1]
