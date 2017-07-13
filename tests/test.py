@@ -21,8 +21,7 @@ class Test(object):
         self._refresh_token = refresh_token
 
     def run(self, handle_connect, handle_event=None):
-        handler_options = {'test': self,
-                           'handle_connect': handle_connect,
+        handler_options = {'handle_connect': handle_connect,
                            'handle_event': handle_event}
         device_hive = DeviceHive(self._transport_url, TestHandler,
                                  handler_options)
