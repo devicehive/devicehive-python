@@ -2,11 +2,13 @@ from tests.test import Test
 
 
 def pytest_addoption(parser):
-    parser.addoption('--transport-urls', action='store', help="Transport urls")
-    parser.addoption('--refresh-token', action='store', help="Refresh token")
+    parser.addoption('--transport-urls', action='store', help='Transport urls')
+    parser.addoption('--refresh-token', action='store', help='Refresh token')
 
 
 def pytest_generate_tests(metafunc):
+    if metafunc.module.__name__.find('.test_api_') == -1:
+        return
     transport_urls = metafunc.config.option.transport_urls.split(',')
     refresh_token = metafunc.config.option.refresh_token
     tests = []
