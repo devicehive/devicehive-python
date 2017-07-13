@@ -1,8 +1,9 @@
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportRequestException
-import requests
-import threading
 import queue
+import sys
+import threading
+import requests
 
 
 class HttpTransport(Transport):
@@ -29,9 +30,12 @@ class HttpTransport(Transport):
         self._base_url = url
         if not self._base_url.endswith('/'):
             self._base_url += '/'
-        self._connect()
-        self._receive()
-        self._close()
+        try:
+            self._connect()
+            self._receive()
+            self._close()
+        except BaseException:
+            self._exception = sys.exc_info()
 
     def _connect(self):
         self._connected = True
