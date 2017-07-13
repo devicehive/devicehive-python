@@ -15,8 +15,8 @@ class Transport(object):
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connection_thread = None
-        self._exception_info = None
         self._connected = False
+        self._exception_info = None
 
     @staticmethod
     def _uuid():
@@ -45,11 +45,11 @@ class Transport(object):
     def name(self):
         return self._name
 
-    def exception_info(self):
-        return self._exception_info
-
     def connected(self):
         return self._connected
+
+    def exception_info(self):
+        return self._exception_info
 
     def connect(self, url, **options):
         self._ensure_not_connected()
