@@ -21,6 +21,7 @@ class HttpTransport(Transport):
         Transport.__init__(self, 'http', data_format_class, data_format_options,
                            handler_class, handler_options)
         self._base_url = None
+        # TODO: replace queue with list.
         self._events_queue = queue.Queue()
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
