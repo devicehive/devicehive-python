@@ -9,6 +9,9 @@ def pytest_addoption(parser):
 def pytest_generate_tests(metafunc):
     transport_urls = metafunc.config.option.transport_urls.split(',')
     refresh_token = metafunc.config.option.refresh_token
-    tests = [Test(transport_url, refresh_token)
-             for transport_url in transport_urls]
-    metafunc.parametrize('test', tests)
+    tests = []
+    ids = []
+    for transport_url in transport_urls:
+        tests.append(Test(transport_url, refresh_token))
+        ids.append(transport_url)
+    metafunc.parametrize('test', tests, ids=ids)
