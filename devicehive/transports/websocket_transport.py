@@ -2,6 +2,7 @@ from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportRequestException
 import websocket
 import threading
+import sys
 import time
 
 
@@ -23,15 +24,18 @@ class WebsocketTransport(Transport):
 
     def _connection(self, url, options):
         pong_timeout = options.pop('pong_timeout', None)
-        self._connect(url, **options)
-        if pong_timeout:
-            ping_thread = threading.Thread(target=self._ping,
-                                           args=(pong_timeout,))
-            ping_thread.name = 'websocket-transport-ping'
-            ping_thread.daemon = True
-            ping_thread.start()
-        self._receive()
-        self._close()
+        try:
+            self._connect(url, **options)
+            if pong_timeout:
+                ping_thread = threading.Thread(target=self._ping,
+                                               args=(pong_timeout,))
+                ping_thread.name = 'websocket-transport-ping'
+                ping_thread.daemon = True
+                ping_thread.start()
+            self._receive()
+            self._close()
+        except BaseException:
+            self._exception = sys.exc_info()
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
