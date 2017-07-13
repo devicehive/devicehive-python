@@ -62,9 +62,9 @@ class Device(ApiObject):
         # TODO: implement websocket support when API will be added.
         self._ensure_http_transport()
         url = 'device/%s' % self._id
-        action = None
-        request = {}
-        params = {'method': 'DELETE'}
+        action = 'device/delete'
+        request = {'deviceId': self._id}
+        params = {'method': 'DELETE', 'request_delete_keys': ['deviceId']}
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         self._ensure_success_response(response, 'Device remove failure')
