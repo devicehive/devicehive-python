@@ -38,9 +38,12 @@ class DeviceHive(object):
         self._init_transport()
         self._transport.connect(self._transport_url, **self._transport_options)
 
-    def join(self, timeout=None):
+    def join(self, timeout=None, print_exception=True):
         self._transport.join(timeout)
-        exception = self._transport.exception_info()
-        if not exception:
+        exception_info = self._transport.exception_info()
+        if not exception_info:
             return
-        traceback.print_exception(exception[0], exception[1], exception[2])
+        if print_exception:
+            traceback.print_exception(exception_info[0], exception_info[1],
+                                      exception_info[2])
+        return exception_info
