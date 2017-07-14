@@ -51,6 +51,7 @@ class Api(object):
                   Device.IS_BLOCKED_KEY: is_blocked}
         device = Device(self._transport, self._token, device)
         device.save()
+        device.get(device_id)
         return device
 
     def disconnect(self):
