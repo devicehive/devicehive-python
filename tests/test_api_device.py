@@ -1,3 +1,4 @@
+import pytest
 from devicehive.api_object import ApiObjectResponseException
 
 
@@ -52,6 +53,7 @@ def test_list(test):
     test.run(handle_connect)
 
 
+@pytest.mark.run(after='test_list')
 def test_get(test):
 
     def handle_connect(handler):
@@ -70,6 +72,7 @@ def test_get(test):
     test.run(handle_connect)
 
 
+@pytest.mark.run(after='test_list')
 def test_get_not_exist(test):
 
     def handle_connect(handler):
