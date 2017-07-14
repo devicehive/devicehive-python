@@ -1,6 +1,5 @@
 from devicehive.data_formats.json_data_format import JsonDataFormat
 from devicehive.connection_handler import ConnectionHandler
-from importlib import import_module
 import traceback
 
 
@@ -17,10 +16,10 @@ class DeviceHive(object):
         self._transport = None
 
     def _init_transport(self):
-        transport_class_name = '%sTransport' % self._transport_name.title()
         name = 'devicehive.transports.%s_transport' % self._transport_name
-        transport_module = import_module(name, transport_class_name)
-        transport_class = getattr(transport_module, transport_class_name)
+        class_name = '%sTransport' % self._transport_name.title()
+        transport_module = __import__(name, globals(), locals(), [class_name])
+        transport_class = getattr(transport_module, class_name)
         self._transport = transport_class(JsonDataFormat, {}, ConnectionHandler,
                                           self._handler_options)
 
