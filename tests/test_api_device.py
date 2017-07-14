@@ -31,9 +31,9 @@ def test_get_not_exist(test):
         except ApiObjectResponseException as api_object_response_exception:
             # TODO: test for 404 for all transports after bug will be fixed.
             if test.websocket_transport():
-                assert api_object_response_exception.code == 404
+                assert api_object_response_exception.code() == 404
             if test.http_transport():
-                assert api_object_response_exception.code == 401
+                assert api_object_response_exception.code() == 401
             pytest.xfail('Device does not exist')
 
     test.run(handle_connect)

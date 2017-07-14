@@ -91,7 +91,15 @@ class ApiObjectResponseException(ApiObjectException):
                                                                transport_name,
                                                                code, error)
         ApiObjectException.__init__(self, message)
-        self.message = message
-        self.transport_name = transport_name
-        self.code = code
-        self.error = error
+        self._transport_name = transport_name
+        self._code = code
+        self._error = error
+
+    def transport_name(self):
+        return self._transport_name
+
+    def code(self):
+        return self._code
+
+    def error(self):
+        return self._error
