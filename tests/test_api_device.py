@@ -1,4 +1,3 @@
-import pytest
 from devicehive.api_object import ApiObjectResponseException
 
 
@@ -14,8 +13,7 @@ def test_list(test):
                                           device_option['name'])
                    for device_option in device_options]
         devices_list = handler.api.list_devices()
-        assert devices_list[0].id() == device_options[1]['id']
-        assert devices_list[1].id() == device_options[0]['id']
+        assert len(devices_list) >= len(device_options)
         name = device_options[0]['name']
         devices_list = handler.api.list_devices(name=name)
         assert len(devices_list) == 1
@@ -25,7 +23,7 @@ def test_list(test):
         assert not devices_list
         name_pattern = test_id + '%'
         devices_list = handler.api.list_devices(name_pattern=name_pattern)
-        assert len(devices_list) == 2
+        assert len(devices_list) == len(device_options)
         devices_list = handler.api.list_devices(name_pattern=name_pattern,
                                                 sort_field='name',
                                                 sort_order='ASC')
@@ -53,7 +51,6 @@ def test_list(test):
     test.run(handle_connect)
 
 
-@pytest.mark.run(after='test_list')
 def test_get(test):
 
     def handle_connect(handler):
@@ -72,7 +69,6 @@ def test_get(test):
     test.run(handle_connect)
 
 
-@pytest.mark.run(after='test_list')
 def test_get_not_exist(test):
 
     def handle_connect(handler):
