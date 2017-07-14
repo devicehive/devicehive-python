@@ -1,5 +1,6 @@
 from devicehive import Handler
 from devicehive import DeviceHive
+import pytest
 
 
 class TestHandler(Handler):
@@ -29,6 +30,16 @@ class Test(object):
 
     def websocket_transport(self):
         return self._transport_name == 'websocket'
+
+    def only_http_implementation(self):
+        if self.http_transport():
+            return
+        pytest.skip('Implemented only for http transport')
+
+    def only_websocket_implementation(self):
+        if self.websocket_transport():
+            return
+        pytest.skip('Implemented only for websocket transport')
 
     def run(self, handle_connect, handle_event=None):
         handler_options = {'handle_connect': handle_connect,
