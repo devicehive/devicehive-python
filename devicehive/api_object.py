@@ -49,6 +49,19 @@ class Response(object):
         return self._response
 
 
+def ensure_success_response(transport_name, response, message):
+    if response.success():
+        return
+    raise ApiObjectResponseException(message, transport_name, response.code(),
+                                     response.error())
+
+
+def ensure_http_transport(transport_name):
+    if transport_name == 'http':
+        return
+    raise ApiObjectException('Implemented only for http transport')
+
+
 class ApiObject(object):
     """Api object class."""
 
@@ -69,13 +82,10 @@ class ApiObject(object):
         return Response(response)
 
     def _ensure_success_response(self, response, message):
-        if not response.success():
-            raise ApiObjectResponseException(message, self._transport_name,
-                                             response.code(), response.error())
+        ensure_success_response(self._transport_name, response, message)
 
     def _ensure_http_transport(self):
-        if not self._http_transport():
-            raise ApiObjectException('Implemented only for http transport')
+        ensure_http_transport(self._transport_name)
 
 
 class ApiObjectException(Exception):
