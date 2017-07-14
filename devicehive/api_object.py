@@ -56,6 +56,18 @@ class ApiObject(object):
         self._transport = transport
         self._transport_name = self._transport.name()
 
+    @staticmethod
+    def _set_request_filter(key, value, request, params):
+        if not value:
+            return
+        if not params.get('request_delete_keys'):
+            params['request_delete_keys'] = []
+        if not params.get('params'):
+            params['params'] = {}
+        request[key] = value
+        params['request_delete_keys'].append(key)
+        params['params'][key] = value
+
     def _http_transport(self):
         return self._transport_name == 'http'
 
