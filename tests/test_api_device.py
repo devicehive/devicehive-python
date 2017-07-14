@@ -14,9 +14,7 @@ def test_get(test):
         assert device.data == data
         assert isinstance(device.network_id, int)
         assert not device.is_blocked
-        # TODO: implement websocket support when API will be added.
-        if test.http_transport():
-            device.remove()
+        device.remove()
 
     test.run(handle_connect)
 

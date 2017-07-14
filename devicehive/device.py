@@ -59,8 +59,6 @@ class Device(ApiObject):
         self._ensure_success_response(response, 'Device save failure')
 
     def remove(self):
-        # TODO: implement websocket support when API will be added.
-        self._ensure_http_transport()
         url = 'device/%s' % self._id
         action = 'device/delete'
         request = {'deviceId': self._id}
