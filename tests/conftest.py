@@ -1,5 +1,4 @@
 from tests.test import Test
-import pytest
 
 
 def pytest_addoption(parser):
@@ -18,6 +17,3 @@ def pytest_generate_tests(metafunc):
         tests.append(Test(transport_url, refresh_token))
         ids.append(transport_url)
     metafunc.parametrize('test', tests, ids=ids)
-
-
-not_implemented_skip = pytest.mark.skip(reason='Not implemented')

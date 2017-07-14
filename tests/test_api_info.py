@@ -1,5 +1,5 @@
 from tests.types import string
-from tests.conftest import not_implemented_skip
+import pytest
 
 
 def test_get(test):
@@ -18,6 +18,6 @@ def test_get(test):
     test.run(handle_connect)
 
 
-@not_implemented_skip
 def test_get_cluster(test):
-    pass
+    # TODO: implement websocket support when API will be added.
+    test.only_http_implementation()
