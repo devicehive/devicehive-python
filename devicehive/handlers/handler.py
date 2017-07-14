@@ -10,5 +10,5 @@ class Handler(object):
     def handle_event(self, event):
         raise NotImplementedError
 
-    def handle_close(self):
+    def handle_disconnect(self):
         raise NotImplementedError

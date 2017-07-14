@@ -32,7 +32,7 @@ class WebsocketTransport(Transport):
                 ping_thread.daemon = True
                 ping_thread.start()
             self._receive()
-            self._close()
+            self._disconnect()
         except BaseException:
             self._exception_info = sys.exc_info()
 
@@ -73,11 +73,11 @@ class WebsocketTransport(Transport):
             if opcode == websocket.ABNF.OPCODE_CLOSE:
                 return
 
-    def _close(self):
+    def _disconnect(self):
         self._websocket.close()
         self._pong_received = False
         self._event_queue = []
-        self._call_handler_method('handle_close')
+        self._call_handler_method('handle_disconnect')
 
     def _send_request(self, action, request):
         request[self.REQUEST_ID_KEY] = self._uuid()

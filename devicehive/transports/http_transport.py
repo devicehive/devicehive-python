@@ -31,7 +31,7 @@ class HttpTransport(Transport):
         try:
             self._connect()
             self._receive()
-            self._close()
+            self._disconnect()
         except BaseException:
             self._exception_info = sys.exc_info()
 
@@ -51,10 +51,10 @@ class HttpTransport(Transport):
                 if not self._connected:
                     return
 
-    def _close(self):
+    def _disconnect(self):
         self._events_queue = []
         self._subscribe_threads = {}
-        self._call_handler_method('handle_close')
+        self._call_handler_method('handle_disconnect')
 
     def _http_request(self, method, url, **params):
         response = requests.request(method, url, **params)
