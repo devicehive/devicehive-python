@@ -34,3 +34,28 @@ def test_get_not_exist(test):
                 assert api_object_response_exception.code() == 401
 
     test.run(handle_connect)
+
+
+def test_put(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('put-device')
+        device = handler.api.put_device(device_id)
+        assert device.id() == device_id
+        assert device.name == device_id
+        assert not device.data
+        assert isinstance(device.network_id, int)
+        assert not device.is_blocked
+        device.remove()
+        name = '%s-name' % device_id
+        data = {'key': 'value'}
+        device = handler.api.put_device(device_id, name=name, data=data,
+                                        is_blocked=True)
+        assert device.id() == device_id
+        assert device.name == name
+        assert device.data == data
+        assert isinstance(device.network_id, int)
+        assert device.is_blocked
+        device.remove()
+
+    test.run(handle_connect)
