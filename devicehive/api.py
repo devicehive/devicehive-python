@@ -1,6 +1,7 @@
 from devicehive.info import Info
 from devicehive.token import Token
 from devicehive.device import Device
+from devicehive.api_object import ensure_success_response
 
 
 class Api(object):
@@ -56,8 +57,8 @@ class Api(object):
             params['params']['skip'] = skip
         response = self._token.authorized_request(url, action, request,
                                                   **params)
-        # TODO: replace assert with exception.
-        assert response.success(), 'List devices failure'
+        ensure_success_response(self._transport.name(), response,
+                                'List devices failure')
         devices = response.response('devices')
         return [Device(self._transport, self._token, device)
                 for device in devices]
