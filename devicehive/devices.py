@@ -12,27 +12,18 @@ class Devices(ApiObject):
     def list(self, name=None, name_pattern=None, network_id=None,
              network_name=None, sort_field=None, sort_order=None, take=None,
              skip=None):
-        # TODO: implement params for websocket when API will be extended.
         url = 'device'
         action = 'device/list'
         request = {}
-        params = {'response_key': 'devices', 'params': {}}
-        if name:
-            params['params']['name'] = name
-        if name_pattern:
-            params['params']['namePattern'] = name_pattern
-        if network_id:
-            params['params']['networkId'] = network_id
-        if network_name:
-            params['params']['networkName'] = network_name
-        if sort_field:
-            params['params']['sortField'] = sort_field
-        if sort_order:
-            params['params']['sortOrder'] = sort_order
-        if take:
-            params['params']['take'] = take
-        if skip:
-            params['params']['skip'] = skip
+        params = {'response_key': 'devices'}
+        self._set_request_filter('name', name, request, params)
+        self._set_request_filter('namePattern', name_pattern, request, params)
+        self._set_request_filter('networkId', network_id, request, params)
+        self._set_request_filter('networkName', network_name, request, params)
+        self._set_request_filter('sortField', sort_field, request, params)
+        self._set_request_filter('sortOrder', sort_order, request, params)
+        self._set_request_filter('take', take, request, params)
+        self._set_request_filter('skip', skip, request, params)
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         self._ensure_success_response(response, 'List devices failure')
