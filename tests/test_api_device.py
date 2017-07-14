@@ -1,5 +1,4 @@
 from devicehive.api_object import ApiObjectResponseException
-import pytest
 
 
 def test_get(test):
@@ -28,12 +27,12 @@ def test_get_not_exist(test):
         device_id = 'test-api-get-not-exist-%s' % test.transport_name()
         try:
             handler.api.get_device(device_id)
+            assert False
         except ApiObjectResponseException as api_object_response_exception:
             # TODO: test for 404 for all transports after bug will be fixed.
             if test.websocket_transport():
                 assert api_object_response_exception.code() == 404
             if test.http_transport():
                 assert api_object_response_exception.code() == 401
-            pytest.xfail('Device does not exist')
 
     test.run(handle_connect)
