@@ -1,5 +1,4 @@
 from tests.types import string
-import pytest
 
 
 def test_get(test):
@@ -21,3 +20,10 @@ def test_get(test):
 def test_get_cluster(test):
     # TODO: implement websocket support when API will be added.
     test.only_http_implementation()
+
+    def handle_connect(handler):
+        cluster_info = handler.api.get_cluster_info()
+        assert isinstance(cluster_info['bootstrap.servers'], string)
+        assert isinstance(cluster_info['zookeeper.connect'], string)
+
+    test.run(handle_connect)
