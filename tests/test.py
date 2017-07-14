@@ -44,10 +44,11 @@ class Test(object):
     def run(self, handle_connect, handle_event=None):
         handler_options = {'handle_connect': handle_connect,
                            'handle_event': handle_event}
-        device_hive = DeviceHive(self._transport_url, TestHandler,
-                                 handler_options)
-        device_hive.connect(refresh_token=self._refresh_token)
-        exception_info = device_hive.join(print_exception=False)
+        device_hive = DeviceHive(TestHandler, handler_options)
+        device_hive.connect(self._transport_url,
+                            refresh_token=self._refresh_token)
+        device_hive.join()
+        exception_info = device_hive.exception_info()
         if not exception_info:
             return
         raise exception_info[1]
