@@ -19,7 +19,7 @@ class Api(object):
 
     def get_cluster_info(self):
         info = Info(self._transport)
-        return info.get_cluster_info()
+        return info.get_cluster()
 
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):

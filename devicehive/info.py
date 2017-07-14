@@ -17,7 +17,7 @@ class Info(ApiObject):
                 'rest_server_url': info.get('restServerUrl'),
                 'websocket_server_url': info.get('webSocketServerUrl')}
 
-    def get_cluster_info(self):
+    def get_cluster(self):
         # TODO: implement websocket support when API will be added.
         self._ensure_http_transport()
         url = 'info/config/cluster'
