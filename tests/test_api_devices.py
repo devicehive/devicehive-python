@@ -1,7 +1,7 @@
 def test_list(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('list')
+        test_id = test.generate_id('list-devices')
         device_options = [{'id': '%s-1' % test_id,
                           'name': '%s-name-1' % test_id},
                           {'id': '%s-2' % test_id,

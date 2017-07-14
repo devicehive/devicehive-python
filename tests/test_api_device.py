@@ -4,7 +4,7 @@ from devicehive.api_object import ApiObjectResponseException
 def test_get(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('get')
+        device_id = test.generate_id('get-device')
         name = '%s-name' % device_id
         data = {'key': 'value'}
         handler.api.put_device(device_id, name=name, data=data)
@@ -22,7 +22,7 @@ def test_get(test):
 def test_get_not_exist(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('get-not-exist')
+        device_id = test.generate_id('get-device-not-exist')
         try:
             handler.api.get_device(device_id)
             assert False
