@@ -52,3 +52,25 @@ def test_put(test):
         device.remove()
 
     test.run(handle_connect)
+
+
+def test_save(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('save-device')
+        device = handler.api.put_device(device_id)
+        name = '%s-name' % device_id
+        data = {'key': 'value'}
+        device.name = name
+        device.data = data
+        device.is_blocked = True
+        device.save()
+        device = handler.api.get_device(device_id)
+        assert device.id() == device_id
+        assert device.name == name
+        assert device.data == data
+        assert isinstance(device.network_id, int)
+        assert device.is_blocked
+        device.remove()
+
+    test.run(handle_connect)
