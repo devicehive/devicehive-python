@@ -15,13 +15,6 @@ def test_get(test):
         assert isinstance(device.network_id, int)
         assert not device.is_blocked
         device.remove()
-
-    test.run(handle_connect)
-
-
-def test_get_not_exist(test):
-
-    def handle_connect(handler):
         device_id = test.generate_id('get-device-not-exist')
         try:
             handler.api.get_device(device_id)
