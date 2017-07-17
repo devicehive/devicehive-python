@@ -16,14 +16,14 @@ class Devices(ApiObject):
         action = 'device/list'
         request = {}
         params = {'response_key': 'devices'}
-        self._set_request_filter('name', name, request, params)
-        self._set_request_filter('namePattern', name_pattern, request, params)
-        self._set_request_filter('networkId', network_id, request, params)
-        self._set_request_filter('networkName', network_name, request, params)
-        self._set_request_filter('sortField', sort_field, request, params)
-        self._set_request_filter('sortOrder', sort_order, request, params)
-        self._set_request_filter('take', take, request, params)
-        self._set_request_filter('skip', skip, request, params)
+        self._set_request_param('name', name, request, params)
+        self._set_request_param('namePattern', name_pattern, request, params)
+        self._set_request_param('networkId', network_id, request, params)
+        self._set_request_param('networkName', network_name, request, params)
+        self._set_request_param('sortField', sort_field, request, params)
+        self._set_request_param('sortOrder', sort_order, request, params)
+        self._set_request_param('take', take, request, params)
+        self._set_request_param('skip', skip, request, params)
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         self._ensure_success_response(response, 'List devices failure')

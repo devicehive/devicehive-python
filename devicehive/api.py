@@ -31,9 +31,9 @@ class Api(object):
         self._token.refresh()
         return self._token.access_token()
 
-    def list_devices(self, **filters):
+    def list_devices(self, **params):
         devices = Devices(self._transport, self._token)
-        return devices.list(**filters)
+        return devices.list(**params)
 
     def get_device(self, device_id):
         device = Device(self._transport, self._token)

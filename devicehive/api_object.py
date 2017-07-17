@@ -57,7 +57,7 @@ class ApiObject(object):
         self._transport_name = self._transport.name()
 
     @staticmethod
-    def _set_request_filter(key, value, request, params):
+    def _set_request_param(key, value, request, params):
         if not value:
             return
         if not params.get('request_delete_keys'):
