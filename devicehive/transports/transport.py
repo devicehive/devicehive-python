@@ -1,4 +1,5 @@
 import uuid
+import sys
 import threading
 
 
@@ -40,6 +41,20 @@ class Transport(object):
             raise TransportConnectionException('Connection has not created')
 
     def _connection(self, url, options):
+        try:
+            self._connect(url, **options)
+            self._receive()
+            self._disconnect()
+        except BaseException:
+            self._exception_info = sys.exc_info()
+
+    def _connect(self, url, **options):
+        raise NotImplementedError
+
+    def _receive(self):
+        raise NotImplementedError
+
+    def _disconnect(self):
         raise NotImplementedError
 
     def name(self):

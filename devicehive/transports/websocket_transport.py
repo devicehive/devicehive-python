@@ -2,7 +2,6 @@ from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportRequestException
 import websocket
 import threading
-import sys
 import time
 
 
@@ -21,31 +20,27 @@ class WebsocketTransport(Transport):
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY
 
-    def _connection(self, url, options):
-        pong_timeout = options.pop('pong_timeout', None)
-        try:
-            self._connect(url, **options)
-            if pong_timeout:
-                ping_thread = threading.Thread(target=self._ping,
-                                               args=(pong_timeout,))
-                ping_thread.name = '%s-transport-ping' % self._name
-                ping_thread.daemon = True
-                ping_thread.start()
-            self._receive()
-            self._disconnect()
-        except BaseException:
-            self._exception_info = sys.exc_info()
-
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
+        pong_timeout = options.pop('pong_timeout', None)
         self._websocket.connect(url, **options)
         self._websocket.settimeout(timeout)
         self._connected = True
         self._call_handler_method('handle_connect')
+        if not pong_timeout:
+            return
+        ping_thread = threading.Thread(target=self._ping, args=(pong_timeout,))
+        ping_thread.name = '%s-transport-ping' % self._name
+        ping_thread.daemon = True
+        ping_thread.start()
 
     def _ping(self, pong_timeout):
         while self._connected:
-            self._websocket.ping()
+            try:
+                self._websocket.ping()
+            except Exception:
+                self._connected = False
+                return
             self._pong_received = False
             time.sleep(pong_timeout)
             if not self._pong_received:

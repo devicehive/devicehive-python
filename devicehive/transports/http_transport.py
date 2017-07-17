@@ -1,6 +1,5 @@
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportRequestException
-import sys
 import threading
 import requests
 
@@ -24,18 +23,10 @@ class HttpTransport(Transport):
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
 
-    def _connection(self, url, options):
+    def _connect(self, url, **options):
         self._base_url = url
         if not self._base_url.endswith('/'):
             self._base_url += '/'
-        try:
-            self._connect()
-            self._receive()
-            self._disconnect()
-        except BaseException:
-            self._exception_info = sys.exc_info()
-
-    def _connect(self):
         self._connected = True
         self._call_handler_method('handle_connect')
 
