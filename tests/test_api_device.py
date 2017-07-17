@@ -74,3 +74,27 @@ def test_save(test):
         device.remove()
 
     test.run(handle_connect)
+
+
+def test_remove(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('remove-device')
+        device = handler.api.put_device(device_id)
+        device.remove()
+        assert not device.id()
+        assert not device.name
+        assert not device.data
+        assert not device.network_id
+        assert not device.is_blocked
+        try:
+            device.remove()
+            assert False
+        except ApiObjectResponseException as api_object_response_exception:
+            # TODO: test for 404 for all transports after bug will be fixed.
+            if test.websocket_transport():
+                assert api_object_response_exception.code() == 500
+            if test.http_transport():
+                assert api_object_response_exception.code() == 401
+
+    test.run(handle_connect)
