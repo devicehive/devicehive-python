@@ -74,28 +74,19 @@ class Device(ApiObject):
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
-        # TODO: implement websocket support when API will be added.
-        self._ensure_http_transport()
         url = 'device/%s/command' % self._id
-        action = None
-        request = {}
-        params = {'response_key': 'commands', 'params': {}}
-        if start:
-            params['params']['start'] = start
-        if end:
-            params['params']['end'] = end
-        if command:
-            params['params']['command'] = command
-        if status:
-            params['params']['status'] = status
-        if sort_field:
-            params['params']['sortField'] = sort_field
-        if sort_order:
-            params['params']['sortOrder'] = sort_order
-        if take:
-            params['params']['take'] = take
-        if skip:
-            params['params']['skip'] = skip
+        action = 'command/list'
+        request = {'deviceId': self._id}
+        params = {'request_delete_keys': ['deviceId'],
+                  'response_key': 'commands'}
+        self._set_request_param('start', start, request, params)
+        self._set_request_param('end', end, request, params)
+        self._set_request_param('command', command, request, params)
+        self._set_request_param('status', status, request, params)
+        self._set_request_param('sortField', sort_field, request, params)
+        self._set_request_param('sortOrder', sort_order, request, params)
+        self._set_request_param('take', take, request, params)
+        self._set_request_param('skip', skip, request, params)
         response = self._token.authorized_request(url, action, request,
                                                   **params)
         self._ensure_success_response(response, 'List commands failure')
