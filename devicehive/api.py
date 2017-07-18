@@ -33,8 +33,27 @@ class Api(object):
         exception_message = 'Cluster info get failure'
         return api_request.execute(exception_message)
 
-    def create_token(self, user_id, **payload):
-        return self._token.create(user_id, **payload)
+    def create_token(self, user_id, expiration=None, actions=None,
+                     network_ids=None, device_ids=None):
+        payload = {'userId': user_id}
+        if expiration:
+            payload['expiration'] = expiration
+        if actions:
+            payload['actions'] = actions
+        if network_ids:
+            payload['networkIds'] = network_ids
+        if device_ids:
+            payload['deviceIds'] = device_ids
+        api_request = ApiRequest(self._transport)
+        api_request.set_post_method()
+        api_request.set_url('token/create')
+        api_request.set_action('token/create')
+        api_request.set('payload', payload, True)
+        exception_message = 'Token refresh failure'
+        tokens = self._token.execute_authorized_request(api_request,
+                                                        exception_message)
+        return {'refresh_token': tokens['refreshToken'],
+                'access_token': tokens['accessToken']}
 
     def refresh_token(self):
         self._token.refresh()
