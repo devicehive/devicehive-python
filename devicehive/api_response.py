@@ -14,7 +14,7 @@ class ApiResponse(object):
         self._success = response.pop(self.STATUS_KEY) == self.SUCCESS_STATUS
         self._code = response.pop(self.CODE_KEY, None)
         self._error = response.pop(self.ERROR_KEY, None)
-        if not key:
+        if not self._success or not key:
             self._response = response
             return
         self._response = response[key]
