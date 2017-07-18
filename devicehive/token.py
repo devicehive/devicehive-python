@@ -67,25 +67,26 @@ class Token(ApiObject):
     def access_token(self):
         return self._access_token
 
-    def create(self, user_id, expiration, actions, network_ids, device_ids):
-        # TODO: implement websocket support when API will be added.
-        self._ensure_http_transport()
-        url = 'token/create'
-        action = None
-        request = {'userId': user_id}
+    def create(self, user_id, expiration=None, actions=None, network_ids=None,
+               device_ids=None):
+        payload = {'userId': user_id}
         if expiration:
-            request['expiration'] = expiration
+            payload['expiration'] = expiration
         if actions:
-            request['actions'] = actions
+            payload['actions'] = actions
         if network_ids:
-            request['networkIds'] = network_ids
+            payload['networkIds'] = network_ids
         if device_ids:
-            request['deviceIds'] = device_ids
-        params = {'method': 'POST'}
-        response = self.authorized_request(url, action, request, **params)
-        self._ensure_success_response(response, 'Token create failure')
-        return {'refresh_token': response.response('refreshToken'),
-                'access_token': response.response('accessToken')}
+            payload['deviceIds'] = device_ids
+        api_request = ApiRequest(self._transport)
+        api_request.set_post_method()
+        api_request.set_url('token/create')
+        api_request.set_action('token/create')
+        api_request.set('payload', payload, True)
+        response = self.execute_authorized_request(api_request,
+                                                   'Token create failure')
+        return {'refresh_token': response.value('refreshToken'),
+                'access_token': response.value('accessToken')}
 
     def refresh(self):
         request = ApiRequest(self._transport)
