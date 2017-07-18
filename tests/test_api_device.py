@@ -65,16 +65,12 @@ def test_get(test):
         assert isinstance(device.network_id, int)
         assert not device.is_blocked
         device.remove()
-        # device_id = test.generate_id('get-device-not-exist')
-        # try:
-        #     handler.api.get_device(device_id)
-        #     assert False
-        # except ApiResponseException as api_response_exception:
-        #     # TODO: test for 404 for all transports after bug will be fixed.
-        #     if test.websocket_transport():
-        #         assert api_response_exception.code() == 404
-        #     if test.http_transport():
-        #         assert api_response_exception.code() == 401
+        device_id = test.generate_id('get-device-not-exist')
+        try:
+            handler.api.get_device(device_id)
+            assert False
+        except ApiResponseException as api_response_exception:
+            assert api_response_exception.code() == 404
 
     test.run(handle_connect)
 
@@ -137,17 +133,13 @@ def test_remove(test):
         assert not remove_device.data
         assert not remove_device.network_id
         assert not remove_device.is_blocked
-        # remove_device = handler.api.put_device(device_id)
-        # device = handler.api.get_device(device_id)
-        # device.remove()
-        # try:
-        #     remove_device.remove()
-        #     assert False
-        # except ApiResponseException as api_response_exception:
-        #     # TODO: test for 404 for all transports after bug will be fixed.
-        #     if test.websocket_transport():
-        #         assert api_response_exception.code() == 404
-        #     if test.http_transport():
-        #         assert api_response_exception.code() == 401
+        remove_device = handler.api.put_device(device_id)
+        device = handler.api.get_device(device_id)
+        device.remove()
+        try:
+            remove_device.remove()
+            assert False
+        except ApiResponseException as api_response_exception:
+            assert api_response_exception.code() == 404
 
     test.run(handle_connect)
