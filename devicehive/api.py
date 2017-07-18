@@ -18,8 +18,8 @@ class Api(object):
         api_request.set_url('info')
         api_request.set_action('server/info')
         api_request.set_response_key('info')
-        response = api_request.execute('Info get failure')
-        info = response.value()
+        exception_message = 'Info get failure'
+        info = api_request.execute(exception_message)
         return {'api_version': info['apiVersion'],
                 'server_timestamp': info['serverTimestamp'],
                 'rest_server_url': info.get('restServerUrl'),
@@ -30,8 +30,8 @@ class Api(object):
         api_request.set_url('info/config/cluster')
         api_request.set_action('cluster/info')
         api_request.set_response_key('clusterInfo')
-        response = api_request.execute('Cluster info get failure')
-        return response.value()
+        exception_message = 'Cluster info get failure'
+        return api_request.execute(exception_message)
 
     def create_token(self, user_id, **payload):
         return self._token.create(user_id, **payload)
@@ -56,9 +56,8 @@ class Api(object):
         api_request.set_param('skip', skip)
         api_request.set_response_key('devices')
         exception_message = 'List devices failure'
-        response = self._token.execute_authorized_request(api_request,
-                                                          exception_message)
-        devices = response.value()
+        devices = self._token.execute_authorized_request(api_request,
+                                                         exception_message)
         return [Device(self._transport, self._token, device)
                 for device in devices]
 

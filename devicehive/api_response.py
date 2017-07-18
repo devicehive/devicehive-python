@@ -40,10 +40,8 @@ class ApiResponse(object):
         raise ApiResponseException(exception_message, transport_name,
                                    self._code, self._error)
 
-    def value(self, key=None):
-        if not key:
-            return self._response
-        return self._response[key]
+    def response(self):
+        return self._response
 
 
 class ApiResponseException(Exception):

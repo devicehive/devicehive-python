@@ -83,19 +83,21 @@ class Token(ApiObject):
         api_request.set_url('token/create')
         api_request.set_action('token/create')
         api_request.set('payload', payload, True)
-        response = self.execute_authorized_request(api_request,
-                                                   'Token create failure')
-        return {'refresh_token': response.value('refreshToken'),
-                'access_token': response.value('accessToken')}
+        exception_message = 'Token refresh failure'
+        tokens = self.execute_authorized_request(api_request,
+                                                 exception_message)
+        return {'refresh_token': tokens['refreshToken'],
+                'access_token': tokens['accessToken']}
 
     def refresh(self):
-        request = ApiRequest(self._transport)
-        request.set_post_method()
-        request.set_url('token/refresh')
-        request.set_action('token/refresh')
-        request.set('refreshToken', self._refresh_token)
-        response = request.execute('Token refresh failure')
-        self._access_token = response.value('accessToken')
+        api_request = ApiRequest(self._transport)
+        api_request.set_post_method()
+        api_request.set_url('token/refresh')
+        api_request.set_action('token/refresh')
+        api_request.set('refreshToken', self._refresh_token)
+        exception_message = 'Token refresh failure'
+        tokens = api_request.execute(exception_message)
+        self._access_token = tokens['accessToken']
 
     def authenticate(self):
         if self._refresh_token:
