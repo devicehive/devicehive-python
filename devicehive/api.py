@@ -1,5 +1,4 @@
 from devicehive.api_request import ApiRequest
-from devicehive.info import Info
 from devicehive.token import Token
 from devicehive.device import Device
 
