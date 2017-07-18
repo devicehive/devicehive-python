@@ -1,7 +1,7 @@
-from devicehive.api_object import ApiObject
+from devicehive.api_request import ApiRequest
 
 
-class Command(ApiObject):
+class Command(object):
     """Command class."""
 
     DEVICE_ID_KEY = 'deviceId'
@@ -15,7 +15,7 @@ class Command(ApiObject):
     RESULT_KEY = 'result'
 
     def __init__(self, transport, token, command):
-        ApiObject.__init__(self, transport)
+        self._transport = transport
         self._token = token
         self._device_id = command[self.DEVICE_ID_KEY]
         self._id = command[self.ID_KEY]
@@ -49,13 +49,12 @@ class Command(ApiObject):
         return self._timestamp
 
     def save(self):
-        url = 'device/%s/command/%s' % (self._device_id, self._id)
-        action = 'command/update'
         command = {'status': self.status, 'result': self.result}
-        request = {'deviceId': self._device_id,
-                   'commandId': self._id,
-                   'command': command}
-        params = {'method': 'PUT', 'request_key': 'command'}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Command save failure')
+        api_request = ApiRequest(self._transport)
+        api_request.set_put_method()
+        api_request.set_url('device/{deviceId}/command/{commandId}',
+                            deviceId=self._device_id, commandId=self._id)
+        api_request.set_action('command/update')
+        api_request.set('command', command, True)
+        exception_message = 'Command save failure'
+        self._token.execute_authorized_request(api_request, exception_message)

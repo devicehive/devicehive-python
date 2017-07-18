@@ -1,21 +1,19 @@
-from devicehive.api_object import ApiObject
 from devicehive.api_request import ApiRequest
 from devicehive.api_response import ApiResponseException
 
 
-class Token(ApiObject):
+class Token(object):
     """Token class."""
 
     AUTHORIZATION_HEADER_NAME = 'Authorization'
     AUTHORIZATION_HEADER_VALUE_PREFIX = 'Bearer '
 
     def __init__(self, transport, authentication):
-        ApiObject.__init__(self, transport)
+        self._transport = transport
         self._login = authentication.get('login')
         self._password = authentication.get('password')
         self._refresh_token = authentication.get('refresh_token')
         self._access_token = authentication.get('access_token')
-        self._authentication_params = {}
 
     def _login(self):
         # TODO: implement token/login request.
@@ -25,28 +23,10 @@ class Token(ApiObject):
     def _authenticate(self):
         api_request = ApiRequest(self._transport)
         if not api_request.websocket_transport():
-            # TODO: remove.
-            headers = {'Authorization': 'Bearer ' + self._access_token}
-            self._authentication_params['headers'] = headers
             return
         api_request.set_action('authenticate')
         api_request.set('token', self._access_token)
         api_request.execute('Authentication failure')
-
-    def _set_authentication_params(self, params):
-        # TODO: remove method.
-        for key in self._authentication_params:
-            params[key] = self._authentication_params[key]
-
-    def authorized_request(self, url, action, request, **params):
-        # TODO: remove method.
-        self._set_authentication_params(params)
-        response = self._request(url, action, request.copy(), **params)
-        if response.success() or response.code() != 401:
-            return response
-        self.authenticate()
-        self._set_authentication_params(params)
-        return self._request(url, action, request, **params)
 
     def _set_authorization_header(self, api_request):
         name = self.AUTHORIZATION_HEADER_NAME

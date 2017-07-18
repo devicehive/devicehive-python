@@ -1,9 +1,9 @@
-from devicehive.api_object import ApiObject
+from devicehive.api_request import ApiRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
 
 
-class Device(ApiObject):
+class Device(object):
     """Device class."""
 
     ID_KEY = 'id'
@@ -13,7 +13,7 @@ class Device(ApiObject):
     IS_BLOCKED_KEY = 'isBlocked'
 
     def __init__(self, transport, token, device=None):
-        ApiObject.__init__(self, transport)
+        self._transport = transport
         self._token = token
         self._id = None
         self.name = None
@@ -34,38 +34,36 @@ class Device(ApiObject):
         return self._id
 
     def get(self, device_id):
-        url = 'device/%s' % device_id
-        action = 'device/get'
-        request = {'deviceId': device_id}
-        params = {'request_delete_keys': ['deviceId'], 'response_key': 'device'}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Device get failure')
-        device = response.response('device')
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('device/{deviceId}', deviceId=device_id)
+        api_request.set_action('device/get')
+        api_request.set_response_key('device')
+        exception_message = 'Device get failure'
+        device = self._token.execute_authorized_request(api_request,
+                                                        exception_message)
         self._init(device)
 
     def save(self):
-        url = 'device/%s' % self._id
-        action = 'device/save'
         device = {self.ID_KEY: self._id,
                   self.NAME_KEY: self.name,
                   self.DATA_KEY: self.data,
                   self.NETWORK_ID_KEY: self.network_id,
                   self.IS_BLOCKED_KEY: self.is_blocked}
-        request = {'deviceId': self._id, 'device': device}
-        params = {'method': 'PUT', 'request_key': 'device'}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Device save failure')
+        api_request = ApiRequest(self._transport)
+        api_request.set_put_method()
+        api_request.set_url('device/{deviceId}', deviceId=self._id)
+        api_request.set_action('device/save')
+        api_request.set('device', device, True)
+        exception_message = 'Device save failure'
+        self._token.execute_authorized_request(api_request, exception_message)
 
     def remove(self):
-        url = 'device/%s' % self._id
-        action = 'device/delete'
-        request = {'deviceId': self._id}
-        params = {'method': 'DELETE', 'request_delete_keys': ['deviceId']}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Device remove failure')
+        api_request = ApiRequest(self._transport)
+        api_request.set_delete_method()
+        api_request.set_url('device/{deviceId}', deviceId=self._id)
+        api_request.set_action('device/delete')
+        exception_message = 'Device remove failure'
+        self._token.execute_authorized_request(api_request, exception_message)
         self._id = None
         self.name = None
         self.data = None
@@ -74,30 +72,26 @@ class Device(ApiObject):
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
-        url = 'device/%s/command' % self._id
-        action = 'command/list'
-        request = {'deviceId': self._id}
-        params = {'request_delete_keys': ['deviceId'],
-                  'response_key': 'commands'}
-        self._set_request_param('start', start, request, params)
-        self._set_request_param('end', end, request, params)
-        self._set_request_param('command', command, request, params)
-        self._set_request_param('status', status, request, params)
-        self._set_request_param('sortField', sort_field, request, params)
-        self._set_request_param('sortOrder', sort_order, request, params)
-        self._set_request_param('take', take, request, params)
-        self._set_request_param('skip', skip, request, params)
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'List commands failure')
-        commands = response.response('commands')
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('device/{deviceId}/command', deviceId=self._id)
+        api_request.set_action('command/list')
+        api_request.set_param('start', start)
+        api_request.set_param('end', end)
+        api_request.set_param('command', command)
+        api_request.set_param('status', status)
+        api_request.set_param('sortField', sort_field)
+        api_request.set_param('sortOrder', sort_order)
+        api_request.set_param('take', take)
+        api_request.set_param('skip', skip)
+        api_request.set_response_key('commands')
+        exception_message = 'List commands failure'
+        commands = self._token.execute_authorized_request(api_request,
+                                                          exception_message)
         return [Command(self._transport, self._token, command)
                 for command in commands]
 
     def send_command(self, command_name, parameters=None, lifetime=None,
                      timestamp=None, status=None, result=None):
-        url = 'device/%s/command' % self._id
-        action = 'command/insert'
         command = {Command.COMMAND_KEY: command_name}
         if parameters:
             command[Command.PARAMETERS_KEY] = parameters
@@ -109,14 +103,15 @@ class Device(ApiObject):
             command[Command.STATUS_KEY] = status
         if result:
             command[Command.RESULT_KEY] = result
-        request = {'deviceId': self._id, 'command': command}
-        params = {'method': 'POST',
-                  'request_key': 'command',
-                  'response_key': 'command'}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Command send failure')
-        command = response.response('command')
+        api_request = ApiRequest(self._transport)
+        api_request.set_post_method()
+        api_request.set_url('device/{deviceId}/command', deviceId=self._id)
+        api_request.set_action('command/insert')
+        api_request.set('command', command, True)
+        api_request.set_response_key('command')
+        exception_message = 'Command send failure'
+        command = self._token.execute_authorized_request(api_request,
+                                                         exception_message)
         command[Command.DEVICE_ID_KEY] = self._id
         command[Command.COMMAND_KEY] = command_name
         command[Command.PARAMETERS_KEY] = parameters
@@ -126,79 +121,45 @@ class Device(ApiObject):
         return Command(self._transport, self._token, command)
 
     def subscribe_commands(self, names=None, limit=None, timestamp=None):
-        # TODO: finish HTTP support after server changes will be ready.
-        url = 'device/%s/command/poll' % self._id
-        action = 'command/subscribe'
-        request = {'deviceId': self._id}
-        params = {'subscribe': True,
-                  'request_delete_keys': ['deviceId'],
-                  'response_key': 'command',
-                  'params': {}}
-        if names:
-            request['names'] = names
-            params['request_delete_keys'].append('names')
-            params['params']['names'] = names
-        if limit:
-            request['limit'] = limit
-            params['request_delete_keys'].append('limit')
-            params['params']['limit'] = limit
-        if timestamp:
-            request['timestamp'] = timestamp
-            params['request_delete_keys'].append('timestamp')
-            params['params']['timestamp'] = timestamp
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Commands subscribe failure')
-        return response.response('subscriptionId')
+        # TODO: implement after HTTP support will be ready.
+        pass
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
                            skip=None):
-        # TODO: implement websocket support when API will be added.
-        self._ensure_http_transport()
-        url = 'device/%s/notification' % self._id
-        action = None
-        request = {}
-        params = {'response_key': 'notifications', 'params': {}}
-        if start:
-            params['params']['start'] = start
-        if end:
-            params['params']['end'] = end
-        if notification:
-            params['params']['notification'] = notification
-        if sort_field:
-            params['params']['sortField'] = sort_field
-        if sort_order:
-            params['params']['sortOrder'] = sort_order
-        if take:
-            params['params']['take'] = take
-        if skip:
-            params['params']['skip'] = skip
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'List notifications failure')
-        notifications = response.response('notifications')
-        return [Notification(self._transport, self._token, notification)
-                for notification in notifications]
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('device/{deviceId}/notification', deviceId=self._id)
+        api_request.set_action('notification/list')
+        api_request.set_param('start', start)
+        api_request.set_param('end', end)
+        api_request.set_param('notification', notification)
+        api_request.set_param('sortField', sort_field)
+        api_request.set_param('sortOrder', sort_order)
+        api_request.set_param('take', take)
+        api_request.set_param('skip', skip)
+        api_request.set_response_key('notifications')
+        except_message = 'List notifications failure'
+        notifications = self._token.execute_authorized_request(api_request,
+                                                               except_message)
+        return [Notification(notification) for notification in notifications]
 
     def send_notification(self, notification_name, parameters=None,
                           timestamp=None):
-        url = 'device/%s/notification' % self._id
-        action = 'notification/insert'
         notification = {'notification': notification_name}
         if parameters:
             notification['parameters'] = parameters
         if timestamp:
             notification['timestamp'] = timestamp
-        request = {'deviceId': self._id, 'notification': notification}
-        params = {'method': 'POST',
-                  'request_key': 'notification',
-                  'response_key': 'notification'}
-        response = self._token.authorized_request(url, action, request,
-                                                  **params)
-        self._ensure_success_response(response, 'Notification send failure')
-        notification = response.response('notification')
+        api_request = ApiRequest(self._transport)
+        api_request.set_post_method()
+        api_request.set_url('device/{deviceId}/notification', deviceId=self._id)
+        api_request.set_action('notification/insert')
+        api_request.set('notification', notification, True)
+        api_request.set_response_key('notification')
+        exception_message = 'Notification send failure'
+        notification = self._token.execute_authorized_request(api_request,
+                                                              exception_message)
         notification[Notification.DEVICE_ID_KEY] = self._id
         notification[Notification.NOTIFICATION_KEY] = notification_name
         notification[Notification.PARAMETERS_KEY] = parameters
-        return Notification(self._transport, self._token, notification)
+        return Notification(notification)
