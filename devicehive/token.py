@@ -1,4 +1,5 @@
 from devicehive.api_object import ApiObject
+from devicehive.api_request import ApiRequest
 
 
 class Token(ApiObject):
@@ -66,13 +67,13 @@ class Token(ApiObject):
                 'access_token': response.response('accessToken')}
 
     def refresh(self):
-        url = 'token/refresh'
-        action = url
-        request = {'refreshToken': self._refresh_token}
-        params = {'method': 'POST'}
-        response = self._request(url, action, request, **params)
-        self._ensure_success_response(response, 'Token refresh failure')
-        self._access_token = response.response('accessToken')
+        request = ApiRequest(self._transport)
+        request.set_post_method()
+        request.set_url('token/refresh')
+        request.set_action('token/refresh')
+        request.set('refreshToken', self._refresh_token)
+        response = request.execute('Token refresh failure')
+        self._access_token = response.value('accessToken')
 
     def authenticate(self):
         if self._refresh_token:
