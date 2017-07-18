@@ -15,8 +15,17 @@ class Api(object):
         self._token.authenticate()
 
     def get_info(self):
-        info = Info(self._transport)
-        return info.get()
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('info')
+        api_request.set_action('server/info')
+        response_key = 'info'
+        api_request.set_response_key(response_key)
+        response = api_request.execute('Info get failure')
+        info = response.value(response_key)
+        return {'api_version': info['apiVersion'],
+                'server_timestamp': info['serverTimestamp'],
+                'rest_server_url': info.get('restServerUrl'),
+                'websocket_server_url': info.get('webSocketServerUrl')}
 
     def get_cluster_info(self):
         info = Info(self._transport)
