@@ -22,10 +22,8 @@ class Api(object):
         info = Info(self._transport)
         return info.get_cluster()
 
-    def create_token(self, user_id, expiration=None, actions=None,
-                     network_ids=None, device_ids=None):
-        return self._token.create(user_id, expiration, actions, network_ids,
-                                  device_ids)
+    def create_token(self, user_id, **payload):
+        return self._token.create(user_id, **payload)
 
     def refresh_token(self):
         self._token.refresh()
