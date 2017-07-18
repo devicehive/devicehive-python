@@ -31,11 +31,11 @@ class ApiResponse(object):
     def error(self):
         return self._error
 
-    def ensure_success(self, message, transport_name):
+    def ensure_success(self, exception_message, transport_name):
         if self._success:
             return
-        raise ApiResponseException(message, transport_name, self._code,
-                                   self._error)
+        raise ApiResponseException(exception_message, transport_name,
+                                   self._code, self._error)
 
     def value(self, key=None):
         if not key:
