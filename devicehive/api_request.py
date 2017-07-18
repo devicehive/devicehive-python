@@ -7,12 +7,15 @@ class ApiRequest(object):
     def __init__(self, transport):
         self._transport = transport
         self._transport_name = self._transport.name()
-        self._url = None
         self._action = None
         self._request = {}
-        self._params = {'request_delete_keys': [],
+        self._params = {'method': 'GET',
+                        'url': None,
+                        'request_delete_keys': [],
+                        'request_key': None,
                         'params': {},
-                        'headers': {}}
+                        'headers': {},
+                        'response_key': None}
 
     def http_transport(self):
         return self._transport_name == 'http'
@@ -25,11 +28,16 @@ class ApiRequest(object):
             return
         raise ApiRequestException('Implemented only for http transport')
 
-    def url(self):
-        return self._url
+    def set_action(self, action):
+        self._action = action
 
-    def action(self):
-        return self._action
+    def set(self, key, value, request_key=False):
+        if not value:
+            return
+        self._request[key] = value
+        if not request_key:
+            return
+        self._params['request_key'] = value
 
     def set_get_method(self):
         self._params['method'] = 'GET'
@@ -48,13 +56,7 @@ class ApiRequest(object):
             url = url.replace('{%s}' % key, args[key])
             self._request[key] = args[key]
             self._params['request_delete_keys'].append(key)
-        self._url = url
-
-    def set_action(self, action):
-        self._action = action
-
-    def set_header(self, name, value):
-        self._params['headers'][name] = value
+        self._params['url'] = url
 
     def set_param(self, key, value):
         if not value:
@@ -63,21 +65,17 @@ class ApiRequest(object):
         self._params['request_delete_keys'].append(key)
         self._params['params'][key] = value
 
-    def set(self, key, value):
-        if not value:
-            return
-        self._request[key] = value
+    def set_header(self, name, value):
+        self._params['headers'][name] = value
 
-    def execute(self, error_message, request_key=None, response_key=None):
-        self._params['url'] = self._url
-        if request_key:
-            self._params['request_key'] = request_key
-        if response_key:
-            self._params['response_key'] = response_key
+    def set_response_key(self, value):
+        self._params['response_key'] = value
+
+    def execute(self, exception_message):
         response = self._transport.request(self._action, self._request.copy(),
                                            **self._params)
         response = ApiResponse(response)
-        response.ensure_success(error_message, self._transport_name)
+        response.ensure_success(exception_message, self._transport_name)
         return response
 
 
