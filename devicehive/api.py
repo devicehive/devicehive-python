@@ -28,8 +28,13 @@ class Api(object):
                 'websocket_server_url': info.get('webSocketServerUrl')}
 
     def get_cluster_info(self):
-        info = Info(self._transport)
-        return info.get_cluster()
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('info/config/cluster')
+        api_request.set_action('cluster/info')
+        response_key = 'clusterInfo'
+        api_request.set_response_key(response_key)
+        response = api_request.execute('Cluster info get failure')
+        return response.value(response_key)
 
     def create_token(self, user_id, **payload):
         return self._token.create(user_id, **payload)
