@@ -37,7 +37,7 @@ class ApiRequest(object):
         self._request[key] = value
         if not request_key:
             return
-        self._params['request_key'] = value
+        self._params['request_key'] = key
 
     def set_get_method(self):
         self._params['method'] = 'GET'
