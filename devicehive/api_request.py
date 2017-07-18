@@ -74,7 +74,7 @@ class ApiRequest(object):
     def execute(self, exception_message):
         response = self._transport.request(self._action, self._request.copy(),
                                            **self._params)
-        response = ApiResponse(response)
+        response = ApiResponse(response, self._params['response_key'])
         response.ensure_success(exception_message, self._transport_name)
         return response
 

@@ -17,10 +17,9 @@ class Api(object):
         api_request = ApiRequest(self._transport)
         api_request.set_url('info')
         api_request.set_action('server/info')
-        response_key = 'info'
-        api_request.set_response_key(response_key)
+        api_request.set_response_key('info')
         response = api_request.execute('Info get failure')
-        info = response.value(response_key)
+        info = response.value()
         return {'api_version': info['apiVersion'],
                 'server_timestamp': info['serverTimestamp'],
                 'rest_server_url': info.get('restServerUrl'),
@@ -30,10 +29,9 @@ class Api(object):
         api_request = ApiRequest(self._transport)
         api_request.set_url('info/config/cluster')
         api_request.set_action('cluster/info')
-        response_key = 'clusterInfo'
-        api_request.set_response_key(response_key)
+        api_request.set_response_key('clusterInfo')
         response = api_request.execute('Cluster info get failure')
-        return response.value(response_key)
+        return response.value()
 
     def create_token(self, user_id, **payload):
         return self._token.create(user_id, **payload)
@@ -56,12 +54,11 @@ class Api(object):
         api_request.set_param('sortOrder', sort_order)
         api_request.set_param('take', take)
         api_request.set_param('skip', skip)
-        response_key = 'devices'
-        api_request.set_response_key(response_key)
+        api_request.set_response_key('devices')
         exception_message = 'List devices failure'
         response = self._token.execute_authorized_request(api_request,
                                                           exception_message)
-        devices = response.value(response_key)
+        devices = response.value()
         return [Device(self._transport, self._token, device)
                 for device in devices]
 

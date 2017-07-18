@@ -8,13 +8,16 @@ class ApiResponse(object):
     CODE_KEY = 'code'
     ERROR_KEY = 'error'
 
-    def __init__(self, response):
+    def __init__(self, response, key=None):
         self._id = response.pop(self.ID_KEY)
         self._action = response.pop(self.ACTION_KEY)
         self._success = response.pop(self.STATUS_KEY) == self.SUCCESS_STATUS
         self._code = response.pop(self.CODE_KEY, None)
         self._error = response.pop(self.ERROR_KEY, None)
-        self._response = response
+        if not key:
+            self._response = response
+            return
+        self._response = response[key]
 
     def id(self):
         return self._id
