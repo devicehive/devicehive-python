@@ -1,6 +1,6 @@
+from devicehive.api_request import ApiRequest
 from devicehive.info import Info
 from devicehive.token import Token
-from devicehive.devices import Devices
 from devicehive.device import Device
 
 
@@ -29,9 +29,28 @@ class Api(object):
         self._token.refresh()
         return self._token.access_token()
 
-    def list_devices(self, **params):
-        devices = Devices(self._transport, self._token)
-        return devices.list(**params)
+    def list_devices(self, name=None, name_pattern=None, network_id=None,
+                     network_name=None, sort_field=None, sort_order=None,
+                     take=None, skip=None):
+        api_request = ApiRequest(self._transport)
+        api_request.set_url('device')
+        api_request.set_action('device/list')
+        api_request.set_param('name', name)
+        api_request.set_param('namePattern', name_pattern)
+        api_request.set_param('networkId', network_id)
+        api_request.set_param('networkName', network_name)
+        api_request.set_param('sortField', sort_field)
+        api_request.set_param('sortOrder', sort_order)
+        api_request.set_param('take', take)
+        api_request.set_param('skip', skip)
+        response_key = 'devices'
+        api_request.set_response_key(response_key)
+        exception_message = 'List devices failure'
+        response = self._token.execute_authorized_request(api_request,
+                                                          exception_message)
+        devices = response.value(response_key)
+        return [Device(self._transport, self._token, device)
+                for device in devices]
 
     def get_device(self, device_id):
         device = Device(self._transport, self._token)
