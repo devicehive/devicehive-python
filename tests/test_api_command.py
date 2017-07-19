@@ -1,4 +1,5 @@
 from tests import string
+from devicehive import ApiResponseException
 
 
 def test_send(test):
@@ -35,5 +36,28 @@ def test_send(test):
         assert command.status == status
         assert command.result == result
         device.remove()
+
+    test.run(handle_connect)
+
+
+def test_save(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('save-command')
+        command_name = test.generate_id('save-command')
+        device = handler.api.put_device(device_id)
+        command = device.send_command(command_name)
+        status = 'status'
+        result = {'key': 'value'}
+        command.status = status
+        command.result = result
+        command.save()
+        device.remove()
+        try:
+            command.save()
+            assert False
+        except ApiResponseException as api_response_exception:
+            # assert api_response_exception.code() == 404
+            pass
 
     test.run(handle_connect)
