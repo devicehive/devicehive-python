@@ -1,5 +1,5 @@
 from devicehive.api_request import ApiRequest
-from devicehive.api_exceptions import ApiResponseException
+from devicehive.api_response import ApiResponseException
 
 
 class Token(object):

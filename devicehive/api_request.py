@@ -73,3 +73,7 @@ class ApiRequest(object):
         api_response = ApiResponse(response, self._params['response_key'])
         api_response.ensure_success(exception_message, self._transport_name)
         return api_response.response()
+
+
+class ApiRequestException(IOError):
+    """Api request exception."""
