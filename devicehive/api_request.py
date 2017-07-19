@@ -1,4 +1,3 @@
-from devicehive.api_exceptions import ApiRequestException
 from devicehive.api_response import ApiResponse
 
 
@@ -23,11 +22,6 @@ class ApiRequest(object):
 
     def websocket_transport(self):
         return self._transport_name == 'websocket'
-
-    def ensure_http_transport(self):
-        if self.http_transport():
-            return
-        raise ApiRequestException('Implemented only for http transport')
 
     def set_action(self, action):
         self._action = action
