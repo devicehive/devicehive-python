@@ -48,8 +48,9 @@ class ApiRequest(object):
 
     def set_url(self, url, **args):
         for key in args:
-            url = url.replace('{%s}' % key, str(args[key]))
-            self._request[key] = args[key]
+            value = args[key]
+            url = url.replace('{%s}' % key, str(value))
+            self._request[key] = value
             self._params['request_delete_keys'].append(key)
         self._params['url'] = url
 
