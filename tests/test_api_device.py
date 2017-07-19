@@ -1,5 +1,5 @@
-from devicehive.device import DeviceException
-from devicehive.api_response import ApiResponseException
+from devicehive import DeviceException
+from devicehive import ApiResponseException
 
 
 def test_list(test):
