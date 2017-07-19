@@ -47,7 +47,7 @@ def test_send(test):
             get_device.send_command(command_name)
             assert False
         except ApiResponseException as api_response_exception:
-            print(api_response_exception.code())
+            # TODO: uncomment after server response will be fixed.
             # assert api_response_exception.code() == 404
             pass
 
