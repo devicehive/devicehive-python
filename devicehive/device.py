@@ -1,7 +1,7 @@
 from devicehive.api_request import ApiRequest
-from devicehive.api_request import ApiRequestException
 from devicehive.command import Command
 from devicehive.notification import Notification
+from devicehive.api_exception import ApiException
 
 
 class Device(object):
@@ -177,6 +177,6 @@ class Device(object):
         return Notification(notification)
 
 
-class DeviceException(ApiRequestException):
+class DeviceException(ApiException):
     """Device exception."""
     pass

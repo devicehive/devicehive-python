@@ -1,4 +1,5 @@
 from devicehive.api_response import ApiResponse
+from devicehive.api_exception import ApiException
 
 
 class ApiRequest(object):
@@ -79,6 +80,6 @@ class ApiRequest(object):
         return api_response.response()
 
 
-class ApiRequestException(Exception):
+class ApiRequestException(ApiException):
     """Api request exception."""
     pass
