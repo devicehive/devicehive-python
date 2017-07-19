@@ -2,10 +2,6 @@ class ApiException(Exception):
     """Api exception."""
 
 
-class ApiRequestException(ApiException):
-    """Api request exception."""
-
-
 class ApiResponseException(ApiException):
     """Api response exception."""
 
