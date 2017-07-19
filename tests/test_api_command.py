@@ -1,4 +1,3 @@
-from tests import string
 from devicehive import DeviceException
 from devicehive import ApiResponseException
 
@@ -16,7 +15,7 @@ def test_send(test):
         assert command.command() == command_name
         assert not command.parameters()
         assert not command.lifetime()
-        assert isinstance(command.timestamp(), string)
+        assert command.timestamp()
         assert not command.status
         assert not command.result
         command_name = test.generate_id('send-command')
@@ -33,7 +32,7 @@ def test_send(test):
         assert command.command() == command_name
         assert command.parameters() == parameters
         assert command.lifetime() == lifetime
-        assert isinstance(command.timestamp(), string)
+        assert command.timestamp()
         assert command.status == status
         assert command.result == result
         device_1 = handler.api.get_device(device_id)
