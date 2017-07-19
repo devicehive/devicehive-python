@@ -1,3 +1,4 @@
+from devicehive.device import DeviceException
 from devicehive.api_response import ApiResponseException
 
 
@@ -118,6 +119,11 @@ def test_save(test):
         assert isinstance(device.network_id, int)
         assert device.is_blocked
         device.remove()
+        try:
+            device.save()
+            assert False
+        except DeviceException:
+            pass
 
     test.run(handle_connect)
 
@@ -136,6 +142,11 @@ def test_remove(test):
         remove_device = handler.api.put_device(device_id)
         device = handler.api.get_device(device_id)
         device.remove()
+        try:
+            device.remove()
+            assert False
+        except DeviceException:
+            pass
         try:
             remove_device.remove()
             assert False
