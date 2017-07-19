@@ -5,7 +5,7 @@ from devicehive import ApiResponseException
 def test_list(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('list-device')
+        test_id = test.generate_id('list-devices')
         device_options = [{'id': '%s-1' % test_id,
                           'name': '%s-name-1' % test_id},
                           {'id': '%s-2' % test_id,
@@ -134,15 +134,15 @@ def test_remove(test):
 
     def handle_connect(handler):
         device_id = test.generate_id('remove-device')
-        remove_device = handler.api.put_device(device_id)
-        remove_device.remove()
-        assert not remove_device.id()
-        assert not remove_device.name
-        assert not remove_device.data
-        assert not remove_device.network_id
-        assert not remove_device.is_blocked
-        remove_device = handler.api.put_device(device_id)
-        device = handler.api.get_device(device_id)
+        device = handler.api.put_device(device_id)
+        device.remove()
+        assert not device.id()
+        assert not device.name
+        assert not device.data
+        assert not device.network_id
+        assert not device.is_blocked
+        device = handler.api.put_device(device_id)
+        device_1 = handler.api.get_device(device_id)
         device.remove()
         try:
             device.remove()
@@ -150,7 +150,7 @@ def test_remove(test):
         except DeviceException:
             pass
         try:
-            remove_device.remove()
+            device_1.remove()
             assert False
         except ApiResponseException as api_response_exception:
             # TODO: uncomment after server response will be fixed.
