@@ -2,6 +2,10 @@ class ApiException(Exception):
     """Api exception."""
 
 
+class ApiRequestException(ApiException):
+    """Api request exception."""
+
+
 class ApiResponseException(ApiException):
     """Api response exception."""
 
@@ -24,5 +28,5 @@ class ApiResponseException(ApiException):
         return self._error
 
 
-class DeviceException(ApiException):
+class DeviceException(ApiRequestException):
     """Device exception."""
