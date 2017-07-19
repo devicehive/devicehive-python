@@ -36,7 +36,7 @@ def test_send(test):
         assert isinstance(command.timestamp(), string)
         assert command.status == status
         assert command.result == result
-        get_device = handler.api.get_device(device_id)
+        device_1 = handler.api.get_device(device_id)
         device.remove()
         try:
             device.send_command(command_name)
@@ -44,7 +44,7 @@ def test_send(test):
         except DeviceException:
             pass
         try:
-            get_device.send_command(command_name)
+            device_1.send_command(command_name)
             assert False
         except ApiResponseException as api_response_exception:
             # TODO: uncomment after server response will be fixed.
