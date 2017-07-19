@@ -1,7 +1,7 @@
+from devicehive.api_exceptions import DeviceException
 from devicehive.api_request import ApiRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
-from devicehive.api_exception import ApiException
 
 
 class Device(object):
@@ -175,8 +175,3 @@ class Device(object):
         notification[Notification.NOTIFICATION_KEY] = notification_name
         notification[Notification.PARAMETERS_KEY] = parameters
         return Notification(notification)
-
-
-class DeviceException(ApiException):
-    """Device exception."""
-    pass
