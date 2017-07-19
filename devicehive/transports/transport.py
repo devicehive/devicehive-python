@@ -90,14 +90,11 @@ class Transport(object):
 
 class TransportException(Exception):
     """Transport exception."""
-    pass
 
 
 class TransportConnectionException(TransportException):
     """Transport connection exception."""
-    pass
 
 
 class TransportRequestException(TransportException):
     """Transport request exception."""
-    pass

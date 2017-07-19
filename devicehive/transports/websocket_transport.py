@@ -99,4 +99,3 @@ class WebsocketTransport(Transport):
 
 class WebsocketTransportRequestException(TransportRequestException):
     """Websocket transport request exception."""
-    pass

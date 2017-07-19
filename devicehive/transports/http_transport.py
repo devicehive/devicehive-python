@@ -167,4 +167,3 @@ class HttpTransport(Transport):
 
 class HttpTransportRequestException(TransportRequestException):
     """Http transport request exception."""
-    pass
