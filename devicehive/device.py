@@ -1,4 +1,5 @@
 from devicehive.api_request import ApiRequest
+from devicehive.api_request import ApiRequestException
 from devicehive.command import Command
 from devicehive.notification import Notification
 
@@ -30,6 +31,11 @@ class Device(object):
         self.network_id = device[self.NETWORK_ID_KEY]
         self.is_blocked = device[self.IS_BLOCKED_KEY]
 
+    def _ensure_exists(self):
+        if self._id:
+            return
+        raise DeviceException('Device does not exist')
+
     def id(self):
         return self._id
 
@@ -44,6 +50,7 @@ class Device(object):
         self._init(device)
 
     def save(self):
+        self._ensure_exists()
         device = {self.ID_KEY: self._id,
                   self.NAME_KEY: self.name,
                   self.DATA_KEY: self.data,
@@ -58,6 +65,7 @@ class Device(object):
         self._token.execute_authorized_request(api_request, exception_message)
 
     def remove(self):
+        self._ensure_exists()
         api_request = ApiRequest(self._transport)
         api_request.set_delete_method()
         api_request.set_url('device/{deviceId}', deviceId=self._id)
@@ -72,6 +80,7 @@ class Device(object):
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
+        self._ensure_exists()
         api_request = ApiRequest(self._transport)
         api_request.set_url('device/{deviceId}/command', deviceId=self._id)
         api_request.set_action('command/list')
@@ -92,6 +101,7 @@ class Device(object):
 
     def send_command(self, command_name, parameters=None, lifetime=None,
                      timestamp=None, status=None, result=None):
+        self._ensure_exists()
         command = {Command.COMMAND_KEY: command_name}
         if parameters:
             command[Command.PARAMETERS_KEY] = parameters
@@ -127,6 +137,7 @@ class Device(object):
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
                            skip=None):
+        self._ensure_exists()
         api_request = ApiRequest(self._transport)
         api_request.set_url('device/{deviceId}/notification', deviceId=self._id)
         api_request.set_action('notification/list')
@@ -145,6 +156,7 @@ class Device(object):
 
     def send_notification(self, notification_name, parameters=None,
                           timestamp=None):
+        self._ensure_exists()
         notification = {'notification': notification_name}
         if parameters:
             notification['parameters'] = parameters
@@ -163,3 +175,8 @@ class Device(object):
         notification[Notification.NOTIFICATION_KEY] = notification_name
         notification[Notification.PARAMETERS_KEY] = parameters
         return Notification(notification)
+
+
+class DeviceException(ApiRequestException):
+    """Device exception."""
+    pass
