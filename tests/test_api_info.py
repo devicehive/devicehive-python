@@ -1,4 +1,4 @@
-from tests.types import string
+from tests import string
 
 
 def test_get(test):
