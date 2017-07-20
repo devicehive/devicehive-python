@@ -10,44 +10,40 @@ def test_list(test):
                           'name': '%s-name-1' % test_id},
                           {'id': '%s-2' % test_id,
                            'name': '%s-name-2' % test_id}]
-        devices = [handler.api.put_device(device_option['id'],
-                                          device_option['name'])
-                   for device_option in device_options]
-        devices_list = handler.api.list_devices()
-        assert len(devices_list) >= len(device_options)
+        test_devices = [handler.api.put_device(device_option['id'],
+                                               name=device_option['name'])
+                        for device_option in device_options]
+        devices = handler.api.list_devices()
+        assert len(devices) >= len(device_options)
         name = device_options[0]['name']
-        devices_list = handler.api.list_devices(name=name)
-        assert len(devices_list) == 1
-        assert devices_list[0].name == name
+        devices = handler.api.list_devices(name=name)
+        assert len(devices) == 1
+        assert devices[0].name == name
         name_pattern = test.generate_id('list-not-exist')
-        devices_list = handler.api.list_devices(name_pattern=name_pattern)
-        assert not devices_list
+        devices = handler.api.list_devices(name_pattern=name_pattern)
+        assert not devices
         name_pattern = test_id + '%'
-        devices_list = handler.api.list_devices(name_pattern=name_pattern)
-        assert len(devices_list) == len(device_options)
-        devices_list = handler.api.list_devices(name_pattern=name_pattern,
-                                                sort_field='name',
-                                                sort_order='ASC')
-        assert devices_list[0].id() == device_options[0]['id']
-        assert devices_list[1].id() == device_options[1]['id']
-        devices_list = handler.api.list_devices(name_pattern=name_pattern,
-                                                sort_field='name',
-                                                sort_order='DESC')
-        assert devices_list[0].id() == device_options[1]['id']
-        assert devices_list[1].id() == device_options[0]['id']
-        devices_list = handler.api.list_devices(name_pattern=name_pattern,
-                                                sort_field='name',
-                                                sort_order='ASC',
-                                                take=1)
-        assert len(devices_list) == 1
-        devices_list = handler.api.list_devices(name_pattern=name_pattern,
-                                                sort_field='name',
-                                                sort_order='ASC',
-                                                take=1, skip=1)
-        assert devices_list[0].id() == device_options[1]['id']
-        assert len(devices_list) == 1
-        for device in devices:
-            device.remove()
+        devices = handler.api.list_devices(name_pattern=name_pattern)
+        assert len(devices) == len(device_options)
+        devices = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='ASC')
+        assert devices[0].id() == device_options[0]['id']
+        assert devices[1].id() == device_options[1]['id']
+        devices = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='DESC')
+        assert devices[0].id() == device_options[1]['id']
+        assert devices[1].id() == device_options[0]['id']
+        devices = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='ASC',
+                                           take=1)
+        assert len(devices) == 1
+        devices = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='ASC',
+                                           take=1, skip=1)
+        assert devices[0].id() == device_options[1]['id']
+        assert len(devices) == 1
+        for test_device in test_devices:
+            test_device.remove()
 
     test.run(handle_connect)
 
