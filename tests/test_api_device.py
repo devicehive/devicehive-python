@@ -31,14 +31,14 @@ def test_list(test):
                                                       sort_order='DESC')
         assert device_0.id() == options[1]['id']
         assert device_1.id() == options[0]['id']
-        device_0, = handler.api.list_devices(name_pattern=name_pattern,
-                                             sort_field='name',
-                                             sort_order='ASC', take=1)
-        assert device_0.id() == options[0]['id']
-        device_0, = handler.api.list_devices(name_pattern=name_pattern,
-                                             sort_field='name',
-                                             sort_order='ASC', take=1, skip=1)
-        assert device_0.id() == options[1]['id']
+        device, = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='ASC',
+                                           take=1)
+        assert device.id() == options[0]['id']
+        device, = handler.api.list_devices(name_pattern=name_pattern,
+                                           sort_field='name', sort_order='ASC',
+                                           take=1, skip=1)
+        assert device.id() == options[1]['id']
         for test_device in test_devices:
             test_device.remove()
 
