@@ -2,6 +2,82 @@ from devicehive import DeviceException
 from devicehive import ApiResponseException
 
 
+def list_notifications(device, **params):
+    notifications = device.list_notifications(**params)
+    return [notification for notification in notifications
+            if notification.notification()[0] != '$']
+
+
+def test_list(test):
+
+    def handle_connect(handler):
+        server_timestamp = handler.api.get_info()['server_timestamp']
+        test_id = test.generate_id('list-notifications')
+        options = [{'notification': '%s-name-1' % test_id, 'parameters': '1'},
+                   {'notification': '%s-name-2' % test_id, 'parameters': '2'}]
+        device = handler.api.put_device(test_id)
+        for option in options:
+            device.send_notification(option['notification'],
+                                     parameters=option['parameters'])
+        notification_0, notification_1 = list_notifications(device)
+        # TODO add websocket tests after server response will be fixed.
+        if test.http_transport():
+            assert notification_0.notification() == options[1]['notification']
+            assert notification_1.notification() == options[0]['notification']
+        notifications = list_notifications(device, start=server_timestamp)
+        # TODO add websocket tests after server response will be fixed.
+        if test.http_transport():
+            assert len(notifications) == len(options)
+        assert not list_notifications(device, start=server_timestamp,
+                                      end=server_timestamp)
+        notification_name = options[0]['notification']
+        notification, = list_notifications(device,
+                                           notification=notification_name)
+        assert notification.notification() == notification_name
+        notification_0, notification_1 = list_notifications(device,
+                                                            sort_field=
+                                                            'notification',
+                                                            sort_order='ASC')
+        assert notification_0.notification() == options[0]['notification']
+        assert notification_1.notification() == options[1]['notification']
+        notification_0, notification_1 = list_notifications(device,
+                                                            sort_field=
+                                                            'notification',
+                                                            sort_order='DESC')
+        assert notification_0.notification() == options[1]['notification']
+        assert notification_1.notification() == options[0]['notification']
+        notification_name = test_id
+        notification_0 = device.send_notification(notification_name)
+        notification_1 = device.send_notification(notification_name)
+        notification, = device.list_notifications(notification=
+                                                  notification_name,
+                                                  sort_field='timestamp',
+                                                  sort_order='ASC', take=1)
+        assert notification.id() == notification_0.id()
+        notification, = device.list_notifications(notification=
+                                                  notification_name,
+                                                  sort_field='timestamp',
+                                                  sort_order='ASC', take=1,
+                                                  skip=1)
+        assert notification.id() == notification_1.id()
+        device_1 = handler.api.get_device(test_id)
+        device.remove()
+        try:
+            device.list_notifications()
+            assert False
+        except DeviceException:
+            pass
+        try:
+            device_1.list_commands()
+            assert False
+        except ApiResponseException as api_response_exception:
+            # TODO: uncomment after server response will be fixed.
+            # assert api_response_exception.code() == 404
+            pass
+
+    test.run(handle_connect)
+
+
 def test_send(test):
 
     def handle_connect(handler):
