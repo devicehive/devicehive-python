@@ -6,42 +6,39 @@ def test_list(test):
 
     def handle_connect(handler):
         test_id = test.generate_id('list-devices')
-        device_options = [{'id': '%s-1' % test_id,
-                          'name': '%s-name-1' % test_id},
-                          {'id': '%s-2' % test_id,
-                           'name': '%s-name-2' % test_id}]
-        test_devices = [handler.api.put_device(device_option['id'],
-                                               name=device_option['name'])
-                        for device_option in device_options]
+        options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
+                   {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
+        test_devices = [handler.api.put_device(option['id'],
+                                               name=option['name'])
+                        for option in options]
         devices = handler.api.list_devices()
-        assert len(devices) >= len(device_options)
-        name = device_options[0]['name']
-        devices = handler.api.list_devices(name=name)
-        assert len(devices) == 1
-        assert devices[0].name == name
+        assert len(devices) >= len(options)
+        name = options[0]['name']
+        device, = handler.api.list_devices(name=name)
+        assert device.name == name
         name_pattern = test.generate_id('list-not-exist')
-        devices = handler.api.list_devices(name_pattern=name_pattern)
-        assert not devices
+        assert not handler.api.list_devices(name_pattern=name_pattern)
         name_pattern = test_id + '%'
         devices = handler.api.list_devices(name_pattern=name_pattern)
-        assert len(devices) == len(device_options)
-        devices = handler.api.list_devices(name_pattern=name_pattern,
-                                           sort_field='name', sort_order='ASC')
-        assert devices[0].id() == device_options[0]['id']
-        assert devices[1].id() == device_options[1]['id']
-        devices = handler.api.list_devices(name_pattern=name_pattern,
-                                           sort_field='name', sort_order='DESC')
-        assert devices[0].id() == device_options[1]['id']
-        assert devices[1].id() == device_options[0]['id']
-        devices = handler.api.list_devices(name_pattern=name_pattern,
-                                           sort_field='name', sort_order='ASC',
-                                           take=1)
-        assert len(devices) == 1
-        devices = handler.api.list_devices(name_pattern=name_pattern,
-                                           sort_field='name', sort_order='ASC',
-                                           take=1, skip=1)
-        assert devices[0].id() == device_options[1]['id']
-        assert len(devices) == 1
+        assert len(devices) == len(options)
+        device_0, device_1 = handler.api.list_devices(name_pattern=name_pattern,
+                                                      sort_field='name',
+                                                      sort_order='ASC')
+        assert device_0.id() == options[0]['id']
+        assert device_1.id() == options[1]['id']
+        device_0, device_1 = handler.api.list_devices(name_pattern=name_pattern,
+                                                      sort_field='name',
+                                                      sort_order='DESC')
+        assert device_0.id() == options[1]['id']
+        assert device_1.id() == options[0]['id']
+        device_0, = handler.api.list_devices(name_pattern=name_pattern,
+                                             sort_field='name',
+                                             sort_order='ASC', take=1)
+        assert device_0.id() == options[0]['id']
+        device_0, = handler.api.list_devices(name_pattern=name_pattern,
+                                             sort_field='name',
+                                             sort_order='ASC', take=1, skip=1)
+        assert device_0.id() == options[1]['id']
         for test_device in test_devices:
             test_device.remove()
 
