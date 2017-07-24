@@ -85,19 +85,22 @@ class HttpTransport(Transport):
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
             if not data:
                 return response
-            response_data = self._decode(data)
+            success_response = self._decode(data)
             if response_key:
-                response[response_key] = response_data
+                response[response_key] = success_response
                 return response
-            for key in response_data:
-                response[key] = response_data[key]
+            for key in success_response:
+                response[key] = success_response[key]
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
         response[self.RESPONSE_CODE_KEY] = code
         if not data:
             return response
-        response_data = self._decode(data)
-        response[self.RESPONSE_ERROR_KEY] = response_data.get('message')
+        try:
+            error = self._decode(data).get('message')
+        except Exception:
+            error = data
+        response[self.RESPONSE_ERROR_KEY] = error
         return response
 
     def _subscribe_request(self, action, request, **params):
