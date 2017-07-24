@@ -1,5 +1,6 @@
+from devicehive.transports.transport import ensure_transport_connected
 from devicehive.transports.transport import Transport
-from devicehive.transports.transport import TransportRequestException
+from devicehive.transports.transport import TransportException
 import threading
 import requests
 
@@ -16,7 +17,8 @@ class HttpTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        Transport.__init__(self, 'http', data_format_class, data_format_options,
+        Transport.__init__(self, 'http', HttpTransportException,
+                           data_format_class, data_format_options,
                            handler_class, handler_options)
         self._base_url = None
         self._events_queue = []
@@ -130,7 +132,7 @@ class HttpTransport(Transport):
     def _unsubscribe_request(self, action, request):
         subscribe_id = request[self.RESPONSE_SUBSCRIBE_ID_KEY]
         if subscribe_id not in self._subscribe_threads:
-            raise HttpTransportRequestException('Subscription does not exist')
+            raise HttpTransportException('Subscription does not exist.')
         subscribe_thread = self._subscribe_threads[subscribe_id]
         del self._subscribe_threads[subscribe_id]
         subscribe_thread.join()
@@ -138,8 +140,8 @@ class HttpTransport(Transport):
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
 
+    @ensure_transport_connected
     def send_request(self, action, request, **params):
-        self._ensure_connected()
         subscribe = params.pop('subscribe', False)
         unsubscribe = params.pop('unsubscribe', False)
         if subscribe:
@@ -154,8 +156,8 @@ class HttpTransport(Transport):
         self._events_queue.append([response])
         return response[self.REQUEST_ID_KEY]
 
+    @ensure_transport_connected
     def request(self, action, request, **params):
-        self._ensure_connected()
         subscribe = params.pop('subscribe', False)
         unsubscribe = params.pop('unsubscribe', False)
         if subscribe:
@@ -165,5 +167,5 @@ class HttpTransport(Transport):
         return self._request(action, request, **params)
 
 
-class HttpTransportRequestException(TransportRequestException):
-    """Http transport request exception."""
+class HttpTransportException(TransportException):
+    """Http transport exception."""
