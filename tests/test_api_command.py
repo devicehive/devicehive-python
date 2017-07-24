@@ -3,8 +3,6 @@ from devicehive import ApiResponseException
 
 
 def test_list(test):
-    # TODO: add websocket support when API will be fixed.
-    test.only_http_implementation()
 
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
