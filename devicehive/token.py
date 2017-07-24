@@ -22,7 +22,7 @@ class Token(object):
 
     def _authenticate(self):
         api_request = ApiRequest(self._transport)
-        if not api_request.websocket_transport():
+        if not api_request.websocket_transport:
             return
         api_request.set_action('authenticate')
         api_request.set('token', self._access_token)

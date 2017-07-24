@@ -17,9 +17,11 @@ class ApiRequest(object):
                         'headers': {},
                         'response_key': None}
 
+    @property
     def http_transport(self):
         return self._transport.name == 'http'
 
+    @property
     def websocket_transport(self):
         return self._transport.name == 'websocket'
 
