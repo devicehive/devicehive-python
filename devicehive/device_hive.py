@@ -1,5 +1,5 @@
 from devicehive.data_formats.json_data_format import JsonDataFormat
-from devicehive.connection_handler import ConnectionHandler
+from devicehive.api_handler import ApiHandler
 import traceback
 
 
@@ -7,8 +7,8 @@ class DeviceHive(object):
     """Device hive class."""
 
     def __init__(self, handler_class, handler_options):
-        self._handler_options = {'handler_class': handler_class,
-                                 'handler_options': handler_options}
+        self._api_handler_options = {'handler_class': handler_class,
+                                     'handler_options': handler_options}
         self._transport_name = None
         self._transport = None
 
@@ -17,8 +17,8 @@ class DeviceHive(object):
         class_name = '%sTransport' % self._transport_name.title()
         transport_module = __import__(name, globals(), locals(), [name])
         transport_class = getattr(transport_module, class_name)
-        self._transport = transport_class(JsonDataFormat, {}, ConnectionHandler,
-                                          self._handler_options)
+        self._transport = transport_class(JsonDataFormat, {}, ApiHandler,
+                                          self._api_handler_options)
 
     @staticmethod
     def transport_name(transport_url):
@@ -34,7 +34,7 @@ class DeviceHive(object):
                           'password': options.pop('password', None),
                           'refresh_token': options.pop('refresh_token', None),
                           'access_token': options.pop('access_token', None)}
-        self._handler_options['authentication'] = authentication
+        self._api_handler_options['authentication'] = authentication
         self._init_transport()
         self._transport.connect(transport_url, **options)
 
