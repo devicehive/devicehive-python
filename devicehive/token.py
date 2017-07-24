@@ -38,7 +38,7 @@ class Token(object):
         try:
             return api_request.execute(exception_message)
         except ApiResponseException as api_response_exception:
-            if api_response_exception.code() != 401:
+            if api_response_exception.code != 401:
                 raise
         self.authenticate()
         self._set_authorization_header(api_request)

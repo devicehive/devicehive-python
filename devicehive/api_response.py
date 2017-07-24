@@ -65,11 +65,14 @@ class ApiResponseException(TransportException):
         self._code = code
         self._error = error
 
+    @property
     def transport_name(self):
         return self._transport_name
 
+    @property
     def code(self):
         return self._code
 
+    @property
     def error(self):
         return self._error
