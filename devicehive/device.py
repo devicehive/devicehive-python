@@ -36,6 +36,7 @@ class Device(object):
             return
         raise DeviceException('Device does not exist')
 
+    @property
     def id(self):
         return self._id
 
