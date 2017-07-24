@@ -58,10 +58,10 @@ class Command(object):
     def save(self):
         command = {'status': self.status, 'result': self.result}
         api_request = ApiRequest(self._transport)
-        api_request.set_put_method()
-        api_request.set_url('device/{deviceId}/command/{commandId}',
-                            deviceId=self._device_id, commandId=self._id)
-        api_request.set_action('command/update')
+        api_request.method('PUT')
+        api_request.url('device/{deviceId}/command/{commandId}',
+                        deviceId=self._device_id, commandId=self._id)
+        api_request.action('command/update')
         api_request.set('command', command, True)
         exception_message = 'Command save failure'
         self._token.execute_authorized_request(api_request, exception_message)

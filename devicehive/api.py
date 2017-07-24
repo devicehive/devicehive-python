@@ -15,9 +15,9 @@ class Api(object):
 
     def get_info(self):
         api_request = ApiRequest(self._transport)
-        api_request.set_url('info')
-        api_request.set_action('server/info')
-        api_request.set_response_key('info')
+        api_request.url('info')
+        api_request.action('server/info')
+        api_request.response_key('info')
         exception_message = 'Info get failure'
         info = api_request.execute(exception_message)
         return {'api_version': info['apiVersion'],
@@ -27,9 +27,9 @@ class Api(object):
 
     def get_cluster_info(self):
         api_request = ApiRequest(self._transport)
-        api_request.set_url('info/config/cluster')
-        api_request.set_action('cluster/info')
-        api_request.set_response_key('clusterInfo')
+        api_request.url('info/config/cluster')
+        api_request.action('cluster/info')
+        api_request.response_key('clusterInfo')
         exception_message = 'Cluster info get failure'
         return api_request.execute(exception_message)
 
@@ -45,9 +45,9 @@ class Api(object):
         if device_ids:
             payload['deviceIds'] = device_ids
         api_request = ApiRequest(self._transport)
-        api_request.set_post_method()
-        api_request.set_url('token/create')
-        api_request.set_action('token/create')
+        api_request.method('POST')
+        api_request.url('token/create')
+        api_request.action('token/create')
         api_request.set('payload', payload, True)
         exception_message = 'Token refresh failure'
         tokens = self._token.execute_authorized_request(api_request,
@@ -63,17 +63,17 @@ class Api(object):
                      network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
         api_request = ApiRequest(self._transport)
-        api_request.set_url('device')
-        api_request.set_action('device/list')
-        api_request.set_param('name', name)
-        api_request.set_param('namePattern', name_pattern)
-        api_request.set_param('networkId', network_id)
-        api_request.set_param('networkName', network_name)
-        api_request.set_param('sortField', sort_field)
-        api_request.set_param('sortOrder', sort_order)
-        api_request.set_param('take', take)
-        api_request.set_param('skip', skip)
-        api_request.set_response_key('devices')
+        api_request.url('device')
+        api_request.action('device/list')
+        api_request.param('name', name)
+        api_request.param('namePattern', name_pattern)
+        api_request.param('networkId', network_id)
+        api_request.param('networkName', network_name)
+        api_request.param('sortField', sort_field)
+        api_request.param('sortOrder', sort_order)
+        api_request.param('take', take)
+        api_request.param('skip', skip)
+        api_request.response_key('devices')
         exception_message = 'List devices failure'
         devices = self._token.execute_authorized_request(api_request,
                                                          exception_message)

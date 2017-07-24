@@ -42,9 +42,9 @@ class Device(object):
 
     def get(self, device_id):
         api_request = ApiRequest(self._transport)
-        api_request.set_url('device/{deviceId}', deviceId=device_id)
-        api_request.set_action('device/get')
-        api_request.set_response_key('device')
+        api_request.url('device/{deviceId}', deviceId=device_id)
+        api_request.action('device/get')
+        api_request.response_key('device')
         exception_message = 'Device get failure'
         device = self._token.execute_authorized_request(api_request,
                                                         exception_message)
@@ -58,9 +58,9 @@ class Device(object):
                   self.NETWORK_ID_KEY: self.network_id,
                   self.IS_BLOCKED_KEY: self.is_blocked}
         api_request = ApiRequest(self._transport)
-        api_request.set_put_method()
-        api_request.set_url('device/{deviceId}', deviceId=self._id)
-        api_request.set_action('device/save')
+        api_request.method('PUT')
+        api_request.url('device/{deviceId}', deviceId=self._id)
+        api_request.action('device/save')
         api_request.set('device', device, True)
         exception_message = 'Device save failure'
         self._token.execute_authorized_request(api_request, exception_message)
@@ -68,9 +68,9 @@ class Device(object):
     def remove(self):
         self._ensure_exists()
         api_request = ApiRequest(self._transport)
-        api_request.set_delete_method()
-        api_request.set_url('device/{deviceId}', deviceId=self._id)
-        api_request.set_action('device/delete')
+        api_request.method('DELETE')
+        api_request.url('device/{deviceId}', deviceId=self._id)
+        api_request.action('device/delete')
         exception_message = 'Device remove failure'
         self._token.execute_authorized_request(api_request, exception_message)
         self._id = None
@@ -83,17 +83,17 @@ class Device(object):
                       sort_field=None, sort_order=None, take=None, skip=None):
         self._ensure_exists()
         api_request = ApiRequest(self._transport)
-        api_request.set_url('device/{deviceId}/command', deviceId=self._id)
-        api_request.set_action('command/list')
-        api_request.set_param('start', start)
-        api_request.set_param('end', end)
-        api_request.set_param('command', command)
-        api_request.set_param('status', status)
-        api_request.set_param('sortField', sort_field)
-        api_request.set_param('sortOrder', sort_order)
-        api_request.set_param('take', take)
-        api_request.set_param('skip', skip)
-        api_request.set_response_key('commands')
+        api_request.url('device/{deviceId}/command', deviceId=self._id)
+        api_request.action('command/list')
+        api_request.param('start', start)
+        api_request.param('end', end)
+        api_request.param('command', command)
+        api_request.param('status', status)
+        api_request.param('sortField', sort_field)
+        api_request.param('sortOrder', sort_order)
+        api_request.param('take', take)
+        api_request.param('skip', skip)
+        api_request.response_key('commands')
         exception_message = 'List commands failure'
         commands = self._token.execute_authorized_request(api_request,
                                                           exception_message)
@@ -115,11 +115,11 @@ class Device(object):
         if result:
             command[Command.RESULT_KEY] = result
         api_request = ApiRequest(self._transport)
-        api_request.set_post_method()
-        api_request.set_url('device/{deviceId}/command', deviceId=self._id)
-        api_request.set_action('command/insert')
+        api_request.method('POST')
+        api_request.url('device/{deviceId}/command', deviceId=self._id)
+        api_request.action('command/insert')
         api_request.set('command', command, True)
-        api_request.set_response_key('command')
+        api_request.response_key('command')
         exception_message = 'Command send failure'
         command = self._token.execute_authorized_request(api_request,
                                                          exception_message)
@@ -140,16 +140,16 @@ class Device(object):
                            skip=None):
         self._ensure_exists()
         api_request = ApiRequest(self._transport)
-        api_request.set_url('device/{deviceId}/notification', deviceId=self._id)
-        api_request.set_action('notification/list')
-        api_request.set_param('start', start)
-        api_request.set_param('end', end)
-        api_request.set_param('notification', notification)
-        api_request.set_param('sortField', sort_field)
-        api_request.set_param('sortOrder', sort_order)
-        api_request.set_param('take', take)
-        api_request.set_param('skip', skip)
-        api_request.set_response_key('notifications')
+        api_request.url('device/{deviceId}/notification', deviceId=self._id)
+        api_request.action('notification/list')
+        api_request.param('start', start)
+        api_request.param('end', end)
+        api_request.param('notification', notification)
+        api_request.param('sortField', sort_field)
+        api_request.param('sortOrder', sort_order)
+        api_request.param('take', take)
+        api_request.param('skip', skip)
+        api_request.response_key('notifications')
         except_message = 'List notifications failure'
         notifications = self._token.execute_authorized_request(api_request,
                                                                except_message)
@@ -164,11 +164,11 @@ class Device(object):
         if timestamp:
             notification['timestamp'] = timestamp
         api_request = ApiRequest(self._transport)
-        api_request.set_post_method()
-        api_request.set_url('device/{deviceId}/notification', deviceId=self._id)
-        api_request.set_action('notification/insert')
+        api_request.method('POST')
+        api_request.url('device/{deviceId}/notification', deviceId=self._id)
+        api_request.action('notification/insert')
         api_request.set('notification', notification, True)
-        api_request.set_response_key('notification')
+        api_request.response_key('notification')
         exception_message = 'Notification send failure'
         notification = self._token.execute_authorized_request(api_request,
                                                               exception_message)

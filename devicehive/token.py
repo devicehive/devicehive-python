@@ -24,14 +24,14 @@ class Token(object):
         api_request = ApiRequest(self._transport)
         if not api_request.websocket_transport:
             return
-        api_request.set_action('authenticate')
+        api_request.action('authenticate')
         api_request.set('token', self._access_token)
         api_request.execute('Authentication failure')
 
     def _set_authorization_header(self, api_request):
         name = self.AUTHORIZATION_HEADER_NAME
         value = self.AUTHORIZATION_HEADER_VALUE_PREFIX + self._access_token
-        api_request.set_header(name, value)
+        api_request.header(name, value)
 
     def execute_authorized_request(self, api_request, exception_message):
         self._set_authorization_header(api_request)
@@ -49,9 +49,9 @@ class Token(object):
 
     def refresh(self):
         api_request = ApiRequest(self._transport)
-        api_request.set_post_method()
-        api_request.set_url('token/refresh')
-        api_request.set_action('token/refresh')
+        api_request.method('POST')
+        api_request.url('token/refresh')
+        api_request.action('token/refresh')
         api_request.set('refreshToken', self._refresh_token)
         exception_message = 'Token refresh failure'
         tokens = api_request.execute(exception_message)

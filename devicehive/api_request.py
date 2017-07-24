@@ -25,7 +25,7 @@ class ApiRequest(object):
     def websocket_transport(self):
         return self._transport.name == 'websocket'
 
-    def set_action(self, action):
+    def action(self, action):
         self._action = action
 
     def set(self, key, value, request_key=False):
@@ -36,19 +36,10 @@ class ApiRequest(object):
             return
         self._params['request_key'] = key
 
-    def set_get_method(self):
-        self._params['method'] = 'GET'
+    def method(self, method):
+        self._params['method'] = method
 
-    def set_post_method(self):
-        self._params['method'] = 'POST'
-
-    def set_put_method(self):
-        self._params['method'] = 'PUT'
-
-    def set_delete_method(self):
-        self._params['method'] = 'DELETE'
-
-    def set_url(self, url, **args):
+    def url(self, url, **args):
         for key in args:
             value = args[key]
             url = url.replace('{%s}' % key, str(value))
@@ -56,18 +47,18 @@ class ApiRequest(object):
             self._params['request_delete_keys'].append(key)
         self._params['url'] = url
 
-    def set_param(self, key, value):
+    def param(self, key, value):
         if not value:
             return
         self._request[key] = value
         self._params['request_delete_keys'].append(key)
         self._params['params'][key] = value
 
-    def set_header(self, name, value):
+    def header(self, name, value):
         self._params['headers'][name] = value
 
-    def set_response_key(self, value):
-        self._params['response_key'] = value
+    def response_key(self, response_key):
+        self._params['response_key'] = response_key
 
     def execute(self, exception_message):
         response = self._transport.request(self._action, self._request.copy(),
