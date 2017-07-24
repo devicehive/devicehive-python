@@ -11,7 +11,6 @@ class DeviceHive(object):
                                  'handler_options': handler_options}
         self._transport_name = None
         self._transport = None
-        self._transport_exception_info = None
 
     def _init_transport(self):
         name = 'devicehive.transports.%s_transport' % self._transport_name
@@ -41,14 +40,14 @@ class DeviceHive(object):
 
     def join(self, timeout=None):
         self._transport.join(timeout)
-        self._transport_exception_info = self._transport.exception_info()
 
     def exception_info(self):
-        return self._transport_exception_info
+        return self._transport.exception_info
 
     def print_exception(self):
-        if not self._transport_exception_info:
+        transport_exception_info = self._transport.exception_info
+        if not transport_exception_info:
             return
-        traceback.print_exception(self._transport_exception_info[0],
-                                  self._transport_exception_info[1],
-                                  self._transport_exception_info[2])
+        traceback.print_exception(transport_exception_info[0],
+                                  transport_exception_info[1],
+                                  transport_exception_info[2])

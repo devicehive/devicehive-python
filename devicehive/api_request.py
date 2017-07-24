@@ -7,7 +7,6 @@ class ApiRequest(object):
 
     def __init__(self, transport):
         self._transport = transport
-        self._transport_name = self._transport.name()
         self._action = None
         self._request = {}
         self._params = {'method': 'GET',
@@ -19,10 +18,10 @@ class ApiRequest(object):
                         'response_key': None}
 
     def http_transport(self):
-        return self._transport_name == 'http'
+        return self._transport.name == 'http'
 
     def websocket_transport(self):
-        return self._transport_name == 'websocket'
+        return self._transport.name == 'websocket'
 
     def set_action(self, action):
         self._action = action
@@ -72,7 +71,7 @@ class ApiRequest(object):
         response = self._transport.request(self._action, self._request.copy(),
                                            **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
-        api_response.ensure_success(exception_message, self._transport_name)
+        api_response.ensure_success(exception_message, self._transport.name)
         return api_response.response()
 
 

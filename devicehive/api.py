@@ -100,6 +100,6 @@ class Api(object):
         return device
 
     def disconnect(self):
-        if not self._transport.connected():
+        if not self._transport.connected:
             return
         self._transport.disconnect()
