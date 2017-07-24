@@ -5,6 +5,16 @@ import threading
 import requests
 
 
+def reraise_http_transport_exception(method):
+    def call_transport_method(transport, *args, **kwargs):
+        try:
+            return method(transport, *args, **kwargs)
+        except requests.RequestException as exception:
+            http_exception = exception
+        raise transport.exception(http_exception)
+    return call_transport_method
+
+
 class HttpTransport(Transport):
     """Http transport class."""
 
@@ -55,6 +65,7 @@ class HttpTransport(Transport):
         data = response.text if self._data_type == 'text' else response.content
         return code, data
 
+    @reraise_http_transport_exception
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
