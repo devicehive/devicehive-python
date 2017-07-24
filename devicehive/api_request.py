@@ -1,4 +1,5 @@
 from devicehive.api_response import ApiResponse
+from devicehive.api_response import ApiResponseException
 from devicehive.transports.transport import TransportException
 
 
@@ -64,8 +65,10 @@ class ApiRequest(object):
         response = self._transport.request(self._action, self._request.copy(),
                                            **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
-        api_response.ensure_success(exception_message, self._transport.name)
-        return api_response.response
+        if api_response.success:
+            return api_response.response
+        raise ApiResponseException(exception_message, self._transport.name,
+                                   api_response.code, api_response.error)
 
 
 class ApiRequestException(TransportException):

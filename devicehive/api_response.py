@@ -46,12 +46,6 @@ class ApiResponse(object):
     def response(self):
         return self._response
 
-    def ensure_success(self, exception_message, transport_name):
-        if self._success:
-            return
-        raise ApiResponseException(exception_message, transport_name,
-                                   self._code, self._error)
-
 
 class ApiResponseException(TransportException):
     """Api response exception."""
