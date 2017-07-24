@@ -14,17 +14,22 @@ class Notification(object):
         self._parameters = notification[self.PARAMETERS_KEY]
         self._timestamp = notification[self.TIMESTAMP_KEY]
 
+    @property
     def device_id(self):
         return self._device_id
 
+    @property
     def id(self):
         return self._id
 
+    @property
     def notification(self):
         return self._notification
 
+    @property
     def parameters(self):
         return self._parameters
 
+    @property
     def timestamp(self):
         return self._timestamp

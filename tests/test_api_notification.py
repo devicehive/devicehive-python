@@ -5,7 +5,7 @@ from devicehive import ApiResponseException
 def list_notifications(device, **params):
     notifications = device.list_notifications(**params)
     return [notification for notification in notifications
-            if notification.notification()[0] != '$']
+            if notification.notification[0] != '$']
 
 
 def test_list(test):
@@ -24,8 +24,8 @@ def test_list(test):
         notification_0, notification_1 = list_notifications(device)
         # TODO add websocket tests after server response will be fixed.
         if test.http_transport():
-            assert notification_0.notification() == options[1]['notification']
-            assert notification_1.notification() == options[0]['notification']
+            assert notification_0.notification == options[1]['notification']
+            assert notification_1.notification == options[0]['notification']
         notifications = list_notifications(device, start=server_timestamp)
         # TODO add websocket tests after server response will be fixed.
         if test.http_transport():
@@ -35,19 +35,19 @@ def test_list(test):
         notification_name = options[0]['notification']
         notification, = list_notifications(device,
                                            notification=notification_name)
-        assert notification.notification() == notification_name
+        assert notification.notification == notification_name
         notification_0, notification_1 = list_notifications(device,
                                                             sort_field=
                                                             'notification',
                                                             sort_order='ASC')
-        assert notification_0.notification() == options[0]['notification']
-        assert notification_1.notification() == options[1]['notification']
+        assert notification_0.notification == options[0]['notification']
+        assert notification_1.notification == options[1]['notification']
         notification_0, notification_1 = list_notifications(device,
                                                             sort_field=
                                                             'notification',
                                                             sort_order='DESC')
-        assert notification_0.notification() == options[1]['notification']
-        assert notification_1.notification() == options[0]['notification']
+        assert notification_0.notification == options[1]['notification']
+        assert notification_1.notification == options[0]['notification']
         notification_name = test_id
         notification_0 = device.send_notification(notification_name)
         notification_1 = device.send_notification(notification_name)
@@ -55,13 +55,13 @@ def test_list(test):
                                                   notification_name,
                                                   sort_field='timestamp',
                                                   sort_order='ASC', take=1)
-        assert notification.id() == notification_0.id()
+        assert notification.id == notification_0.id
         notification, = device.list_notifications(notification=
                                                   notification_name,
                                                   sort_field='timestamp',
                                                   sort_order='ASC', take=1,
                                                   skip=1)
-        assert notification.id() == notification_1.id()
+        assert notification.id == notification_1.id
         device_1 = handler.api.get_device(test_id)
         device.remove()
         try:
@@ -87,19 +87,19 @@ def test_send(test):
         notification_name = test.generate_id('send-notification')
         device = handler.api.put_device(device_id)
         notification = device.send_notification(notification_name)
-        assert notification.device_id() == device_id
-        assert isinstance(notification.id(), int)
-        assert notification.notification() == notification_name
-        assert not notification.parameters()
-        assert notification.timestamp()
+        assert notification.device_id == device_id
+        assert isinstance(notification.id, int)
+        assert notification.notification == notification_name
+        assert not notification.parameters
+        assert notification.timestamp
         parameters = 'parameters'
         notification = device.send_notification(notification_name,
                                                 parameters=parameters)
-        assert notification.device_id() == device_id
-        assert isinstance(notification.id(), int)
-        assert notification.notification() == notification_name
-        assert notification.parameters() == parameters
-        assert notification.timestamp()
+        assert notification.device_id == device_id
+        assert isinstance(notification.id, int)
+        assert notification.notification == notification_name
+        assert notification.parameters == parameters
+        assert notification.timestamp
         device_1 = handler.api.get_device(device_id)
         device.remove()
         try:
