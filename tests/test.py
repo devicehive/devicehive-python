@@ -29,22 +29,25 @@ class Test(object):
             return '%s-%s-%s' % (self._transport_name, key, time_key)
         return '%s-%s' % (self._transport_name, time_key)
 
+    @property
     def transport_name(self):
         return self._transport_name
 
+    @property
     def http_transport(self):
         return self._transport_name == 'http'
 
+    @property
     def websocket_transport(self):
         return self._transport_name == 'websocket'
 
     def only_http_implementation(self):
-        if self.http_transport():
+        if self.http_transport:
             return
         pytest.skip('Implemented only for http transport')
 
     def only_websocket_implementation(self):
-        if self.websocket_transport():
+        if self.websocket_transport:
             return
         pytest.skip('Implemented only for websocket transport')
 

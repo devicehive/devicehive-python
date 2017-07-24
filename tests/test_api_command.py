@@ -19,12 +19,12 @@ def test_list(test):
                                 status=option['status'])
         command_0, command_1 = device.list_commands()
         # TODO add websocket tests after server response will be fixed.
-        if test.http_transport():
+        if test.http_transport:
             assert command_0.command == options[1]['command']
             assert command_1.command == options[0]['command']
         commands = device.list_commands(start=server_timestamp)
         # TODO add websocket tests after server response will be fixed.
-        if test.http_transport():
+        if test.http_transport:
             assert len(commands) == len(options)
         assert not device.list_commands(start=server_timestamp,
                                         end=server_timestamp)
