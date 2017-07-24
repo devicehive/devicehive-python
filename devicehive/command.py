@@ -27,24 +27,31 @@ class Command(object):
         self.status = command[self.STATUS_KEY]
         self.result = command[self.RESULT_KEY]
 
+    @property
     def device_id(self):
         return self._device_id
 
+    @property
     def id(self):
         return self._id
 
+    @property
     def user_id(self):
         return self._user_id
 
+    @property
     def command(self):
         return self._command
 
+    @property
     def parameters(self):
         return self._parameters
 
+    @property
     def lifetime(self):
         return self._lifetime
 
+    @property
     def timestamp(self):
         return self._timestamp
 
