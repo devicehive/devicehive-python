@@ -22,29 +22,35 @@ class ApiResponse(object):
             return
         self._response = response.get(key)
 
+    @property
     def id(self):
         return self._id
 
+    @property
     def action(self):
         return self._action
 
+    @property
     def success(self):
         return self._success
 
+    @property
     def code(self):
         return self._code
 
+    @property
     def error(self):
         return self._error
+
+    @property
+    def response(self):
+        return self._response
 
     def ensure_success(self, exception_message, transport_name):
         if self._success:
             return
         raise ApiResponseException(exception_message, transport_name,
                                    self._code, self._error)
-
-    def response(self):
-        return self._response
 
 
 class ApiResponseException(TransportException):
