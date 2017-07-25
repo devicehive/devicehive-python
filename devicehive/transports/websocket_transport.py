@@ -22,9 +22,9 @@ class WebsocketTransport(Transport):
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY
 
-    def _call_websocket_method(self, method, *args, **kwargs):
+    def _websocket_call(self, websocket_method, *args, **kwargs):
         try:
-            return getattr(self._websocket, method)(*args, **kwargs)
+            return websocket_method(*args, **kwargs)
         except (socket.error, websocket.WebSocketException) as exception:
             websocket_exception = exception
         raise self._exception(websocket_exception)
@@ -33,7 +33,7 @@ class WebsocketTransport(Transport):
         timeout = options.pop('timeout', None)
         pong_timeout = options.pop('pong_timeout', None)
         self._websocket.timeout = timeout
-        self._call_websocket_method('connect', url, **options)
+        self._websocket_call(self._websocket.connect, url, **options)
         self._connected = True
         self._handle_connect()
         if not pong_timeout:
@@ -46,7 +46,7 @@ class WebsocketTransport(Transport):
     def _ping(self, pong_timeout):
         while self._connected:
             try:
-                self._call_websocket_method('ping')
+                self._websocket_call(self._websocket.ping)
             except self._exception:
                 self._connected = False
                 return
@@ -62,7 +62,7 @@ class WebsocketTransport(Transport):
                 event = self._event_queue.pop(0)
                 self._handle_event(event)
                 continue
-            opcode, data = self._call_websocket_method('recv_data', True)
+            opcode, data = self._websocket_call(self._websocket.recv_data, True)
             if opcode == websocket.ABNF.OPCODE_TEXT:
                 event = self._decode(data.decode('utf-8'))
                 self._handle_event(event)
@@ -78,7 +78,7 @@ class WebsocketTransport(Transport):
                 return
 
     def _disconnect(self):
-        self._call_websocket_method('close')
+        self._websocket_call(self._websocket.close)
         self._pong_received = False
         self._event_queue = []
         self._handle_disconnect()
@@ -86,14 +86,14 @@ class WebsocketTransport(Transport):
     def _send_request(self, action, request):
         request[self.REQUEST_ID_KEY] = self._uuid()
         request[self.REQUEST_ACTION_KEY] = action
-        self._call_websocket_method('send', self._encode(request),
-                                    opcode=self._data_opcode)
+        self._websocket_call(self._websocket.send, self._encode(request),
+                             opcode=self._data_opcode)
         return request[self.REQUEST_ID_KEY]
 
     def _receive_response(self, timeout, request_id):
         start_time = time.time()
         while time.time() - timeout < start_time:
-            response = self._decode(self._call_websocket_method('recv'))
+            response = self._decode(self._websocket_call(self._websocket.recv))
             if response.get(self.REQUEST_ID_KEY) == request_id:
                 return response
             self._event_queue.append(response)
