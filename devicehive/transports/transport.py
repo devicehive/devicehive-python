@@ -71,6 +71,10 @@ class Transport(object):
         return self._name
 
     @property
+    def exception(self):
+        return self._exception
+
+    @property
     def connected(self):
         return self._connected
 
