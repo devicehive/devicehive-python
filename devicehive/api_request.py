@@ -1,6 +1,6 @@
 from devicehive.api_response import ApiResponse
 from devicehive.api_response import ApiResponseException
-from devicehive.transports.transport import TransportException
+from devicehive.transports.transport import TransportError
 
 
 class ApiRequest(object):
@@ -71,5 +71,5 @@ class ApiRequest(object):
                                    api_response.code, api_response.error)
 
 
-class ApiRequestException(TransportException):
+class ApiRequestException(TransportError):
     """Api request exception."""

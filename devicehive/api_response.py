@@ -1,4 +1,4 @@
-from devicehive.transports.transport import TransportException
+from devicehive.transports.transport import TransportError
 
 
 class ApiResponse(object):
@@ -47,7 +47,7 @@ class ApiResponse(object):
         return self._response
 
 
-class ApiResponseException(TransportException):
+class ApiResponseException(TransportError):
     """Api response exception."""
 
     def __init__(self, message, transport_name, code, error):
