@@ -1,5 +1,5 @@
-from devicehive import DeviceException
-from devicehive import ApiResponseException
+from devicehive import DeviceError
+from devicehive import ApiResponseError
 
 
 def list_notifications(device, **params):
@@ -65,14 +65,14 @@ def test_list(test):
         try:
             device.list_notifications()
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
         try:
             device_1.list_commands()
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)
@@ -103,14 +103,14 @@ def test_send(test):
         try:
             device.send_notification(notification_name)
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
         try:
             device_1.send_notification(notification_name)
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)

@@ -1,5 +1,5 @@
-from devicehive import DeviceException
-from devicehive import ApiResponseException
+from devicehive import DeviceError
+from devicehive import ApiResponseError
 
 
 def test_list(test):
@@ -51,14 +51,14 @@ def test_list(test):
         try:
             device.list_commands()
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
         try:
             device_1.list_commands()
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)
@@ -102,14 +102,14 @@ def test_send(test):
         try:
             device.send_command(command_name)
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
         try:
             device_1.send_command(command_name)
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)
@@ -131,9 +131,9 @@ def test_save(test):
         try:
             command.save()
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)

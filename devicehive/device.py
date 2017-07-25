@@ -1,7 +1,7 @@
 from devicehive.api_request import ApiRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
-from devicehive.api_request import ApiRequestException
+from devicehive.api_request import ApiRequestError
 
 
 class Device(object):
@@ -34,7 +34,7 @@ class Device(object):
     def _ensure_exists(self):
         if self._id:
             return
-        raise DeviceException('Device does not exist.')
+        raise DeviceError('Does not exist.')
 
     @property
     def id(self):
@@ -178,5 +178,5 @@ class Device(object):
         return Notification(notification)
 
 
-class DeviceException(ApiRequestException):
-    """Device exception."""
+class DeviceError(ApiRequestError):
+    """Device error."""

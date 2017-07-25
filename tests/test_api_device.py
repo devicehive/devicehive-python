@@ -1,5 +1,5 @@
-from devicehive import DeviceException
-from devicehive import ApiResponseException
+from devicehive import DeviceError
+from devicehive import ApiResponseError
 
 
 def test_list(test):
@@ -63,9 +63,9 @@ def test_get(test):
         try:
             handler.api.get_device(device_id)
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)
@@ -117,7 +117,7 @@ def test_save(test):
         try:
             device.save()
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
 
     test.run(handle_connect)
@@ -140,14 +140,14 @@ def test_remove(test):
         try:
             device.remove()
             assert False
-        except DeviceException:
+        except DeviceError:
             pass
         try:
             device_1.remove()
             assert False
-        except ApiResponseException as api_response_exception:
+        except ApiResponseError as api_response_error:
             # TODO: uncomment after server response will be fixed.
-            # assert api_response_exception.code() == 404
+            # assert api_response_error.code() == 404
             pass
 
     test.run(handle_connect)

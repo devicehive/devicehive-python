@@ -47,8 +47,8 @@ class ApiResponse(object):
         return self._response
 
 
-class ApiResponseException(TransportError):
-    """Api response exception."""
+class ApiResponseError(TransportError):
+    """Api response error."""
 
     def __init__(self, message, transport_name, code, error):
         message = '%s. Transport: %s. Code: %s. Error: %s.' % (message,

@@ -1,5 +1,5 @@
 from devicehive.api_request import ApiRequest
-from devicehive.api_response import ApiResponseException
+from devicehive.api_response import ApiResponseError
 
 
 class Token(object):
@@ -37,8 +37,8 @@ class Token(object):
         self._set_authorization_header(api_request)
         try:
             return api_request.execute(exception_message)
-        except ApiResponseException as api_response_exception:
-            if api_response_exception.code != 401:
+        except ApiResponseError as api_response_error:
+            if api_response_error.code != 401:
                 raise
         self.authenticate()
         self._set_authorization_header(api_request)
