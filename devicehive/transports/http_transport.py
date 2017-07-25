@@ -1,7 +1,16 @@
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportError
-import threading
 import requests
+try:
+    from ssl import SSLError
+    from ssl import CertificateError
+except ImportError:
+    class SSLError(Exception):
+        """SSL error."""
+
+    class CertificateError(ValueError):
+        """Certificate error."""
+import threading
 
 
 class HttpTransport(Transport):
@@ -47,11 +56,25 @@ class HttpTransport(Transport):
         self._subscribe_threads = {}
         self._handle_disconnect()
 
-    def _http_request(self, method, url, **params):
-        response = requests.request(method, url, **params)
-        code = response.status_code
-        data = response.text if self._data_type == 'text' else response.content
-        return code, data
+    def _request_call(self, method, url, **params):
+        certificate_error, error = None, None
+        try:
+            response = requests.request(method, url, **params)
+            code = response.status_code
+            if self._data_type == 'text':
+                return code, response.text
+            return code, response.content
+        except requests.exceptions.SSLError as ssl_error:
+            ssl_error = ssl_error.args[0].args[0]
+            if isinstance(ssl_error, SSLError):
+                error = ssl_error.args[1]
+            else:
+                certificate_error = ssl_error.args[0]
+        except requests.RequestException as http_error:
+            error = http_error
+        if certificate_error:
+            raise CertificateError(certificate_error)
+        raise self._error(error)
 
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
@@ -65,7 +88,7 @@ class HttpTransport(Transport):
             if request_key:
                 request = request[request_key]
             params['data'] = self._encode(request)
-        code, data = self._http_request(method, url, **params)
+        code, data = self._request_call(method, url, **params)
         response = {self.REQUEST_ID_KEY: self._uuid(),
                     self.REQUEST_ACTION_KEY: action}
         if code in self._success_codes:
