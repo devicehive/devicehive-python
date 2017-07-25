@@ -1,18 +1,7 @@
-from devicehive.transports.transport import ensure_transport_connected
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportException
 import threading
 import requests
-
-
-def reraise_http_transport_exception(method):
-    def call_transport_method(transport, *args, **kwargs):
-        try:
-            return method(transport, *args, **kwargs)
-        except requests.RequestException as exception:
-            http_exception = exception
-        raise transport.exception(http_exception)
-    return call_transport_method
 
 
 class HttpTransport(Transport):
@@ -40,7 +29,7 @@ class HttpTransport(Transport):
         if not self._base_url.endswith('/'):
             self._base_url += '/'
         self._connected = True
-        self._call_handler_method('handle_connect')
+        self._handle_connect()
 
     def _receive(self):
         while self._connected:
@@ -50,14 +39,14 @@ class HttpTransport(Transport):
             if not self._events_queue:
                 continue
             for event in self._events_queue.pop(0):
-                self._call_handler_method('handle_event', event)
+                self._handle_event(event)
                 if not self._connected:
                     return
 
     def _disconnect(self):
         self._events_queue = []
         self._subscribe_threads = {}
-        self._call_handler_method('handle_disconnect')
+        self._handle_disconnect()
 
     def _http_request(self, method, url, **params):
         response = requests.request(method, url, **params)
@@ -65,7 +54,6 @@ class HttpTransport(Transport):
         data = response.text if self._data_type == 'text' else response.content
         return code, data
 
-    @reraise_http_transport_exception
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
@@ -154,8 +142,8 @@ class HttpTransport(Transport):
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
 
-    @ensure_transport_connected
     def send_request(self, action, request, **params):
+        self._ensure_connected()
         subscribe = params.pop('subscribe', False)
         unsubscribe = params.pop('unsubscribe', False)
         if subscribe:
@@ -170,8 +158,8 @@ class HttpTransport(Transport):
         self._events_queue.append([response])
         return response[self.REQUEST_ID_KEY]
 
-    @ensure_transport_connected
     def request(self, action, request, **params):
+        self._ensure_connected()
         subscribe = params.pop('subscribe', False)
         unsubscribe = params.pop('unsubscribe', False)
         if subscribe:
