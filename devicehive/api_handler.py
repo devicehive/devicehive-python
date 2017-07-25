@@ -8,7 +8,7 @@ class ApiHandler(Handler):
     def __init__(self, transport, authentication, handler_class,
                  handler_options):
         Handler.__init__(self, transport)
-        self._api = Api(self.transport, authentication)
+        self._api = Api(self._transport, authentication)
         self._handler = handler_class(self._api, handler_options)
         self._handle_connect = False
 
