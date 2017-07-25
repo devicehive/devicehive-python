@@ -1,5 +1,5 @@
 from devicehive.transports.transport import Transport
-from devicehive.transports.transport import TransportException
+from devicehive.transports.transport import TransportError
 import threading
 import requests
 
@@ -16,9 +16,8 @@ class HttpTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        Transport.__init__(self, 'http', HttpTransportException,
-                           data_format_class, data_format_options,
-                           handler_class, handler_options)
+        Transport.__init__(self, 'http', HttpTransportError, data_format_class,
+                           data_format_options, handler_class, handler_options)
         self._base_url = None
         self._events_queue = []
         self._subscribe_threads = {}
@@ -134,7 +133,7 @@ class HttpTransport(Transport):
     def _unsubscribe_request(self, action, request):
         subscribe_id = request[self.RESPONSE_SUBSCRIBE_ID_KEY]
         if subscribe_id not in self._subscribe_threads:
-            raise HttpTransportException('Subscription does not exist.')
+            raise self._error('Subscription does not exist.')
         subscribe_thread = self._subscribe_threads[subscribe_id]
         del self._subscribe_threads[subscribe_id]
         subscribe_thread.join()
@@ -169,5 +168,5 @@ class HttpTransport(Transport):
         return self._request(action, request, **params)
 
 
-class HttpTransportException(TransportException):
-    """Http transport exception."""
+class HttpTransportError(TransportError):
+    """Http transport error."""

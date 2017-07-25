@@ -9,10 +9,10 @@ class Transport(object):
     REQUEST_ID_KEY = 'requestId'
     REQUEST_ACTION_KEY = 'action'
 
-    def __init__(self, name, exception, data_format_class, data_format_options,
+    def __init__(self, name, error, data_format_class, data_format_options,
                  handler_class, handler_options):
         self._name = name
-        self._exception = exception
+        self._error = error
         self._data_format = data_format_class(**data_format_options)
         self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
@@ -42,12 +42,12 @@ class Transport(object):
     def _ensure_not_connected(self):
         if not self._connected:
             return
-        raise self._exception('Connection has already created.')
+        raise self._error('Connection has already created.')
 
     def _ensure_connected(self):
         if self._connected:
             return
-        raise self._exception('Connection has not created.')
+        raise self._error('Connection has not created.')
 
     def _connection(self, url, options):
         try:
@@ -71,8 +71,8 @@ class Transport(object):
         return self._name
 
     @property
-    def exception(self):
-        return self._exception
+    def error(self):
+        return self._error
 
     @property
     def connected(self):
@@ -104,5 +104,5 @@ class Transport(object):
         raise NotImplementedError
 
 
-class TransportException(IOError):
-    """Transport exception."""
+class TransportError(IOError):
+    """Transport error."""

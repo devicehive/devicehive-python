@@ -1,5 +1,5 @@
 from devicehive.transports.transport import Transport
-from devicehive.transports.transport import TransportException
+from devicehive.transports.transport import TransportError
 import websocket
 import socket
 import threading
@@ -11,7 +11,7 @@ class WebsocketTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        Transport.__init__(self, 'websocket', WebsocketTransportException,
+        Transport.__init__(self, 'websocket', WebsocketTransportError,
                            data_format_class, data_format_options,
                            handler_class, handler_options)
         self._websocket = websocket.WebSocket()
@@ -25,9 +25,9 @@ class WebsocketTransport(Transport):
     def _websocket_call(self, websocket_method, *args, **kwargs):
         try:
             return websocket_method(*args, **kwargs)
-        except (socket.error, websocket.WebSocketException) as exception:
-            websocket_exception = exception
-        raise self._exception(websocket_exception)
+        except (websocket.WebSocketException, socket.error) as websocket_error:
+            error = websocket_error
+        raise self._error(error)
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
@@ -47,7 +47,7 @@ class WebsocketTransport(Transport):
         while self._connected:
             try:
                 self._websocket_call(self._websocket.ping)
-            except self._exception:
+            except self._error:
                 self._connected = False
                 return
             self._pong_received = False
@@ -97,7 +97,7 @@ class WebsocketTransport(Transport):
             if response.get(self.REQUEST_ID_KEY) == request_id:
                 return response
             self._event_queue.append(response)
-        raise self._exception('Response timeout.')
+        raise self._error('Response timeout.')
 
     def send_request(self, action, request, **params):
         self._ensure_connected()
@@ -110,5 +110,5 @@ class WebsocketTransport(Transport):
         return self._receive_response(timeout, request_id)
 
 
-class WebsocketTransportException(TransportException):
-    """Websocket transport exception."""
+class WebsocketTransportError(TransportError):
+    """Websocket transport error."""
