@@ -8,8 +8,12 @@ class DataFormat(object):
         self._data_type = data_type
 
     @property
-    def data_type(self):
-        return self._data_type
+    def text_data_type(self):
+        return self._data_type == self.TEXT_DATA_TYPE
+
+    @property
+    def binary_data_type(self):
+        return self._data_type == self.BINARY_DATA_TYPE
 
     def encode(self, data):
         raise NotImplementedError

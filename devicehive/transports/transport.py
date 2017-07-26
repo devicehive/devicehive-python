@@ -14,7 +14,6 @@ class Transport(object):
         self._name = name
         self._error = error
         self._data_format = data_format_class(**data_format_options)
-        self._data_type = self._data_format.data_type
         self._handler = handler_class(self, **handler_options)
         self._connection_thread = None
         self._connected = False
@@ -23,6 +22,14 @@ class Transport(object):
     @staticmethod
     def _uuid():
         return str(uuid.uuid1())
+
+    @property
+    def _text_data_type(self):
+        return self._data_format.text_data_type
+
+    @property
+    def _binary_data_type(self):
+        return self._data_format.binary_data_type
 
     def _encode(self, obj):
         return self._data_format.encode(obj)

@@ -17,7 +17,7 @@ class WebsocketTransport(Transport):
         self._websocket = websocket.WebSocket()
         self._pong_received = False
         self._event_queue = []
-        if self._data_type == 'text':
+        if self._text_data_type:
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
             self._data_opcode = websocket.ABNF.OPCODE_BINARY

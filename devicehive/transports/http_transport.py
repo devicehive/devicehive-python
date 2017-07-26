@@ -61,7 +61,7 @@ class HttpTransport(Transport):
         try:
             response = requests.request(method, url, **params)
             code = response.status_code
-            if self._data_type == 'text':
+            if self._text_data_type:
                 return code, response.text
             return code, response.content
         except requests.exceptions.SSLError as ssl_error:
