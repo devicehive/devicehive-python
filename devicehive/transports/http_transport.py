@@ -76,7 +76,6 @@ class HttpTransport(Transport):
         raise self._error(error)
 
     def _request(self, action, request, **params):
-        # TODO: review.
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
         request_delete_keys = params.pop('request_delete_keys', [])
@@ -95,19 +94,17 @@ class HttpTransport(Transport):
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
             if not data:
                 return response
-            success_response = self._decode(data)
             if response_key:
-                response[response_key] = success_response
+                response[response_key] = self._decode(data)
                 return response
-            for key in success_response:
-                response[key] = success_response[key]
+            response.update(self._decode(data))
             return response
         response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_ERROR_STATUS
         response[self.RESPONSE_CODE_KEY] = code
         if not data:
             return response
         try:
-            error = self._decode(data).get('message')
+            error = self._decode(data)['message']
         except Exception:
             error = data
         response[self.RESPONSE_ERROR_KEY] = error
