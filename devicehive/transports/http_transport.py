@@ -1,15 +1,6 @@
 from devicehive.transports.transport import Transport
 from devicehive.transports.transport import TransportError
 import requests
-try:
-    from ssl import SSLError
-    from ssl import CertificateError
-except ImportError:
-    class SSLError(Exception):
-        """SSL error."""
-
-    class CertificateError(ValueError):
-        """Certificate error."""
 import threading
 import sys
 
@@ -29,12 +20,14 @@ class HttpTransport(Transport):
         Transport.__init__(self, 'http', HttpTransportError, data_format_class,
                            data_format_options, handler_class, handler_options)
         self._base_url = None
+        self._options = None
         self._events_queue = []
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
 
     def _connect(self, url, **options):
         self._base_url = url
+        self._options = options
         if not self._base_url.endswith('/'):
             self._base_url += '/'
         self._connected = True
@@ -55,24 +48,16 @@ class HttpTransport(Transport):
         self._handle_disconnect()
 
     def _request_call(self, method, url, **params):
-        # TODO: merge connect options with params.
-        certificate_error, error = None, None
+        options = self._options.copy()
+        options.update(params)
         try:
-            response = requests.request(method, url, **params)
+            response = requests.request(method, url, **options)
             code = response.status_code
             if self._text_data_type:
                 return code, response.text
             return code, response.content
-        except requests.exceptions.SSLError as ssl_error:
-            ssl_error = ssl_error.args[0].args[0]
-            if isinstance(ssl_error, SSLError):
-                error = ssl_error.args[1]
-            else:
-                certificate_error = ssl_error.args[0]
         except requests.RequestException as http_error:
             error = http_error
-        if certificate_error:
-            raise CertificateError(certificate_error)
         raise self._error(error)
 
     def _request(self, action, request, **params):
