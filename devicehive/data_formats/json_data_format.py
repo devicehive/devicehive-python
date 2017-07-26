@@ -6,7 +6,7 @@ class JsonDataFormat(DataFormat):
     """Json data format class."""
 
     def __init__(self):
-        DataFormat.__init__(self, 'text')
+        DataFormat.__init__(self, self.TEXT_DATA_TYPE)
 
     def encode(self, data):
         return json.dumps(data)
