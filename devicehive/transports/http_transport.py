@@ -11,6 +11,7 @@ except ImportError:
     class CertificateError(ValueError):
         """Certificate error."""
 import threading
+import sys
 
 
 class HttpTransport(Transport):
@@ -40,10 +41,7 @@ class HttpTransport(Transport):
         self._handle_connect()
 
     def _receive(self):
-        while self._connected:
-            for subscribe_thread in self._subscribe_threads.values():
-                if not subscribe_thread.is_alive():
-                    return
+        while self._connected and not self._exception_info:
             if not self._events_queue:
                 continue
             for event in self._events_queue.pop(0):
@@ -57,6 +55,7 @@ class HttpTransport(Transport):
         self._handle_disconnect()
 
     def _request_call(self, method, url, **params):
+        # TODO: merge connect options with params.
         certificate_error, error = None, None
         try:
             response = requests.request(method, url, **params)
@@ -77,6 +76,7 @@ class HttpTransport(Transport):
         raise self._error(error)
 
     def _request(self, action, request, **params):
+        # TODO: review.
         method = params.pop('method', 'GET')
         url = self._base_url + params.pop('url')
         request_delete_keys = params.pop('request_delete_keys', [])
@@ -113,17 +113,21 @@ class HttpTransport(Transport):
         response[self.RESPONSE_ERROR_KEY] = error
         return response
 
-    def _subscribe_request(self, action, request, **params):
+    def _subscribe_requests(self, action, subscribe_requests):
         subscribe_id = self._uuid()
-        subscribe_thread = threading.Thread(target=self._subscribe,
-                                            args=(subscribe_id, action, request,
-                                                  params))
-        subscribe_thread_name = '%s-transport-subscribe-%s' % (self._name,
-                                                               subscribe_id)
-        self._subscribe_threads[subscribe_id] = subscribe_thread
-        self._subscribe_threads[subscribe_id].daemon = True
-        self._subscribe_threads[subscribe_id].name = subscribe_thread_name
-        self._subscribe_threads[subscribe_id].start()
+        subscribe_threads = []
+        for action, request, params in subscribe_requests:
+            name = '%s-transport-subscribe-%s-%s'
+            subscribe_thread_name = name % (self._name, subscribe_id,
+                                            len(subscribe_threads))
+            subscribe_thread = threading.Thread(target=self._subscribe,
+                                                args=(subscribe_id, action,
+                                                      request, params))
+            subscribe_thread.daemon = True
+            subscribe_thread.name = subscribe_thread_name
+            subscribe_thread.start()
+            subscribe_threads.append(subscribe_thread)
+        self._subscribe_threads[subscribe_id] = subscribe_threads
         return {self.REQUEST_ID_KEY: self._uuid(),
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS,
@@ -134,46 +138,34 @@ class HttpTransport(Transport):
         params_timestamp_key = params.pop('params_timestamp_key', 'timestamp')
         response_timestamp_key = params.pop('response_timestamp_key',
                                             'timestamp')
-        response_success_status = self.RESPONSE_SUCCESS_STATUS
-        while self._connected and self._subscribe_threads.get(subscribe_id):
-            response = self._request(action, request.copy(), **params)
-            if response[self.RESPONSE_STATUS_KEY] != response_success_status:
-                # TODO: handle error status here.
-                return
-            events = response[response_key]
-            if not len(events):
-                continue
-            timestamp = events[-1][response_timestamp_key]
-            if not params.get('params'):
-                params['params'] = {}
-            params['params'][params_timestamp_key] = timestamp
-            # TODO: add action to event.
-            events = [{response_key: event,
-                       self.RESPONSE_SUBSCRIBE_ID_KEY: subscribe_id}
-                      for event in events]
-            self._events_queue.append(events)
-
-    def _unsubscribe_request(self, action, request):
-        subscribe_id = request[self.RESPONSE_SUBSCRIBE_ID_KEY]
-        if subscribe_id not in self._subscribe_threads:
-            raise self._error('Subscription does not exist.')
-        subscribe_thread = self._subscribe_threads[subscribe_id]
-        del self._subscribe_threads[subscribe_id]
-        subscribe_thread.join()
-        return {self.REQUEST_ID_KEY: self._uuid(),
-                self.REQUEST_ACTION_KEY: action,
-                self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
+        while self._connected and not self._exception_info:
+            try:
+                response = self._request(action, request.copy(), **params)
+                response_status = response[self.RESPONSE_STATUS_KEY]
+                if response_status != self.RESPONSE_SUCCESS_STATUS:
+                    # TODO: handle error response.
+                    return
+                events = response[response_key]
+                if not len(events):
+                    continue
+                timestamp = events[-1][response_timestamp_key]
+                if not params.get('params'):
+                    params['params'] = {}
+                params['params'][params_timestamp_key] = timestamp
+                events = [{self.REQUEST_ACTION_KEY: action,
+                           response_key: event,
+                           self.RESPONSE_SUBSCRIBE_ID_KEY: subscribe_id}
+                          for event in events]
+                self._events_queue.append(events)
+            except BaseException:
+                self._exception_info = sys.exc_info()
 
     def send_request(self, action, request, **params):
+        # TODO: add unsubscribe.
         self._ensure_connected()
-        subscribe = params.pop('subscribe', False)
-        unsubscribe = params.pop('unsubscribe', False)
-        if subscribe:
-            response = self._subscribe_request(action, request, **params)
-            self._events_queue.append([response])
-            return response[self.REQUEST_ID_KEY]
-        if unsubscribe:
-            response = self._unsubscribe_request(action, request)
+        subscribe_requests = params.pop('subscribe_requests', [])
+        if subscribe_requests:
+            response = self._subscribe_requests(action, subscribe_requests)
             self._events_queue.append([response])
             return response[self.REQUEST_ID_KEY]
         response = self._request(action, request, **params)
@@ -181,13 +173,11 @@ class HttpTransport(Transport):
         return response[self.REQUEST_ID_KEY]
 
     def request(self, action, request, **params):
+        # TODO: add unsubscribe.
         self._ensure_connected()
-        subscribe = params.pop('subscribe', False)
-        unsubscribe = params.pop('unsubscribe', False)
-        if subscribe:
-            return self._subscribe_request(action, request, **params)
-        if unsubscribe:
-            return self._unsubscribe_request(action, request)
+        subscribe_requests = params.pop('subscribe_requests', [])
+        if subscribe_requests:
+            return self._subscribe_requests(action, subscribe_requests)
         return self._request(action, request, **params)
 
 
