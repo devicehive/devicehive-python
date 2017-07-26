@@ -28,20 +28,21 @@ class Token(object):
         api_request.set('token', self._access_token)
         api_request.execute('Authentication failure')
 
-    def _set_authorization_header(self, api_request):
+    @property
+    def authorization_header(self):
         name = self.AUTHORIZATION_HEADER_NAME
         value = self.AUTHORIZATION_HEADER_VALUE_PREFIX + self._access_token
-        api_request.header(name, value)
+        return name, value
 
     def execute_authorized_request(self, api_request, exception_message):
-        self._set_authorization_header(api_request)
+        api_request.header(*self.authorization_header)
         try:
             return api_request.execute(exception_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
         self.authenticate()
-        self._set_authorization_header(api_request)
+        api_request.header(*self.authorization_header)
         return api_request.execute(exception_message)
 
     def access_token(self):
