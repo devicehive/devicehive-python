@@ -19,17 +19,17 @@ class HttpTransport(Transport):
                  handler_options):
         Transport.__init__(self, 'http', HttpTransportError, data_format_class,
                            data_format_options, handler_class, handler_options)
-        self._base_url = None
+        self._url = None
         self._options = None
         self._events_queue = []
         self._subscribe_threads = {}
         self._success_codes = [200, 201, 204]
 
     def _connect(self, url, **options):
-        self._base_url = url
+        self._url = url
         self._options = options
-        if not self._base_url.endswith('/'):
-            self._base_url += '/'
+        if not self._url.endswith('/'):
+            self._url += '/'
         self._connected = True
         self._handle_connect()
 
@@ -62,7 +62,7 @@ class HttpTransport(Transport):
 
     def _request(self, action, request, **params):
         method = params.pop('method', 'GET')
-        url = self._base_url + params.pop('url')
+        url = self._url + params.pop('url')
         request_delete_keys = params.pop('request_delete_keys', [])
         request_key = params.pop('request_key', None)
         response_key = params.pop('response_key', None)
