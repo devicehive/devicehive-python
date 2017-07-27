@@ -47,8 +47,8 @@ class Api(object):
         api_request.url('token/create')
         api_request.action('token/create')
         api_request.set('payload', payload, True)
-        tokens = self._token.execute_api_request(api_request,
-                                                 'Token refresh failure')
+        tokens = self._token.execute_auth_api_request(api_request,
+                                                      'Token refresh failure')
         return {'refresh_token': tokens['refreshToken'],
                 'access_token': tokens['accessToken']}
 
@@ -71,8 +71,8 @@ class Api(object):
         api_request.param('take', take)
         api_request.param('skip', skip)
         api_request.response_key('devices')
-        devices = self._token.execute_api_request(api_request,
-                                                  'List devices failure')
+        devices = self._token.execute_auth_api_request(api_request,
+                                                       'List devices failure')
         return [Device(self._transport, self._token, device)
                 for device in devices]
 
