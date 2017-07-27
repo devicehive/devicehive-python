@@ -11,6 +11,7 @@ class Command(object):
     PARAMETERS_KEY = 'parameters'
     LIFETIME_KEY = 'lifetime'
     TIMESTAMP_KEY = 'timestamp'
+    # TODO: add LAST_UPDATED_KEY after API for websocket will be fixed.
     STATUS_KEY = 'status'
     RESULT_KEY = 'result'
 
