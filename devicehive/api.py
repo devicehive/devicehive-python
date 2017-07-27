@@ -54,7 +54,7 @@ class Api(object):
 
     def refresh_token(self):
         self._token.refresh()
-        return self._token.access_token()
+        return self._token.access_token
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,

@@ -29,6 +29,10 @@ class Token(object):
         api_request.execute('Authentication failure')
 
     @property
+    def access_token(self):
+        return self._access_token
+
+    @property
     def auth_header(self):
         auth_header_name = self.AUTH_HEADER_NAME
         auth_header_value = self.AUTH_HEADER_VALUE_PREFIX + self._access_token
@@ -44,9 +48,6 @@ class Token(object):
         self.auth()
         api_request.header(*self.auth_header)
         return api_request.execute(error_message)
-
-    def access_token(self):
-        return self._access_token
 
     def refresh(self):
         api_request = ApiRequest(self._transport)
