@@ -39,7 +39,7 @@ class ApiRequest(object):
             return
         self._params['request_key'] = key
 
-    def add_subscription_api_request(self, subscription_api_request):
+    def add_subscription_request(self, subscription_api_request):
         subscription_request = subscription_api_request.extract()
         self._params['subscription_requests'].append(subscription_request)
 
@@ -78,6 +78,25 @@ class ApiRequest(object):
             return api_response.response
         raise ApiResponseError(error_message, self._transport.name,
                                api_response.code, api_response.error)
+
+
+class AuthApiRequest(ApiRequest):
+    """Auth api request class."""
+
+    def __init__(self, transport, token):
+        ApiRequest.__init__(self, transport)
+        self._token = token
+
+    def execute(self, error_message):
+        self.header(*self._token.auth_header)
+        try:
+            ApiRequest.execute(self, error_message)
+        except ApiResponseError as api_response_error:
+            if api_response_error.code != 401:
+                raise
+        self._token.auth()
+        self.header(*self._token.auth_header)
+        return ApiRequest.execute(self, error_message)
 
 
 class ApiRequestError(TransportError):
