@@ -6,7 +6,6 @@ class ApiSubscribeRequest(object):
         self._request = {}
         self._params = {'method': 'GET',
                         'url': None,
-                        'request_delete_keys': [],
                         'params': {},
                         'headers': {},
                         'response_key': None}
