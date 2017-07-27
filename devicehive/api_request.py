@@ -90,7 +90,7 @@ class AuthApiRequest(ApiRequest):
     def execute(self, error_message):
         self.header(*self._token.auth_header)
         try:
-            ApiRequest.execute(self, error_message)
+            return ApiRequest.execute(self, error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
