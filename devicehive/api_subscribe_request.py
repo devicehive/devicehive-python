@@ -8,7 +8,9 @@ class ApiSubscribeRequest(object):
                         'url': None,
                         'params': {},
                         'headers': {},
-                        'response_key': None}
+                        'response_key': None,
+                        'params_timestamp_key': 'timestamp',
+                        'response_timestamp_key': 'timestamp'}
 
     def action(self, action):
         self._action = action
@@ -37,6 +39,12 @@ class ApiSubscribeRequest(object):
 
     def response_key(self, response_key):
         self._params['response_key'] = response_key
+
+    def params_timestamp_key(self, params_timestamp_key):
+        self._params['params_timestamp_key'] = params_timestamp_key
+
+    def response_timestamp_key(self, response_timestamp_key):
+        self._params['response_timestamp_key'] = response_timestamp_key
 
     def extract(self):
         return self._action, self._request, self._params
