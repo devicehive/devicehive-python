@@ -1,5 +1,5 @@
 from devicehive.api_request import ApiRequest
-from devicehive.api_subscribe_request import ApiSubscribeRequest
+from devicehive.api_subscribe_request import ApiAuthSubscribeRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
 from devicehive.api_request import ApiRequestError
@@ -79,25 +79,22 @@ class Device(object):
         self.is_blocked = None
 
     def subscribe_commands(self, names=None, limit=None, timestamp=None):
-        auth_header = self._token.auth_header
-        insert_api_subscribe_request = ApiSubscribeRequest()
-        insert_api_subscribe_request.action('command/insert')
-        insert_api_subscribe_request.url('device/{deviceId}/command/poll',
-                                         deviceId=self._id)
-        insert_api_subscribe_request.header(*auth_header)
-        insert_api_subscribe_request.response_key('command')
-        update_api_subscribe_request = ApiSubscribeRequest()
-        update_api_subscribe_request.action('command/update')
-        update_api_subscribe_request.url('device/{deviceId}/command/poll',
-                                         deviceId=self._id)
-        update_api_subscribe_request.header(*auth_header)
-        update_api_subscribe_request.param('returnUpdatedCommands', True)
-        update_api_subscribe_request.response_key('command')
-        update_api_subscribe_request.response_timestamp_key('lastUpdated')
+        insert_api_auth_subscribe_request = ApiAuthSubscribeRequest(self._token)
+        insert_api_auth_subscribe_request.action('command/insert')
+        insert_api_auth_subscribe_request.url('device/{deviceId}/command/poll',
+                                              deviceId=self._id)
+        insert_api_auth_subscribe_request.response_key('command')
+        update_api_auth_subscribe_request = ApiAuthSubscribeRequest(self._token)
+        update_api_auth_subscribe_request.action('command/update')
+        update_api_auth_subscribe_request.url('device/{deviceId}/command/poll',
+                                              deviceId=self._id)
+        update_api_auth_subscribe_request.param('returnUpdatedCommands', True)
+        update_api_auth_subscribe_request.response_key('command')
+        update_api_auth_subscribe_request.response_timestamp_key('lastUpdated')
         api_request = ApiRequest(self._transport)
         api_request.action('command/subscribe')
-        api_request.add_subscribe_request(insert_api_subscribe_request)
-        api_request.add_subscribe_request(update_api_subscribe_request)
+        api_request.add_subscribe_request(insert_api_auth_subscribe_request)
+        api_request.add_subscribe_request(update_api_auth_subscribe_request)
         response = api_request.execute('Subscribe commands failure')
         return response['subscriptionId']
 

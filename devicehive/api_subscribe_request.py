@@ -1,5 +1,20 @@
+from devicehive.api_response import ApiResponseError
+
+
+def response_error_handler(params, response_code, token):
+    if response_code != 401:
+        return
+    try:
+        token.auth()
+        auth_header_name, auth_header_value = token.auth_header
+        params['headers'][auth_header_name] = auth_header_value
+        return True
+    except ApiResponseError:
+        return
+
+
 class ApiSubscribeRequest(object):
-    """Api request class."""
+    """Api subscribe request class."""
 
     def __init__(self):
         self._action = None
@@ -48,3 +63,14 @@ class ApiSubscribeRequest(object):
 
     def extract(self):
         return self._action, self._request, self._params
+
+
+class ApiAuthSubscribeRequest(ApiSubscribeRequest):
+    """Api auth subscribe request class."""
+
+    def __init__(self, token):
+        ApiSubscribeRequest.__init__(self)
+        auth_header_name, auth_header_value = token.auth_header
+        self._params['headers'][auth_header_name] = auth_header_value
+        self._params['response_error_handler'] = response_error_handler
+        self._params['response_error_handler_args'] = [token]
