@@ -34,16 +34,16 @@ class Token(object):
         value = self.AUTHORIZATION_HEADER_VALUE_PREFIX + self._access_token
         return name, value
 
-    def execute_authorized_request(self, api_request, exception_message):
+    def execute_api_request(self, api_request, error_message):
         api_request.header(*self.authorization_header)
         try:
-            return api_request.execute(exception_message)
+            return api_request.execute(error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
         self.authenticate()
         api_request.header(*self.authorization_header)
-        return api_request.execute(exception_message)
+        return api_request.execute(error_message)
 
     def access_token(self):
         return self._access_token
@@ -54,8 +54,7 @@ class Token(object):
         api_request.url('token/refresh')
         api_request.action('token/refresh')
         api_request.set('refreshToken', self._refresh_token)
-        exception_message = 'Token refresh failure'
-        tokens = api_request.execute(exception_message)
+        tokens = api_request.execute('Token refresh failure')
         self._access_token = tokens['accessToken']
 
     def authenticate(self):

@@ -63,5 +63,4 @@ class Command(object):
                         deviceId=self._device_id, commandId=self._id)
         api_request.action('command/update')
         api_request.set('command', command, True)
-        exception_message = 'Command save failure'
-        self._token.execute_authorized_request(api_request, exception_message)
+        self._token.execute_api_request(api_request, 'Command save failure')

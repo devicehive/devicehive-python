@@ -18,8 +18,7 @@ class Api(object):
         api_request.url('info')
         api_request.action('server/info')
         api_request.response_key('info')
-        exception_message = 'Info get failure'
-        info = api_request.execute(exception_message)
+        info = api_request.execute('Info get failure')
         return {'api_version': info['apiVersion'],
                 'server_timestamp': info['serverTimestamp'],
                 'rest_server_url': info.get('restServerUrl'),
@@ -30,8 +29,7 @@ class Api(object):
         api_request.url('info/config/cluster')
         api_request.action('cluster/info')
         api_request.response_key('clusterInfo')
-        exception_message = 'Cluster info get failure'
-        return api_request.execute(exception_message)
+        return api_request.execute('Cluster info get failure')
 
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):
@@ -49,9 +47,8 @@ class Api(object):
         api_request.url('token/create')
         api_request.action('token/create')
         api_request.set('payload', payload, True)
-        exception_message = 'Token refresh failure'
-        tokens = self._token.execute_authorized_request(api_request,
-                                                        exception_message)
+        tokens = self._token.execute_api_request(api_request,
+                                                 'Token refresh failure')
         return {'refresh_token': tokens['refreshToken'],
                 'access_token': tokens['accessToken']}
 
@@ -74,9 +71,8 @@ class Api(object):
         api_request.param('take', take)
         api_request.param('skip', skip)
         api_request.response_key('devices')
-        exception_message = 'List devices failure'
-        devices = self._token.execute_authorized_request(api_request,
-                                                         exception_message)
+        devices = self._token.execute_api_request(api_request,
+                                                  'List devices failure')
         return [Device(self._transport, self._token, device)
                 for device in devices]
 

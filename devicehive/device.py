@@ -45,9 +45,8 @@ class Device(object):
         api_request.url('device/{deviceId}', deviceId=device_id)
         api_request.action('device/get')
         api_request.response_key('device')
-        exception_message = 'Device get failure'
-        device = self._token.execute_authorized_request(api_request,
-                                                        exception_message)
+        device = self._token.execute_api_request(api_request,
+                                                 'Device get failure')
         self._init(device)
 
     def save(self):
@@ -62,8 +61,7 @@ class Device(object):
         api_request.url('device/{deviceId}', deviceId=self._id)
         api_request.action('device/save')
         api_request.set('device', device, True)
-        exception_message = 'Device save failure'
-        self._token.execute_authorized_request(api_request, exception_message)
+        self._token.execute_api_request(api_request, 'Device save failure')
 
     def remove(self):
         self._ensure_exists()
@@ -71,8 +69,7 @@ class Device(object):
         api_request.method('DELETE')
         api_request.url('device/{deviceId}', deviceId=self._id)
         api_request.action('device/delete')
-        exception_message = 'Device remove failure'
-        self._token.execute_authorized_request(api_request, exception_message)
+        self._token.execute_api_request(api_request, 'Device remove failure')
         self._id = None
         self.name = None
         self.data = None
@@ -94,9 +91,8 @@ class Device(object):
         api_request.param('take', take)
         api_request.param('skip', skip)
         api_request.response_key('commands')
-        exception_message = 'List commands failure'
-        commands = self._token.execute_authorized_request(api_request,
-                                                          exception_message)
+        commands = self._token.execute_api_request(api_request,
+                                                   'List commands failure')
         return [Command(self._transport, self._token, command)
                 for command in commands]
 
@@ -120,9 +116,8 @@ class Device(object):
         api_request.action('command/insert')
         api_request.set('command', command, True)
         api_request.response_key('command')
-        exception_message = 'Command send failure'
-        command = self._token.execute_authorized_request(api_request,
-                                                         exception_message)
+        command = self._token.execute_api_request(api_request,
+                                                  'Command send failure')
         command[Command.DEVICE_ID_KEY] = self._id
         command[Command.COMMAND_KEY] = command_name
         command[Command.PARAMETERS_KEY] = parameters
@@ -150,9 +145,9 @@ class Device(object):
         api_request.param('take', take)
         api_request.param('skip', skip)
         api_request.response_key('notifications')
-        except_message = 'List notifications failure'
-        notifications = self._token.execute_authorized_request(api_request,
-                                                               except_message)
+        error_message = 'List notifications failure'
+        notifications = self._token.execute_api_request(api_request,
+                                                        error_message)
         return [Notification(notification) for notification in notifications]
 
     def send_notification(self, notification_name, parameters=None,
@@ -169,9 +164,9 @@ class Device(object):
         api_request.action('notification/insert')
         api_request.set('notification', notification, True)
         api_request.response_key('notification')
-        exception_message = 'Notification send failure'
-        notification = self._token.execute_authorized_request(api_request,
-                                                              exception_message)
+        error_message = 'Notification send failure'
+        notification = self._token.execute_api_request(api_request,
+                                                       error_message)
         notification[Notification.DEVICE_ID_KEY] = self._id
         notification[Notification.NOTIFICATION_KEY] = notification_name
         notification[Notification.PARAMETERS_KEY] = parameters
