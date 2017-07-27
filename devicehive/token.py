@@ -5,22 +5,22 @@ from devicehive.api_response import ApiResponseError
 class Token(object):
     """Token class."""
 
-    AUTHORIZATION_HEADER_NAME = 'Authorization'
-    AUTHORIZATION_HEADER_VALUE_PREFIX = 'Bearer '
+    AUTH_HEADER_NAME = 'Authorization'
+    AUTH_HEADER_VALUE_PREFIX = 'Bearer '
 
-    def __init__(self, transport, authentication):
+    def __init__(self, transport, auth):
         self._transport = transport
-        self._login = authentication.get('login')
-        self._password = authentication.get('password')
-        self._refresh_token = authentication.get('refresh_token')
-        self._access_token = authentication.get('access_token')
+        self._login = auth.get('login')
+        self._password = auth.get('password')
+        self._refresh_token = auth.get('refresh_token')
+        self._access_token = auth.get('access_token')
 
     def _login(self):
         # TODO: implement token/login request.
         # Set self._refresh_token and self._access_token after success login.
         pass
 
-    def _authenticate(self):
+    def _auth(self):
         api_request = ApiRequest(self._transport)
         if not api_request.websocket_transport:
             return
@@ -29,20 +29,20 @@ class Token(object):
         api_request.execute('Authentication failure')
 
     @property
-    def authorization_header(self):
-        name = self.AUTHORIZATION_HEADER_NAME
-        value = self.AUTHORIZATION_HEADER_VALUE_PREFIX + self._access_token
-        return name, value
+    def auth_header(self):
+        auth_header_name = self.AUTH_HEADER_NAME
+        auth_header_value = self.AUTH_HEADER_VALUE_PREFIX + self._access_token
+        return auth_header_name, auth_header_value
 
     def execute_api_request(self, api_request, error_message):
-        api_request.header(*self.authorization_header)
+        api_request.header(*self.auth_header)
         try:
             return api_request.execute(error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
-        self.authenticate()
-        api_request.header(*self.authorization_header)
+        self.auth()
+        api_request.header(*self.auth_header)
         return api_request.execute(error_message)
 
     def access_token(self):
@@ -57,9 +57,9 @@ class Token(object):
         tokens = api_request.execute('Token refresh failure')
         self._access_token = tokens['accessToken']
 
-    def authenticate(self):
+    def auth(self):
         if self._refresh_token:
             self.refresh()
         else:
             self._login()
-        self._authenticate()
+        self._auth()

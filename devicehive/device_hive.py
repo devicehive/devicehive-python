@@ -30,11 +30,11 @@ class DeviceHive(object):
     def connect(self, transport_url, **options):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
-        authentication = {'login': options.pop('login', None),
-                          'password': options.pop('password', None),
-                          'refresh_token': options.pop('refresh_token', None),
-                          'access_token': options.pop('access_token', None)}
-        self._api_handler_options['authentication'] = authentication
+        auth = {'login': options.pop('login', None),
+                'password': options.pop('password', None),
+                'refresh_token': options.pop('refresh_token', None),
+                'access_token': options.pop('access_token', None)}
+        self._api_handler_options['auth'] = auth
         self._init_transport()
         self._transport.connect(transport_url, **options)
 

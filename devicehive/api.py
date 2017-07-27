@@ -10,8 +10,8 @@ class Api(object):
         self._transport = transport
         self._token = Token(transport, authentication)
 
-    def authenticate(self):
-        self._token.authenticate()
+    def auth(self):
+        self._token.auth()
 
     def get_info(self):
         api_request = ApiRequest(self._transport)
