@@ -89,10 +89,10 @@ class HttpTransport(Transport):
         if not data:
             return response
         try:
-            error = self._decode(data)['message']
+            response_error = self._decode(data)['message']
         except Exception:
-            error = data
-        response[self.RESPONSE_ERROR_KEY] = error
+            response_error = data
+        response[self.RESPONSE_ERROR_KEY] = response_error
         return response
 
     def _subscribe_requests(self, action, subscribe_requests):
@@ -116,6 +116,9 @@ class HttpTransport(Transport):
                 self.RESPONSE_SUBSCRIBE_ID_KEY: subscribe_id}
 
     def _subscribe(self, subscribe_id, action, request, params):
+        response_error_handler = params.pop('response_error_handler', None)
+        response_error_handler_args = params.pop('response_error_handler_args',
+                                                 None)
         response_key = params['response_key']
         params_timestamp_key = params.pop('params_timestamp_key', 'timestamp')
         response_timestamp_key = params.pop('response_timestamp_key',
@@ -125,8 +128,18 @@ class HttpTransport(Transport):
                 response = self._request(action, request.copy(), **params)
                 response_status = response[self.RESPONSE_STATUS_KEY]
                 if response_status != self.RESPONSE_SUCCESS_STATUS:
-                    # TODO: handle error response.
-                    return
+                    response_code = response[self.RESPONSE_CODE_KEY]
+                    error = 'Subscribe request error. Action: %s. Code: %s.'
+                    error = error % (action, response_code)
+                    if not response_error_handler:
+                        raise self._error(error)
+                    if not response_error_handler(params, response_code,
+                                                  *response_error_handler_args):
+                        raise self._error(error)
+                    response = self._request(action, request.copy(), **params)
+                    response_status = response[self.RESPONSE_STATUS_KEY]
+                    if response_status != self.RESPONSE_SUCCESS_STATUS:
+                        raise self._error(error)
                 events = response[response_key]
                 if not len(events):
                     continue
