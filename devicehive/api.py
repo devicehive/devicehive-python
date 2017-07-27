@@ -1,4 +1,5 @@
 from devicehive.api_request import ApiRequest
+from devicehive.api_request import AuthApiRequest
 from devicehive.token import Token
 from devicehive.device import Device
 
@@ -42,13 +43,12 @@ class Api(object):
             payload['networkIds'] = network_ids
         if device_ids:
             payload['deviceIds'] = device_ids
-        api_request = ApiRequest(self._transport)
-        api_request.method('POST')
-        api_request.url('token/create')
-        api_request.action('token/create')
-        api_request.set('payload', payload, True)
-        tokens = self._token.execute_auth_api_request(api_request,
-                                                      'Token refresh failure')
+        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request.method('POST')
+        auth_api_request.url('token/create')
+        auth_api_request.action('token/create')
+        auth_api_request.set('payload', payload, True)
+        tokens = auth_api_request.execute('Token refresh failure')
         return {'refresh_token': tokens['refreshToken'],
                 'access_token': tokens['accessToken']}
 
@@ -59,20 +59,19 @@ class Api(object):
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
-        api_request = ApiRequest(self._transport)
-        api_request.url('device')
-        api_request.action('device/list')
-        api_request.param('name', name)
-        api_request.param('namePattern', name_pattern)
-        api_request.param('networkId', network_id)
-        api_request.param('networkName', network_name)
-        api_request.param('sortField', sort_field)
-        api_request.param('sortOrder', sort_order)
-        api_request.param('take', take)
-        api_request.param('skip', skip)
-        api_request.response_key('devices')
-        devices = self._token.execute_auth_api_request(api_request,
-                                                       'List devices failure')
+        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request.url('device')
+        auth_api_request.action('device/list')
+        auth_api_request.param('name', name)
+        auth_api_request.param('namePattern', name_pattern)
+        auth_api_request.param('networkId', network_id)
+        auth_api_request.param('networkName', network_name)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('devices')
+        devices = auth_api_request.execute('List devices failure')
         return [Device(self._transport, self._token, device)
                 for device in devices]
 
