@@ -10,7 +10,8 @@ class ApiRequest(object):
         self._transport = transport
         self._action = None
         self._request = {}
-        self._params = {'subscribe_requests': [],
+        self._params = {'subscription_requests': [],
+                        'remove_subscription_requests': False,
                         'method': 'GET',
                         'url': None,
                         'request_delete_keys': [],
@@ -38,8 +39,12 @@ class ApiRequest(object):
             return
         self._params['request_key'] = key
 
-    def add_subscribe_request(self, subscribe_request):
-        self._params['subscribe_requests'].append(subscribe_request.extract())
+    def add_subscription_api_request(self, subscription_api_request):
+        subscription_request = subscription_api_request.extract()
+        self._params['subscription_requests'].append(subscription_request)
+
+    def remove_subscription_requests(self):
+        self._params['remove_subscription_requests'] = True
 
     def method(self, method):
         self._params['method'] = method
