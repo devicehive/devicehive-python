@@ -56,7 +56,8 @@ class Command(object):
         return self._timestamp
 
     def save(self):
-        command = {'status': self.status, 'result': self.result}
+        command = {self.STATUS_KEY: self.status,
+                   self.RESULT_KEY: self.result}
         api_request = ApiRequest(self._transport)
         api_request.method('PUT')
         api_request.url('device/{deviceId}/command/{commandId}',
