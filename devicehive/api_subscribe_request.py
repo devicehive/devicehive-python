@@ -1,8 +1,7 @@
 class ApiSubscribeRequest(object):
     """Api request class."""
 
-    def __init__(self, transport):
-        self._transport = transport
+    def __init__(self):
         self._action = None
         self._request = {}
         self._params = {'method': 'GET',
