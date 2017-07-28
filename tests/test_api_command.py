@@ -73,6 +73,7 @@ def test_send(test):
         assert not command.parameters
         assert not command.lifetime
         assert command.timestamp
+        assert command.last_updated
         assert not command.status
         assert not command.result
         command_name = test.generate_id('send-command')
@@ -90,6 +91,7 @@ def test_send(test):
         assert command.parameters == parameters
         assert command.lifetime == lifetime
         assert command.timestamp
+        assert command.last_updated
         assert command.status == status
         assert command.result == result
         device_1 = handler.api.get_device(device_id)
