@@ -11,6 +11,14 @@ class Api(object):
         self._token = token
         self.server_timestamp = None
 
+    @property
+    def transport(self):
+        return self._transport
+
+    @property
+    def token(self):
+        return self._token
+
     def get_info(self):
         api_request = ApiRequest(self._transport)
         api_request.url('info')
