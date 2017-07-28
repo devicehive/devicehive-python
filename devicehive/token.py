@@ -7,8 +7,8 @@ class Token(object):
     AUTH_HEADER_NAME = 'Authorization'
     AUTH_HEADER_VALUE_PREFIX = 'Bearer '
 
-    def __init__(self, transport, auth):
-        self._transport = transport
+    def __init__(self, api, auth):
+        self._api = api
         self._login = auth.get('login')
         self._password = auth.get('password')
         self._refresh_token = auth.get('refresh_token')
@@ -20,7 +20,7 @@ class Token(object):
         pass
 
     def _auth(self):
-        api_request = ApiRequest(self._transport)
+        api_request = ApiRequest(self._api)
         if not api_request.websocket_transport:
             return
         api_request.action('authenticate')
@@ -38,7 +38,7 @@ class Token(object):
         return auth_header_name, auth_header_value
 
     def refresh(self):
-        api_request = ApiRequest(self._transport)
+        api_request = ApiRequest(self._api)
         api_request.method('POST')
         api_request.url('token/refresh')
         api_request.action('token/refresh')

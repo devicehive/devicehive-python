@@ -15,9 +15,8 @@ class Device(object):
     NETWORK_ID_KEY = 'networkId'
     IS_BLOCKED_KEY = 'isBlocked'
 
-    def __init__(self, transport, token, device=None):
-        self._transport = transport
-        self._token = token
+    def __init__(self, api, device=None):
+        self._api = api
         self._id = None
         self.name = None
         self.data = None
@@ -43,7 +42,7 @@ class Device(object):
         return self._id
 
     def get(self, device_id):
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('device/{deviceId}', deviceId=device_id)
         auth_api_request.action('device/get')
         auth_api_request.response_key('device')
@@ -57,7 +56,7 @@ class Device(object):
                   self.DATA_KEY: self.data,
                   self.NETWORK_ID_KEY: self.network_id,
                   self.IS_BLOCKED_KEY: self.is_blocked}
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
         auth_api_request.url('device/{deviceId}', deviceId=self._id)
         auth_api_request.action('device/save')
@@ -66,7 +65,7 @@ class Device(object):
 
     def remove(self):
         self._ensure_exists()
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('DELETE')
         auth_api_request.url('device/{deviceId}', deviceId=self._id)
         auth_api_request.action('device/delete')
@@ -79,18 +78,18 @@ class Device(object):
 
     def subscribe_commands(self, names=None, limit=None, timestamp=None):
         self._ensure_exists()
-        api_request = ApiRequest(self._transport)
+        api_request = ApiRequest(self._api)
         api_request.action('command/subscribe')
         api_request.set('names', names)
         api_request.set('limit', limit)
         api_request.set('timestamp', timestamp)
-        auth_subscription_api_request = AuthSubscriptionApiRequest(self._token)
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
         auth_subscription_api_request.action('command/insert')
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
         auth_subscription_api_request.response_key('command')
         api_request.add_subscription_request(auth_subscription_api_request)
-        auth_subscription_api_request = AuthSubscriptionApiRequest(self._token)
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
         auth_subscription_api_request.action('command/update')
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
@@ -104,7 +103,7 @@ class Device(object):
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
         self._ensure_exists()
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('device/{deviceId}/command', deviceId=self._id)
         auth_api_request.action('command/list')
         auth_api_request.param('start', start)
@@ -117,8 +116,7 @@ class Device(object):
         auth_api_request.param('skip', skip)
         auth_api_request.response_key('commands')
         commands = auth_api_request.execute('List commands failure')
-        return [Command(self._transport, self._token, command)
-                for command in commands]
+        return [Command(self._api, command) for command in commands]
 
     def send_command(self, command_name, parameters=None, lifetime=None,
                      timestamp=None, status=None, result=None):
@@ -134,7 +132,7 @@ class Device(object):
             command[Command.STATUS_KEY] = status
         if result:
             command[Command.RESULT_KEY] = result
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('POST')
         auth_api_request.url('device/{deviceId}/command', deviceId=self._id)
         auth_api_request.action('command/insert')
@@ -147,13 +145,13 @@ class Device(object):
         command[Command.LIFETIME_KEY] = lifetime
         command[Command.STATUS_KEY] = status
         command[Command.RESULT_KEY] = result
-        return Command(self._transport, self._token, command)
+        return Command(self._api, command)
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
                            skip=None):
         self._ensure_exists()
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('device/{deviceId}/notification',
                              deviceId=self._id)
         auth_api_request.action('notification/list')
@@ -176,7 +174,7 @@ class Device(object):
             notification['parameters'] = parameters
         if timestamp:
             notification['timestamp'] = timestamp
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('POST')
         auth_api_request.url('device/{deviceId}/notification',
                              deviceId=self._id)

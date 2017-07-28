@@ -1,3 +1,4 @@
+from devicehive.token import Token
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.device import Device
@@ -6,9 +7,9 @@ from devicehive.device import Device
 class Api(object):
     """Api class."""
 
-    def __init__(self, transport, token):
+    def __init__(self, transport, auth):
         self._transport = transport
-        self._token = token
+        self._token = Token(self, auth)
         self.server_timestamp = None
 
     @property
@@ -19,8 +20,11 @@ class Api(object):
     def token(self):
         return self._token
 
+    def auth(self):
+        self._token.auth()
+
     def get_info(self):
-        api_request = ApiRequest(self._transport)
+        api_request = ApiRequest(self)
         api_request.url('info')
         api_request.action('server/info')
         api_request.response_key('info')
@@ -31,7 +35,7 @@ class Api(object):
                 'websocket_server_url': info.get('webSocketServerUrl')}
 
     def get_cluster_info(self):
-        api_request = ApiRequest(self._transport)
+        api_request = ApiRequest(self)
         api_request.url('info/config/cluster')
         api_request.action('cluster/info')
         api_request.response_key('clusterInfo')
@@ -48,7 +52,7 @@ class Api(object):
             payload['networkIds'] = network_ids
         if device_ids:
             payload['deviceIds'] = device_ids
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self)
         auth_api_request.method('POST')
         auth_api_request.url('token/create')
         auth_api_request.action('token/create')
@@ -64,7 +68,7 @@ class Api(object):
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self)
         auth_api_request.url('device')
         auth_api_request.action('device/list')
         auth_api_request.param('name', name)
@@ -77,11 +81,10 @@ class Api(object):
         auth_api_request.param('skip', skip)
         auth_api_request.response_key('devices')
         devices = auth_api_request.execute('List devices failure')
-        return [Device(self._transport, self._token, device)
-                for device in devices]
+        return [Device(self, device) for device in devices]
 
     def get_device(self, device_id):
-        device = Device(self._transport, self._token)
+        device = Device(self)
         device.get(device_id)
         return device
 
@@ -94,7 +97,7 @@ class Api(object):
                   Device.DATA_KEY: data,
                   Device.NETWORK_ID_KEY: network_id,
                   Device.IS_BLOCKED_KEY: is_blocked}
-        device = Device(self._transport, self._token, device)
+        device = Device(self, device)
         device.save()
         device.get(device_id)
         return device

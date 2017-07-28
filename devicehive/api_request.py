@@ -6,8 +6,8 @@ from devicehive.transports.transport import TransportError
 class ApiRequest(object):
     """Api request class."""
 
-    def __init__(self, transport):
-        self._transport = transport
+    def __init__(self, api):
+        self._api = api
         self._action = None
         self._request = {}
         self._params = {'subscription_requests': [],
@@ -22,11 +22,11 @@ class ApiRequest(object):
 
     @property
     def http_transport(self):
-        return self._transport.name == 'http'
+        return self._api.transport.name == 'http'
 
     @property
     def websocket_transport(self):
-        return self._transport.name == 'websocket'
+        return self._api.transport.name == 'websocket'
 
     def action(self, action):
         self._action = action
@@ -71,31 +71,28 @@ class ApiRequest(object):
         self._params['response_key'] = response_key
 
     def execute(self, error_message):
-        response = self._transport.request(self._action, self._request.copy(),
-                                           **self._params)
+        response = self._api.transport.request(self._action,
+                                               self._request.copy(),
+                                               **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
         if api_response.success:
             return api_response.response
-        raise ApiResponseError(error_message, self._transport.name,
+        raise ApiResponseError(error_message, self._api.transport.name,
                                api_response.code, api_response.error)
 
 
 class AuthApiRequest(ApiRequest):
     """Auth api request class."""
 
-    def __init__(self, transport, token):
-        ApiRequest.__init__(self, transport)
-        self._token = token
-
     def execute(self, error_message):
-        self.header(*self._token.auth_header)
+        self.header(*self._api.token.auth_header)
         try:
             return ApiRequest.execute(self, error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
-        self._token.auth()
-        self.header(*self._token.auth_header)
+        self._api.token.auth()
+        self.header(*self._api.token.auth_header)
         return ApiRequest.execute(self, error_message)
 
 
@@ -154,12 +151,12 @@ class SubscriptionApiRequest(object):
 class AuthSubscriptionApiRequest(SubscriptionApiRequest):
     """Auth subscription api request class."""
 
-    def __init__(self, token):
+    def __init__(self, api):
         SubscriptionApiRequest.__init__(self)
-        auth_header_name, auth_header_value = token.auth_header
+        auth_header_name, auth_header_value = api.token.auth_header
         self._params['headers'][auth_header_name] = auth_header_value
         self._params['response_error_handler'] = self.response_error_handler
-        self._params['response_error_handler_args'] = [token]
+        self._params['response_error_handler_args'] = [api.token]
 
     @staticmethod
     def response_error_handler(params, response_code, token):

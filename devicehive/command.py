@@ -15,9 +15,8 @@ class Command(object):
     STATUS_KEY = 'status'
     RESULT_KEY = 'result'
 
-    def __init__(self, transport, token, command):
-        self._transport = transport
-        self._token = token
+    def __init__(self, api, command):
+        self._api = api
         self._device_id = command[self.DEVICE_ID_KEY]
         self._id = command[self.ID_KEY]
         self._user_id = command[self.USER_ID_KEY]
@@ -58,7 +57,7 @@ class Command(object):
 
     def save(self):
         command = {self.STATUS_KEY: self.status, self.RESULT_KEY: self.result}
-        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
         auth_api_request.url('device/{deviceId}/command/{commandId}',
                              deviceId=self._device_id, commandId=self._id)
