@@ -79,10 +79,10 @@ def test_send(test):
         assert not command.status
         assert not command.result
         command_name = test.generate_id('send-command')
-        parameters = 'parameters'
+        parameters = {'parameters_key': 'parameters_value'}
         lifetime = 10
         status = 'status'
-        result = {'key': 'value'}
+        result = {'result_key': 'result_value'}
         command = device.send_command(command_name, parameters=parameters,
                                       lifetime=lifetime, status=status,
                                       result=result)
@@ -121,7 +121,7 @@ def test_save(test):
         device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         status = 'status'
-        result = {'key': 'value'}
+        result = {'result_key': 'result_value'}
         command.status = status
         command.result = result
         command.save()

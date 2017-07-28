@@ -88,7 +88,7 @@ def test_send(test):
         assert notification.notification == notification_name
         assert not notification.parameters
         assert notification.timestamp
-        parameters = 'parameters'
+        parameters = {'parameters_key': 'parameters_value'}
         notification = device.send_notification(notification_name,
                                                 parameters=parameters)
         assert notification.device_id == device_id

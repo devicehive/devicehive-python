@@ -50,7 +50,7 @@ def test_get(test):
     def handle_connect(handler):
         device_id = test.generate_id('get-device')
         name = '%s-name' % device_id
-        data = {'key': 'value'}
+        data = {'data_key': 'data_value'}
         handler.api.put_device(device_id, name=name, data=data)
         device = handler.api.get_device(device_id)
         assert device.id == device_id
@@ -83,7 +83,7 @@ def test_put(test):
         assert not device.is_blocked
         device.remove()
         name = '%s-name' % device_id
-        data = {'key': 'value'}
+        data = {'data_key': 'data_value'}
         device = handler.api.put_device(device_id, name=name, data=data,
                                         is_blocked=True)
         assert device.id == device_id
@@ -102,7 +102,7 @@ def test_save(test):
         device_id = test.generate_id('save-device')
         device = handler.api.put_device(device_id)
         name = '%s-name' % device_id
-        data = {'key': 'value'}
+        data = {'data_key': 'data_value'}
         device.name = name
         device.data = data
         device.is_blocked = True
