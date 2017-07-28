@@ -1,18 +1,14 @@
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
-from devicehive.token import Token
 from devicehive.device import Device
 
 
 class Api(object):
     """Api class."""
 
-    def __init__(self, transport, authentication):
+    def __init__(self, transport, token):
         self._transport = transport
-        self._token = Token(transport, authentication)
-
-    def auth(self):
-        self._token.auth()
+        self._token = token
 
     def get_info(self):
         api_request = ApiRequest(self._transport)
