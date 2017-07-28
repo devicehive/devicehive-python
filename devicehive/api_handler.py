@@ -22,6 +22,7 @@ class ApiHandler(Handler):
 
     def handle_connect(self):
         self._token.auth()
+        self._api.server_timestamp = self._api.get_info()['server_timestamp']
         if not self._handle_connect:
             self._handler.handle_connect()
             self._handle_connect = True

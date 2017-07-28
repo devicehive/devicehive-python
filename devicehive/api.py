@@ -9,6 +9,7 @@ class Api(object):
     def __init__(self, transport, token):
         self._transport = transport
         self._token = token
+        self.server_timestamp = None
 
     def get_info(self):
         api_request = ApiRequest(self._transport)
