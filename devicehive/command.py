@@ -1,4 +1,4 @@
-from devicehive.api_request import ApiRequest
+from devicehive.api_request import AuthApiRequest
 
 
 class Command(object):
@@ -57,13 +57,11 @@ class Command(object):
         return self._timestamp
 
     def save(self):
-        command = {self.STATUS_KEY: self.status,
-                   self.RESULT_KEY: self.result}
-        api_request = ApiRequest(self._transport)
-        api_request.method('PUT')
-        api_request.url('device/{deviceId}/command/{commandId}',
-                        deviceId=self._device_id, commandId=self._id)
-        api_request.action('command/update')
-        api_request.set('command', command, True)
-        self._token.execute_auth_api_request(api_request,
-                                             'Command save failure')
+        command = {self.STATUS_KEY: self.status, self.RESULT_KEY: self.result}
+        auth_api_request = AuthApiRequest(self._transport, self._token)
+        auth_api_request.method('PUT')
+        auth_api_request.url('device/{deviceId}/command/{commandId}',
+                             deviceId=self._device_id, commandId=self._id)
+        auth_api_request.action('command/update')
+        auth_api_request.set('command', command, True)
+        auth_api_request.execute('Command save failure')
