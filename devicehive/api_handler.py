@@ -19,7 +19,7 @@ class ApiHandler(Handler):
         self._handle_connect = False
 
     def handle_connect(self):
-        self._api.auth()
+        self._api.token.auth()
         self._api.server_timestamp = self._api.get_info()['server_timestamp']
         if not self._handle_connect:
             self._handler.handle_connect()
@@ -29,10 +29,10 @@ class ApiHandler(Handler):
         subscription_id = event.get(self.EVENT_SUBSCRIPTION_ID_KEY)
         if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_INSERT_ACTION:
             command = Command(self._api, event[self.EVENT_COMMAND_KEY])
-            self._handler.handle_command_insert(subscription_id, command)
+            return self._handler.handle_command_insert(subscription_id, command)
         if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_UPDATE_ACTION:
             command = Command(self._api, event[self.EVENT_COMMAND_KEY])
-            self._handler.handle_command_update(subscription_id, command)
+            return self._handler.handle_command_update(subscription_id, command)
 
     def handle_disconnect(self):
         # TODO: handle disconnect here.

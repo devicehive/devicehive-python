@@ -20,9 +20,6 @@ class Api(object):
     def token(self):
         return self._token
 
-    def auth(self):
-        self._token.auth()
-
     def get_info(self):
         api_request = ApiRequest(self)
         api_request.url('info')
