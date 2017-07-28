@@ -1,10 +1,17 @@
 from devicehive.handlers.handler import Handler
 from devicehive.token import Token
 from devicehive.api import Api
+from devicehive.command import Command
 
 
 class ApiHandler(Handler):
     """Api handler class."""
+
+    EVENT_ACTION_KEY = 'action'
+    EVENT_SUBSCRIPTION_ID_KEY = 'subscriptionId'
+    EVENT_COMMAND_INSERT_ACTION = 'command/insert'
+    EVENT_COMMAND_UPDATE_ACTION = 'command/update'
+    EVENT_COMMAND_KEY = 'command'
 
     def __init__(self, transport, auth, handler_class, handler_options):
         Handler.__init__(self, transport)
@@ -20,8 +27,15 @@ class ApiHandler(Handler):
             self._handle_connect = True
 
     def handle_event(self, event):
-        # TODO: handle events here.
-        pass
+        subscription_id = event.get(self.EVENT_SUBSCRIPTION_ID_KEY)
+        if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_INSERT_ACTION:
+            command = Command(self._transport, self._token,
+                              event[self.EVENT_COMMAND_KEY])
+            self._handler.handle_command_insert(subscription_id, command)
+        if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_UPDATE_ACTION:
+            command = Command(self._transport, self._token,
+                              event[self.EVENT_COMMAND_KEY])
+            self._handler.handle_command_update(subscription_id, command)
 
     def handle_disconnect(self):
         # TODO: handle disconnect here.
