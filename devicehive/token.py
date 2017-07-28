@@ -1,5 +1,4 @@
 from devicehive.api_request import ApiRequest
-from devicehive.api_response import ApiResponseError
 
 
 class Token(object):
@@ -37,17 +36,6 @@ class Token(object):
         auth_header_name = self.AUTH_HEADER_NAME
         auth_header_value = self.AUTH_HEADER_VALUE_PREFIX + self._access_token
         return auth_header_name, auth_header_value
-
-    def execute_auth_api_request(self, api_request, error_message):
-        api_request.header(*self.auth_header)
-        try:
-            return api_request.execute(error_message)
-        except ApiResponseError as api_response_error:
-            if api_response_error.code != 401:
-                raise
-        self.auth()
-        api_request.header(*self.auth_header)
-        return api_request.execute(error_message)
 
     def refresh(self):
         api_request = ApiRequest(self._transport)
