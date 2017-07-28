@@ -3,18 +3,6 @@ from devicehive.api_response import ApiResponseError
 from devicehive.transports.transport import TransportError
 
 
-def response_error_handler(params, response_code, token):
-    if response_code != 401:
-        return
-    try:
-        token.auth()
-        auth_header_name, auth_header_value = token.auth_header
-        params['headers'][auth_header_name] = auth_header_value
-        return True
-    except ApiResponseError:
-        return
-
-
 class ApiRequest(object):
     """Api request class."""
 
@@ -170,8 +158,20 @@ class AuthSubscriptionApiRequest(SubscriptionApiRequest):
         SubscriptionApiRequest.__init__(self)
         auth_header_name, auth_header_value = token.auth_header
         self._params['headers'][auth_header_name] = auth_header_value
-        self._params['response_error_handler'] = response_error_handler
+        self._params['response_error_handler'] = self.response_error_handler
         self._params['response_error_handler_args'] = [token]
+
+    @staticmethod
+    def response_error_handler(params, response_code, token):
+        if response_code != 401:
+            return
+        try:
+            token.auth()
+            auth_header_name, auth_header_value = token.auth_header
+            params['headers'][auth_header_name] = auth_header_value
+            return True
+        except ApiResponseError:
+            return
 
 
 class ApiRequestError(TransportError):
