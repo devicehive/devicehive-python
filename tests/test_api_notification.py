@@ -19,11 +19,8 @@ def test_list(test):
         for option in options:
             device.send_notification(option['notification'],
                                      parameters=option['parameters'])
-        notification_0, notification_1 = list_notifications(device)
-        # TODO add websocket tests after server response will be fixed.
-        if test.http_transport:
-            assert notification_0.notification == options[1]['notification']
-            assert notification_1.notification == options[0]['notification']
+        notifications = list_notifications(device)
+        assert len(notifications) == len(options)
         notifications = list_notifications(device, start=server_timestamp)
         assert len(notifications) == len(options)
         assert not list_notifications(device, start=server_timestamp,
