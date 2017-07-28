@@ -11,7 +11,7 @@ class Command(object):
     PARAMETERS_KEY = 'parameters'
     LIFETIME_KEY = 'lifetime'
     TIMESTAMP_KEY = 'timestamp'
-    # TODO: add LAST_UPDATED_KEY after API for websocket will be fixed.
+    LAST_UPDATED_KEY = 'lastUpdated'
     STATUS_KEY = 'status'
     RESULT_KEY = 'result'
 
@@ -24,6 +24,7 @@ class Command(object):
         self._parameters = command[self.PARAMETERS_KEY]
         self._lifetime = command[self.LIFETIME_KEY]
         self._timestamp = command[self.TIMESTAMP_KEY]
+        self._last_updated = command[self.LAST_UPDATED_KEY]
         self.status = command[self.STATUS_KEY]
         self.result = command[self.RESULT_KEY]
 
@@ -54,6 +55,9 @@ class Command(object):
     @property
     def timestamp(self):
         return self._timestamp
+
+    def last_updated(self):
+        return self._last_updated
 
     def save(self):
         command = {self.STATUS_KEY: self.status, self.RESULT_KEY: self.result}
