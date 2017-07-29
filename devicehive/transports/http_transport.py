@@ -8,11 +8,7 @@ import sys
 class HttpTransport(Transport):
     """Http transport class."""
 
-    RESPONSE_SUCCESS_STATUS = 'success'
-    RESPONSE_ERROR_STATUS = 'error'
-    RESPONSE_STATUS_KEY = 'status'
-    RESPONSE_CODE_KEY = 'code'
-    RESPONSE_ERROR_KEY = 'error'
+    # TODO: move RESPONSE_SUBSCRIPTION_ID_KEY to params.
     RESPONSE_SUBSCRIPTION_ID_KEY = 'subscriptionId'
 
     def __init__(self, data_format_class, data_format_options, handler_class,
@@ -60,7 +56,7 @@ class HttpTransport(Transport):
             error = http_error
         raise self._error(error)
 
-    def _request(self, action, request, **params):
+    def _request(self, request_id, action, request, **params):
         method = params.pop('method', 'GET')
         url = self._url + params.pop('url')
         request_delete_keys = params.pop('request_delete_keys', [])
@@ -73,7 +69,7 @@ class HttpTransport(Transport):
                 request = request[request_key]
             params['data'] = self._encode(request)
         code, data = self._request_call(method, url, **params)
-        response = {self.REQUEST_ID_KEY: self._uuid(),
+        response = {self.REQUEST_ID_KEY: request_id,
                     self.REQUEST_ACTION_KEY: action}
         if code in self._success_codes:
             response[self.RESPONSE_STATUS_KEY] = self.RESPONSE_SUCCESS_STATUS
@@ -95,8 +91,8 @@ class HttpTransport(Transport):
         response[self.RESPONSE_ERROR_KEY] = response_error
         return response
 
-    def _subscription_requests(self, action, subscription_requests):
-        subscription_id = self._uuid()
+    def _subscription_requests(self, request_id, action, subscription_requests):
+        subscription_id = request_id
         self._subscription_ids.append(subscription_id)
         subscription_thread_num = 0
         for action, request, params in subscription_requests:
@@ -106,17 +102,18 @@ class HttpTransport(Transport):
             subscription_thread_num += 1
             subscription_thread = threading.Thread(target=self._subscription,
                                                    args=(subscription_id,
-                                                         action, request,
-                                                         params))
+                                                         request_id, action,
+                                                         request, params))
             subscription_thread.daemon = True
             subscription_thread.name = subscription_thread_name
             subscription_thread.start()
-        return {self.REQUEST_ID_KEY: self._uuid(),
+        return {self.REQUEST_ID_KEY: request_id,
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS,
                 self.RESPONSE_SUBSCRIPTION_ID_KEY: subscription_id}
 
-    def _subscription(self, subscription_id, action, request, params):
+    def _subscription(self, subscription_id, request_id, action, request,
+                      params):
         response_error_handler = params.pop('response_error_handler', None)
         response_error_handler_args = params.pop('response_error_handler_args',
                                                  None)
@@ -126,7 +123,8 @@ class HttpTransport(Transport):
                                             'timestamp')
         while self._connected and subscription_id in self._subscription_ids:
             try:
-                response = self._request(action, request.copy(), **params)
+                response = self._request(request_id, action, request.copy(),
+                                         **params)
                 if subscription_id not in self._subscription_ids:
                     return
                 response_status = response[self.RESPONSE_STATUS_KEY]
@@ -139,7 +137,8 @@ class HttpTransport(Transport):
                     if not response_error_handler(params, response_code,
                                                   *response_error_handler_args):
                         raise self._error(error)
-                    response = self._request(action, request.copy(), **params)
+                    response = self._request(request_id, action, request.copy(),
+                                             **params)
                     if subscription_id not in self._subscription_ids:
                         return
                     response_status = response[self.RESPONSE_STATUS_KEY]
@@ -160,38 +159,41 @@ class HttpTransport(Transport):
             except BaseException:
                 self._exception_info = sys.exc_info()
 
-    def _remove_subscription_requests(self, action, request):
+    def _remove_subscription_requests(self, request_id, action, request):
         subscription_id = request[self.RESPONSE_SUBSCRIPTION_ID_KEY]
         if subscription_id in self._subscription_ids:
             self._subscription_ids.remove(subscription_id)
-        return {self.REQUEST_ID_KEY: self._uuid(),
+        return {self.REQUEST_ID_KEY: request_id,
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
 
-    def send_request(self, action, request, **params):
+    def send_request(self, request_id, action, request, **params):
         self._ensure_connected()
         subscription_requests = params.pop('subscription_requests', [])
         if subscription_requests:
-            response = self._subscription_requests(action,
+            response = self._subscription_requests(request_id, action,
                                                    subscription_requests)
             self._events_queue.append([response])
-            return response[self.REQUEST_ID_KEY]
+            return
         if params.pop('remove_subscription_requests', False):
-            response = self._remove_subscription_requests(action, request)
+            response = self._remove_subscription_requests(request_id, action,
+                                                          request)
             self._events_queue.append([response])
-            return response[self.REQUEST_ID_KEY]
-        response = self._request(action, request, **params)
+            return
+        response = self._request(request_id, action, request, **params)
         self._events_queue.append([response])
-        return response[self.REQUEST_ID_KEY]
+        return
 
-    def request(self, action, request, **params):
+    def request(self, request_id, action, request, **params):
         self._ensure_connected()
         subscription_requests = params.pop('subscription_requests', [])
         if subscription_requests:
-            return self._subscription_requests(action, subscription_requests)
+            return self._subscription_requests(request_id, action,
+                                               subscription_requests)
         if params.pop('remove_subscription_requests', False):
-            return self._remove_subscription_requests(action, request)
-        return self._request(action, request, **params)
+            return self._remove_subscription_requests(request_id, action,
+                                                      request)
+        return self._request(request_id, action, request, **params)
 
 
 class HttpTransportError(TransportError):

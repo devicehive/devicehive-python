@@ -1,4 +1,3 @@
-import uuid
 import sys
 import threading
 
@@ -8,6 +7,11 @@ class Transport(object):
 
     REQUEST_ID_KEY = 'requestId'
     REQUEST_ACTION_KEY = 'action'
+    RESPONSE_SUCCESS_STATUS = 'success'
+    RESPONSE_ERROR_STATUS = 'error'
+    RESPONSE_STATUS_KEY = 'status'
+    RESPONSE_CODE_KEY = 'code'
+    RESPONSE_ERROR_KEY = 'error'
 
     def __init__(self, name, error, data_format_class, data_format_options,
                  handler_class, handler_options):
@@ -18,10 +22,6 @@ class Transport(object):
         self._connection_thread = None
         self._connected = False
         self._exception_info = None
-
-    @staticmethod
-    def _uuid():
-        return str(uuid.uuid1())
 
     @property
     def _text_data_type(self):
@@ -104,10 +104,10 @@ class Transport(object):
     def join(self, timeout=None):
         self._connection_thread.join(timeout)
 
-    def send_request(self, action, request, **params):
+    def send_request(self, request_id, action, request, **params):
         raise NotImplementedError
 
-    def request(self, action, request, **params):
+    def request(self, request_id, action, request, **params):
         raise NotImplementedError
 
 

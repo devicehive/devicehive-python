@@ -1,6 +1,7 @@
 from devicehive.api_response import ApiResponse
 from devicehive.api_response import ApiResponseError
 from devicehive.transports.transport import TransportError
+import uuid
 
 
 class ApiRequest(object):
@@ -19,6 +20,10 @@ class ApiRequest(object):
                         'params': {},
                         'headers': {},
                         'response_key': None}
+
+    @staticmethod
+    def _uuid():
+        return str(uuid.uuid1())
 
     @property
     def http_transport(self):
@@ -71,7 +76,7 @@ class ApiRequest(object):
         self._params['response_key'] = response_key
 
     def execute(self, error_message):
-        response = self._api.transport.request(self._action,
+        response = self._api.transport.request(self._uuid(), self._action,
                                                self._request.copy(),
                                                **self._params)
         api_response = ApiResponse(response, self._params['response_key'])

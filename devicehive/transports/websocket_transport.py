@@ -83,14 +83,13 @@ class WebsocketTransport(Transport):
         self._event_queue = []
         self._handle_disconnect()
 
-    def _send_request(self, action, request):
-        request[self.REQUEST_ID_KEY] = self._uuid()
+    def _send_request(self, request_id, action, request):
+        request[self.REQUEST_ID_KEY] = request_id
         request[self.REQUEST_ACTION_KEY] = action
         self._websocket_call(self._websocket.send, self._encode(request),
                              opcode=self._data_opcode)
-        return request[self.REQUEST_ID_KEY]
 
-    def _receive_response(self, timeout, request_id):
+    def _receive_response(self, request_id, timeout):
         start_time = time.time()
         while time.time() - timeout < start_time:
             response = self._decode(self._websocket_call(self._websocket.recv))
@@ -99,15 +98,15 @@ class WebsocketTransport(Transport):
             self._event_queue.append(response)
         raise self._error('Response timeout.')
 
-    def send_request(self, action, request, **params):
+    def send_request(self, request_id, action, request, **params):
         self._ensure_connected()
-        return self._send_request(action, request)
+        self._send_request(request_id, action, request)
 
-    def request(self, action, request, **params):
+    def request(self, request_id, action, request, **params):
         self._ensure_connected()
         timeout = params.pop('timeout', 30)
-        request_id = self._send_request(action, request)
-        return self._receive_response(timeout, request_id)
+        self._send_request(request_id, action, request)
+        return self._receive_response(request_id, timeout)
 
 
 class WebsocketTransportError(TransportError):
