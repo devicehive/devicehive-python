@@ -61,7 +61,7 @@ class Transport(object):
             self._connect(url, **options)
             self._receive()
             self._disconnect()
-        except BaseException:
+        except:
             self._exception_info = sys.exc_info()
 
     def _connect(self, url, **options):
