@@ -5,7 +5,7 @@ from devicehive import ApiResponseError
 def test_list(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('list-devices')
+        test_id = test.generate_id('list')
         options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
                    {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
         test_devices = [handler.api.put_device(option['id'],
@@ -48,7 +48,7 @@ def test_list(test):
 def test_get(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('get-device')
+        device_id = test.generate_id('get')
         name = '%s-name' % device_id
         data = {'data_key': 'data_value'}
         handler.api.put_device(device_id, name=name, data=data)
@@ -74,7 +74,7 @@ def test_get(test):
 def test_put(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('put-device')
+        device_id = test.generate_id('put')
         device = handler.api.put_device(device_id)
         assert device.id == device_id
         assert device.name == device_id
@@ -99,7 +99,7 @@ def test_put(test):
 def test_save(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('save-device')
+        device_id = test.generate_id('save')
         device = handler.api.put_device(device_id)
         name = '%s-name' % device_id
         data = {'data_key': 'data_value'}
@@ -157,7 +157,7 @@ def test_list_commands(test):
 
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
-        test_id = test.generate_id('device-list-commands')
+        test_id = test.generate_id('list-commands')
         options = [{'command': '%s-name-1' % test_id, 'lifetime': 100,
                     'status': '1'},
                    {'command': '%s-name-2' % test_id, 'lifetime': 100,
@@ -213,8 +213,8 @@ def test_list_commands(test):
 def test_send_command(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('device-send-command')
-        command_name = test.generate_id('device-send-command')
+        device_id = test.generate_id('send-command')
+        command_name = test.generate_id('send-command')
         device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         assert command.device_id == device_id
@@ -227,7 +227,7 @@ def test_send_command(test):
         assert command.last_updated
         assert not command.status
         assert not command.result
-        command_name = test.generate_id('device-send-command')
+        command_name = test.generate_id('send-command')
         parameters = {'parameters_key': 'parameters_value'}
         lifetime = 10
         status = 'status'
