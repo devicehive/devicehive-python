@@ -8,32 +8,6 @@ def list_notifications(device, **params):
             if notification.notification[0] != '$']
 
 
-def test_get(test):
-
-    def handle_connect(handler):
-        device_id = test.generate_id('get')
-        name = '%s-name' % device_id
-        data = {'data_key': 'data_value'}
-        handler.api.put_device(device_id, name=name, data=data)
-        device = handler.api.get_device(device_id)
-        assert device.id == device_id
-        assert device.name == name
-        assert device.data == data
-        assert isinstance(device.network_id, int)
-        assert not device.is_blocked
-        device.remove()
-        device_id = test.generate_id('get-device-not-exist')
-        try:
-            handler.api.get_device(device_id)
-            assert False
-        except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
-
-    test.run(handle_connect)
-
-
 def test_put(test):
 
     def handle_connect(handler):
