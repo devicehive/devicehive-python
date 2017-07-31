@@ -46,7 +46,7 @@ class Device(object):
         auth_api_request.url('device/{deviceId}', deviceId=device_id)
         auth_api_request.action('device/get')
         auth_api_request.response_key('device')
-        device = auth_api_request.execute('Device get failure')
+        device = auth_api_request.execute('Device get failure.')
         self._init(device)
 
     def save(self):
@@ -61,7 +61,7 @@ class Device(object):
         auth_api_request.url('device/{deviceId}', deviceId=self._id)
         auth_api_request.action('device/save')
         auth_api_request.set('device', device, True)
-        auth_api_request.execute('Device save failure')
+        auth_api_request.execute('Device save failure.')
 
     def remove(self):
         self._ensure_exists()
@@ -69,7 +69,7 @@ class Device(object):
         auth_api_request.method('DELETE')
         auth_api_request.url('device/{deviceId}', deviceId=self._id)
         auth_api_request.action('device/delete')
-        auth_api_request.execute('Device remove failure')
+        auth_api_request.execute('Device remove failure.')
         self._id = None
         self.name = None
         self.data = None
@@ -97,7 +97,7 @@ class Device(object):
         auth_subscription_api_request.response_key('command')
         auth_subscription_api_request.response_timestamp_key('lastUpdated')
         api_request.add_subscription_request(auth_subscription_api_request)
-        subscription = api_request.execute('Subscribe commands failure')
+        subscription = api_request.execute('Subscribe commands failure.')
         return subscription['subscriptionId']
 
     def list_commands(self, start=None, end=None, command=None, status=None,
@@ -115,7 +115,7 @@ class Device(object):
         auth_api_request.param('take', take)
         auth_api_request.param('skip', skip)
         auth_api_request.response_key('commands')
-        commands = auth_api_request.execute('List commands failure')
+        commands = auth_api_request.execute('List commands failure.')
         return [Command(self._api, command) for command in commands]
 
     def send_command(self, command_name, parameters=None, lifetime=None,
@@ -138,7 +138,7 @@ class Device(object):
         auth_api_request.action('command/insert')
         auth_api_request.set('command', command, True)
         auth_api_request.response_key('command')
-        command = auth_api_request.execute('Command send failure')
+        command = auth_api_request.execute('Command send failure.')
         command[Command.DEVICE_ID_KEY] = self._id
         command[Command.COMMAND_KEY] = command_name
         command[Command.PARAMETERS_KEY] = parameters
@@ -163,7 +163,7 @@ class Device(object):
         auth_api_request.param('take', take)
         auth_api_request.param('skip', skip)
         auth_api_request.response_key('notifications')
-        notifications = auth_api_request.execute('List notifications failure')
+        notifications = auth_api_request.execute('List notifications failure.')
         return [Notification(notification) for notification in notifications]
 
     def send_notification(self, notification_name, parameters=None,
@@ -181,7 +181,7 @@ class Device(object):
         auth_api_request.action('notification/insert')
         auth_api_request.set('notification', notification, True)
         auth_api_request.response_key('notification')
-        notification = auth_api_request.execute('Notification send failure')
+        notification = auth_api_request.execute('Notification send failure.')
         notification[Notification.DEVICE_ID_KEY] = self._id
         notification[Notification.NOTIFICATION_KEY] = notification_name
         notification[Notification.PARAMETERS_KEY] = parameters

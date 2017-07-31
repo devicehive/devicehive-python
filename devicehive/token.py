@@ -25,7 +25,7 @@ class Token(object):
             return
         api_request.action('authenticate')
         api_request.set('token', self._access_token)
-        api_request.execute('Authentication failure')
+        api_request.execute('Authentication failure.')
 
     @property
     def access_token(self):
@@ -43,7 +43,7 @@ class Token(object):
         api_request.url('token/refresh')
         api_request.action('token/refresh')
         api_request.set('refreshToken', self._refresh_token)
-        tokens = api_request.execute('Token refresh failure')
+        tokens = api_request.execute('Token refresh failure.')
         self._access_token = tokens['accessToken']
 
     def auth(self):

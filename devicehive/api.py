@@ -25,7 +25,7 @@ class Api(object):
         api_request.url('info')
         api_request.action('server/info')
         api_request.response_key('info')
-        info = api_request.execute('Info get failure')
+        info = api_request.execute('Info get failure.')
         return {'api_version': info['apiVersion'],
                 'server_timestamp': info['serverTimestamp'],
                 'rest_server_url': info.get('restServerUrl'),
@@ -36,7 +36,7 @@ class Api(object):
         api_request.url('info/config/cluster')
         api_request.action('cluster/info')
         api_request.response_key('clusterInfo')
-        return api_request.execute('Cluster info get failure')
+        return api_request.execute('Cluster info get failure.')
 
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):
@@ -54,7 +54,7 @@ class Api(object):
         auth_api_request.url('token/create')
         auth_api_request.action('token/create')
         auth_api_request.set('payload', payload, True)
-        tokens = auth_api_request.execute('Token refresh failure')
+        tokens = auth_api_request.execute('Token refresh failure.')
         return {'refresh_token': tokens['refreshToken'],
                 'access_token': tokens['accessToken']}
 
@@ -77,7 +77,7 @@ class Api(object):
         auth_api_request.param('take', take)
         auth_api_request.param('skip', skip)
         auth_api_request.response_key('devices')
-        devices = auth_api_request.execute('List devices failure')
+        devices = auth_api_request.execute('List devices failure.')
         return [Device(self, device) for device in devices]
 
     def get_device(self, device_id):
