@@ -8,31 +8,6 @@ def list_notifications(device, **params):
             if notification.notification[0] != '$']
 
 
-def test_put(test):
-
-    def handle_connect(handler):
-        device_id = test.generate_id('put')
-        device = handler.api.put_device(device_id)
-        assert device.id == device_id
-        assert device.name == device_id
-        assert not device.data
-        assert isinstance(device.network_id, int)
-        assert not device.is_blocked
-        device.remove()
-        name = '%s-name' % device_id
-        data = {'data_key': 'data_value'}
-        device = handler.api.put_device(device_id, name=name, data=data,
-                                        is_blocked=True)
-        assert device.id == device_id
-        assert device.name == name
-        assert device.data == data
-        assert isinstance(device.network_id, int)
-        assert device.is_blocked
-        device.remove()
-
-    test.run(handle_connect)
-
-
 def test_save(test):
 
     def handle_connect(handler):
