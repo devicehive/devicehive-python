@@ -13,8 +13,10 @@ def test_list(test):
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
         test_id = test.generate_id('list-notifications')
-        options = [{'notification': '%s-name-1' % test_id, 'parameters': '1'},
-                   {'notification': '%s-name-2' % test_id, 'parameters': '2'}]
+        options = [{'notification': '%s-name-1' % test_id,
+                    'parameters': {'parameters_key': '1'}},
+                   {'notification': '%s-name-2' % test_id,
+                    'parameters': {'parameters_key': '2'}}]
         device = handler.api.put_device(test_id)
         for option in options:
             device.send_notification(option['notification'],
