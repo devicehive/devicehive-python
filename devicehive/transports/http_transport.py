@@ -88,23 +88,17 @@ class HttpTransport(Transport):
         response[self.RESPONSE_ERROR_KEY] = response_error
         return response
 
-    def _subscription_requests(self, subscription_id, subscription_requests,
-                               response_subscription_id_key,
-                               request_id, action):
+    def _subscription_request(self, request_id, action, subscription_request,
+                              response_subscription_id_key):
+        subscription_id = subscription_request['subscription_id']
         self._subscription_ids.append(subscription_id)
-        subscription_thread_num = 0
-        for request_id, action, request, params in subscription_requests:
-            subscription_thread_name = '%s-transport-subscription-%s-%s'
-            subscription_thread_name %= (self._name, subscription_id,
-                                         subscription_thread_num)
-            subscription_thread_num += 1
-            subscription_thread = threading.Thread(target=self._subscription,
-                                                   args=(subscription_id,
-                                                         request_id, action,
-                                                         request, params))
-            subscription_thread.daemon = True
-            subscription_thread.name = subscription_thread_name
-            subscription_thread.start()
+        subscription_thread_name = '%s-transport-subscription-%s'
+        subscription_thread_name %= (self._name, subscription_id)
+        subscription_thread = threading.Thread(target=self._subscription,
+                                               kwargs=subscription_request)
+        subscription_thread.daemon = True
+        subscription_thread.name = subscription_thread_name
+        subscription_thread.start()
         return {self.REQUEST_ID_KEY: request_id,
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS,
@@ -159,8 +153,7 @@ class HttpTransport(Transport):
             except:
                 self._exception_info = sys.exc_info()
 
-    def _remove_subscription_requests(self, subscription_id, request_id,
-                                      action):
+    def _remove_subscription_request(self, request_id, action, subscription_id):
         if subscription_id in self._subscription_ids:
             self._subscription_ids.remove(subscription_id)
         return {self.REQUEST_ID_KEY: request_id,
@@ -169,37 +162,35 @@ class HttpTransport(Transport):
 
     def send_request(self, request_id, action, request, **params):
         self._ensure_connected()
-        subscription_id = params.pop('subscription_id', None)
-        subscription_requests = params.pop('subscription_requests', [])
+        subscription_request = params.pop('subscription_request', {})
         response_subscription_id_key = params.pop(
             'response_subscription_id_key', 'subscriptionId')
-        if not subscription_id:
-            response = self._request(request_id, action, request, **params)
-        elif not subscription_requests:
-            response = self._remove_subscription_requests(subscription_id,
-                                                          request_id, action)
+        remove_subscription_id = params.pop('remove_subscription_id', None)
+        if subscription_request:
+            response = self._subscription_request(request_id, action,
+                                                  subscription_request,
+                                                  response_subscription_id_key)
+        elif remove_subscription_id:
+            response = self._remove_subscription_request(request_id, action,
+                                                         remove_subscription_id)
         else:
-            response = self._subscription_requests(subscription_id,
-                                                   subscription_requests,
-                                                   response_subscription_id_key,
-                                                   request_id, action)
+            response = self._request(request_id, action, request, **params)
         self._events_queue.append([response])
 
     def request(self, request_id, action, request, **params):
         self._ensure_connected()
-        subscription_id = params.pop('subscription_id', None)
-        subscription_requests = params.pop('subscription_requests', [])
+        subscription_request = params.pop('subscription_request', {})
         response_subscription_id_key = params.pop(
             'response_subscription_id_key', 'subscriptionId')
-        if not subscription_id:
-            return self._request(request_id, action, request, **params)
-        if not subscription_requests:
-            return self._remove_subscription_requests(subscription_id,
-                                                      request_id, action)
-        return self._subscription_requests(subscription_id,
-                                           subscription_requests,
-                                           response_subscription_id_key,
-                                           request_id, action)
+        remove_subscription_id = params.pop('remove_subscription_id', None)
+        if subscription_request:
+            return self._subscription_request(request_id, action,
+                                              subscription_request,
+                                              response_subscription_id_key)
+        if remove_subscription_id:
+            return self._remove_subscription_request(request_id, action,
+                                                     remove_subscription_id)
+        return self._request(request_id, action, request, **params)
 
 
 class HttpTransportError(TransportError):

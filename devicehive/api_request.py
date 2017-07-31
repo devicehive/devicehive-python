@@ -11,8 +11,9 @@ class ApiRequest(object):
         self._api = api
         self._action = None
         self._request = {}
-        self._params = {'subscription_id': None,
-                        'subscription_requests': [],
+        self._params = {'subscription_request': {},
+                        'response_subscription_id_key': 'subscriptionId',
+                        'remove_subscription_id': None,
                         'method': 'GET',
                         'url': None,
                         'request_delete_keys': [],
@@ -44,14 +45,16 @@ class ApiRequest(object):
             return
         self._params['request_key'] = key
 
-    def add_subscription_request(self, subscription_api_request):
-        if not self._params['subscription_id']:
-            self._params['subscription_id'] = self._uuid()
-        subscription_request = subscription_api_request.extract(self._uuid())
-        self._params['subscription_requests'].append(subscription_request)
+    def subscription_request(self, subscription_api_request):
+        subscription_request = subscription_api_request.extract(self._uuid(),
+                                                                self._uuid())
+        self._params['subscription_request'] = subscription_request
 
-    def remove_subscription_requests(self, subscription_id):
-        self._params['subscription_id'] = subscription_id
+    def response_subscription_id_key(self, key):
+        self._params['response_subscription_id_key'] = key
+
+    def remove_subscription_request(self, subscription_id):
+        self._params['remove_subscription_id'] = subscription_id
 
     def method(self, method):
         self._params['method'] = method
@@ -74,8 +77,8 @@ class ApiRequest(object):
     def header(self, name, value):
         self._params['headers'][name] = value
 
-    def response_key(self, response_key):
-        self._params['response_key'] = response_key
+    def response_key(self, key):
+        self._params['response_key'] = key
 
     def execute(self, error_message):
         response = self._api.transport.request(self._uuid(), self._action,
@@ -109,7 +112,8 @@ class SubscriptionApiRequest(object):
     def __init__(self):
         self._action = None
         self._request = {}
-        self._params = {'method': 'GET',
+        self._params = {'response_subscription_id_key': 'subscriptionId',
+                        'method': 'GET',
                         'url': None,
                         'params': {},
                         'headers': {},
@@ -124,6 +128,9 @@ class SubscriptionApiRequest(object):
         if not value:
             return
         self._request[key] = value
+
+    def response_subscription_id_key(self, key):
+        self._params['response_subscription_id_key'] = key
 
     def method(self, method):
         self._params['method'] = method
@@ -142,17 +149,21 @@ class SubscriptionApiRequest(object):
     def header(self, name, value):
         self._params['headers'][name] = value
 
-    def response_key(self, response_key):
-        self._params['response_key'] = response_key
+    def response_key(self, key):
+        self._params['response_key'] = key
 
-    def params_timestamp_key(self, params_timestamp_key):
-        self._params['params_timestamp_key'] = params_timestamp_key
+    def params_timestamp_key(self, key):
+        self._params['params_timestamp_key'] = key
 
-    def response_timestamp_key(self, response_timestamp_key):
-        self._params['response_timestamp_key'] = response_timestamp_key
+    def response_timestamp_key(self, key):
+        self._params['response_timestamp_key'] = key
 
-    def extract(self, request_id):
-        return request_id, self._action, self._request, self._params
+    def extract(self, subscription_id, request_id):
+        return {'subscription_id': subscription_id,
+                'request_id': request_id,
+                'action': self._action,
+                'request': self._request,
+                'params': self._params}
 
 
 class AuthSubscriptionApiRequest(SubscriptionApiRequest):
