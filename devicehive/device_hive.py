@@ -6,9 +6,10 @@ import traceback
 class DeviceHive(object):
     """Device hive class."""
 
-    def __init__(self, handler_class, handler_options):
+    def __init__(self, handler_class, *handler_args, **handler_kwargs):
         self._api_handler_options = {'handler_class': handler_class,
-                                     'handler_options': handler_options}
+                                     'handler_args': handler_args,
+                                     'handler_kwargs': handler_kwargs}
         self._transport_name = None
         self._transport = None
 

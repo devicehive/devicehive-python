@@ -4,9 +4,12 @@ import warnings
 class Handler(object):
     """Handler class."""
 
-    def __init__(self, api, options):
-        self.api = api
-        self.options = options
+    def __init__(self, api):
+        self._api = api
+
+    @property
+    def api(self):
+        return self._api
 
     def handle_connect(self):
         raise NotImplementedError

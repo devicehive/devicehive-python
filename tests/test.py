@@ -8,23 +8,28 @@ import six
 class TestHandler(Handler):
     """Test handler class."""
 
+    def __init__(self, api, handle_connect, handle_command_insert,
+                 handle_command_update):
+        Handler.__init__(self, api)
+        self._handle_connect = handle_connect
+        self._handle_command_insert = handle_command_insert
+        self._handle_command_update = handle_command_update
+        self.data = {}
+
     def handle_connect(self):
-        self.options['handle_connect'](self)
-        if not any([self.options.get('handle_command_insert'),
-                    self.options.get('handle_command_update')]):
+        self._handle_connect(self)
+        if not any([self._handle_command_insert, self._handle_command_update]):
             self.api.disconnect()
 
     def handle_command_insert(self, subscription_id, command):
-        handle_command_insert = self.options.get('handle_command_insert')
-        if not handle_command_insert:
+        if not self._handle_command_insert:
             return
-        handle_command_insert(self, subscription_id, command)
+        self._handle_command_insert(self, subscription_id, command)
 
     def handle_command_update(self, subscription_id, command):
-        handle_command_update = self.options.get('handle_command_update')
-        if not handle_command_update:
+        if not self._handle_command_update:
             return
-        handle_command_update(self, subscription_id, command)
+        self._handle_command_update(self, subscription_id, command)
 
 
 class Test(object):
@@ -65,10 +70,10 @@ class Test(object):
 
     def run(self, handle_connect, handle_command_insert=None,
             handle_command_update=None):
-        handler_options = {'handle_connect': handle_connect,
-                           'handle_command_insert': handle_command_insert,
-                           'handle_command_update': handle_command_update}
-        device_hive = DeviceHive(TestHandler, handler_options)
+        handler_kwargs = {'handle_connect': handle_connect,
+                          'handle_command_insert': handle_command_insert,
+                          'handle_command_update': handle_command_update}
+        device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
         device_hive.join()

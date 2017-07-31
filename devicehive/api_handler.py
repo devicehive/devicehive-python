@@ -11,10 +11,12 @@ class ApiHandler(Handler):
     EVENT_COMMAND_UPDATE_ACTION = 'command/update'
     EVENT_COMMAND_KEY = 'command'
 
-    def __init__(self, transport, auth, handler_class, handler_options):
+    def __init__(self, transport, auth, handler_class, handler_args,
+                 handler_kwargs):
         Handler.__init__(self, transport)
         self._api = Api(self._transport, auth)
-        self._handler = handler_class(self._api, handler_options)
+        self._handler = handler_class(self._api, *handler_args,
+                                      **handler_kwargs)
         self._handle_connect = False
 
     def handle_connect(self):
