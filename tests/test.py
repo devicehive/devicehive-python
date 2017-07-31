@@ -2,6 +2,7 @@ from devicehive import Handler
 from devicehive import DeviceHive
 import time
 import pytest
+import six
 
 
 class TestHandler(Handler):
@@ -44,12 +45,12 @@ class Test(object):
     def only_http_implementation(self):
         if self.http_transport:
             return
-        pytest.skip('Implemented only for http transport')
+        pytest.skip('Implemented only for http transport.')
 
     def only_websocket_implementation(self):
         if self.websocket_transport:
             return
-        pytest.skip('Implemented only for websocket transport')
+        pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_event=None):
         handler_options = {'handle_connect': handle_connect,
@@ -61,4 +62,4 @@ class Test(object):
         exception_info = device_hive.exception_info()
         if not exception_info:
             return
-        raise exception_info[1]
+        six.reraise(*exception_info)
