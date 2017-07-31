@@ -7,7 +7,7 @@ def pytest_addoption(parser):
 
 
 def pytest_generate_tests(metafunc):
-    if metafunc.module.__name__.find('.test_api_') == -1:
+    if metafunc.module.__name__.find('.test_api') == -1:
         return
     transport_urls = metafunc.config.option.transport_urls.split(',')
     refresh_token = metafunc.config.option.refresh_token
