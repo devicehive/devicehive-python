@@ -1,13 +1,12 @@
 from devicehive.handlers.handler import Handler
 from devicehive.api import Api
+from devicehive.api_event import ApiEvent
 from devicehive.command import Command
 
 
 class ApiHandler(Handler):
     """Api handler class."""
 
-    EVENT_ACTION_KEY = 'action'
-    EVENT_SUBSCRIPTION_ID_KEY = 'subscriptionId'
     EVENT_COMMAND_INSERT_ACTION = 'command/insert'
     EVENT_COMMAND_UPDATE_ACTION = 'command/update'
     EVENT_COMMAND_KEY = 'command'
@@ -26,11 +25,14 @@ class ApiHandler(Handler):
             self._handle_connect = True
 
     def handle_event(self, event):
-        subscription_id = event.get(self.EVENT_SUBSCRIPTION_ID_KEY)
-        if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_INSERT_ACTION:
+        api_event = ApiEvent(event)
+        action = api_event.action
+        subscription_id = api_event.subscription_id
+        event = api_event.event
+        if action == self.EVENT_COMMAND_INSERT_ACTION:
             command = Command(self._api, event[self.EVENT_COMMAND_KEY])
             return self._handler.handle_command_insert(subscription_id, command)
-        if event[self.EVENT_ACTION_KEY] == self.EVENT_COMMAND_UPDATE_ACTION:
+        if action == self.EVENT_COMMAND_UPDATE_ACTION:
             command = Command(self._api, event[self.EVENT_COMMAND_KEY])
             return self._handler.handle_command_update(subscription_id, command)
 
