@@ -2,63 +2,6 @@ from devicehive import DeviceError
 from devicehive import ApiResponseError
 
 
-def test_list(test):
-
-    def handle_connect(handler):
-        server_timestamp = handler.api.get_info()['server_timestamp']
-        test_id = test.generate_id('list-commands')
-        options = [{'command': '%s-name-1' % test_id, 'lifetime': 100,
-                    'status': '1'},
-                   {'command': '%s-name-2' % test_id, 'lifetime': 100,
-                    'status': '2'}]
-        device = handler.api.put_device(test_id)
-        for option in options:
-            device.send_command(option['command'], lifetime=option['lifetime'],
-                                status=option['status'])
-        commands = device.list_commands()
-        assert len(commands) == len(options)
-        commands = device.list_commands(start=server_timestamp)
-        assert len(commands) == len(options)
-        assert not device.list_commands(start=server_timestamp,
-                                        end=server_timestamp)
-        command_name = options[0]['command']
-        command, = device.list_commands(command=command_name)
-        assert command.command == command_name
-        status = options[0]['status']
-        command, = device.list_commands(status=status)
-        assert command.status == status
-        command_0, command_1 = device.list_commands(sort_field='command',
-                                                    sort_order='ASC')
-        assert command_0.command == options[0]['command']
-        assert command_1.command == options[1]['command']
-        command_0, command_1 = device.list_commands(sort_field='command',
-                                                    sort_order='DESC')
-        assert command_0.command == options[1]['command']
-        assert command_1.command == options[0]['command']
-        command, = device.list_commands(sort_field='command', sort_order='ASC',
-                                        take=1)
-        assert command.command == options[0]['command']
-        command, = device.list_commands(sort_field='command', sort_order='ASC',
-                                        take=1, skip=1)
-        assert command.command == options[1]['command']
-        device_1 = handler.api.get_device(test_id)
-        device.remove()
-        try:
-            device.list_commands()
-            assert False
-        except DeviceError:
-            pass
-        try:
-            device_1.list_commands()
-            assert False
-        except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
-
-    test.run(handle_connect)
-
-
 def test_send(test):
 
     def handle_connect(handler):
