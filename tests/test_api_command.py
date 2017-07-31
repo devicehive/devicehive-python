@@ -1,4 +1,3 @@
-from devicehive import DeviceError
 from devicehive import ApiResponseError
 
 
