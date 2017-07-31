@@ -47,7 +47,7 @@ def test_list_devices(test):
 def test_get_device(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('get')
+        device_id = test.generate_id('get-device')
         name = '%s-name' % device_id
         data = {'data_key': 'data_value'}
         handler.api.put_device(device_id, name=name, data=data)
@@ -66,5 +66,30 @@ def test_get_device(test):
             # TODO: uncomment after server response will be fixed.
             # assert api_response_error.code() == 404
             pass
+
+    test.run(handle_connect)
+
+
+def test_put_device(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('put-device')
+        device = handler.api.put_device(device_id)
+        assert device.id == device_id
+        assert device.name == device_id
+        assert not device.data
+        assert isinstance(device.network_id, int)
+        assert not device.is_blocked
+        device.remove()
+        name = '%s-name' % device_id
+        data = {'data_key': 'data_value'}
+        device = handler.api.put_device(device_id, name=name, data=data,
+                                        is_blocked=True)
+        assert device.id == device_id
+        assert device.name == name
+        assert device.data == data
+        assert isinstance(device.network_id, int)
+        assert device.is_blocked
+        device.remove()
 
     test.run(handle_connect)
