@@ -11,8 +11,8 @@ class ApiRequest(object):
         self._api = api
         self._action = None
         self._request = {}
-        self._params = {'subscription_requests': [],
-                        'remove_subscription_requests': False,
+        self._params = {'subscription_id': None,
+                        'subscription_requests': [],
                         'method': 'GET',
                         'url': None,
                         'request_delete_keys': [],
@@ -23,7 +23,7 @@ class ApiRequest(object):
 
     @staticmethod
     def _uuid():
-        return str(uuid.uuid1())
+        return str(uuid.uuid4())
 
     @property
     def http_transport(self):
@@ -45,11 +45,13 @@ class ApiRequest(object):
         self._params['request_key'] = key
 
     def add_subscription_request(self, subscription_api_request):
-        subscription_request = subscription_api_request.extract()
+        if not self._params['subscription_id']:
+            self._params['subscription_id'] = self._uuid()
+        subscription_request = subscription_api_request.extract(self._uuid())
         self._params['subscription_requests'].append(subscription_request)
 
-    def remove_subscription_requests(self):
-        self._params['remove_subscription_requests'] = True
+    def remove_subscription_requests(self, subscription_id):
+        self._params['subscription_id'] = subscription_id
 
     def method(self, method):
         self._params['method'] = method
@@ -149,8 +151,8 @@ class SubscriptionApiRequest(object):
     def response_timestamp_key(self, response_timestamp_key):
         self._params['response_timestamp_key'] = response_timestamp_key
 
-    def extract(self):
-        return self._action, self._request, self._params
+    def extract(self, request_id):
+        return request_id, self._action, self._request, self._params
 
 
 class AuthSubscriptionApiRequest(SubscriptionApiRequest):
