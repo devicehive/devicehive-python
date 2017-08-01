@@ -28,6 +28,67 @@ def test_get_cluster_info(test):
     test.run(handle_connect)
 
 
+def test_subscribe_insert_commands(test):
+
+    def handle_connect(handler):
+        test_id = test.generate_id('insert-commands')
+        options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
+        devices, device_ids, command_ids, command_names = [], [], [], []
+        for option in options:
+            device = handler.api.put_device(option['id'])
+            devices.append(device)
+            device_ids.append(device.id)
+            command = device.send_command('%s-name' % device.id)
+            command_ids.append(command.id)
+            command_names.append(command.command)
+        if handler.test_type == 'default':
+            subscription_id = handler.api.subscribe_insert_commands(device_ids)
+            handler.data['subscription_id'] = subscription_id
+        if handler.test_type == 'names':
+            names = command_names[:1]
+            subscription_id = handler.api.subscribe_insert_commands(device_ids,
+                                                                    names=names)
+            handler.data['subscription_id'] = subscription_id
+        if handler.test_type == 'limit':
+            subscription_id = handler.api.subscribe_insert_commands(device_ids,
+                                                                    limit=1)
+            handler.data['subscription_id'] = subscription_id
+        if handler.test_type == 'error':
+            for device in devices:
+                device.remove()
+            # TODO: uncomment after server response will be fixed.
+            # try:
+            #     handler.api.subscribe_insert_commands(device_ids)
+            #     assert False
+            # except ApiResponseError as api_response_error:
+            #     # assert api_response_error.code() == 404
+            #     pass
+            return handler.disconnect()
+        handler.data['devices'] = devices
+        handler.data['command_ids'] = command_ids
+        handler.data['command_names'] = command_names
+
+    def handle_command_insert(handler, subscription_id, command):
+        assert subscription_id == handler.data['subscription_id']
+        if handler.test_type == 'default':
+            assert command.id in handler.data['command_ids']
+            handler.data['command_ids'].remove(command.id)
+            if handler.data['command_ids']:
+                return
+        if handler.test_type == 'names':
+            assert command.id == handler.data['command_ids'][0]
+            assert command.command == handler.data['command_names'][0]
+        if handler.test_type == 'limit':
+            assert command.id in handler.data['command_ids']
+        for device in handler.data['devices']:
+            device.remove()
+        handler.disconnect()
+
+    test_types = ['default', 'names', 'limit', 'error']
+    for test_type in test_types:
+        test.run(handle_connect, handle_command_insert, test_type=test_type)
+
+
 def test_list_devices(test):
 
     def handle_connect(handler):
@@ -85,7 +146,7 @@ def test_get_device(test):
         assert isinstance(device.network_id, int)
         assert not device.is_blocked
         device.remove()
-        device_id = test.generate_id('get-device-not-exist')
+        device_id = test.generate_id('not-exist')
         try:
             handler.api.get_device(device_id)
             assert False
