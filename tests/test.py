@@ -9,16 +9,18 @@ class TestHandler(Handler):
     """Test handler class."""
 
     def __init__(self, api, handle_connect, handle_command_insert,
-                 handle_command_update):
+                 handle_command_update, handle_notification):
         Handler.__init__(self, api)
         self._handle_connect = handle_connect
         self._handle_command_insert = handle_command_insert
         self._handle_command_update = handle_command_update
+        self._handle_notification = handle_notification
         self.data = {}
 
     def handle_connect(self):
         self._handle_connect(self)
-        if not any([self._handle_command_insert, self._handle_command_update]):
+        if not any([self._handle_command_insert, self._handle_command_update,
+                    self._handle_notification]):
             self.disconnect()
 
     def handle_command_insert(self, subscription_id, command):
@@ -30,6 +32,11 @@ class TestHandler(Handler):
         if not self._handle_command_update:
             return
         self._handle_command_update(self, subscription_id, command)
+
+    def handle_notification(self, subscription_id, notification):
+        if not self._handle_notification:
+            return
+        self._handle_notification(self, subscription_id, notification)
 
     def disconnect(self):
         if not self.api.transport.connected:
@@ -74,10 +81,11 @@ class Test(object):
         pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_command_insert=None,
-            handle_command_update=None):
+            handle_command_update=None, handle_notification=None):
         handler_kwargs = {'handle_connect': handle_connect,
                           'handle_command_insert': handle_command_insert,
-                          'handle_command_update': handle_command_update}
+                          'handle_command_update': handle_command_update,
+                          'handle_notification': handle_notification}
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
