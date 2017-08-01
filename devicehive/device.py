@@ -78,13 +78,14 @@ class Device(object):
 
     def subscribe_insert_commands(self, names=None, limit=None, timestamp=None):
         self._ensure_exists()
+        join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self._api.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
         auth_subscription_api_request.action('command/insert')
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
-        auth_subscription_api_request.param('names', names)
+        auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('limit', limit)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('command')
