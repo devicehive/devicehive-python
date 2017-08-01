@@ -67,7 +67,7 @@ def test_remove(test):
 
 def test_subscribe_insert_commands(test):
 
-    def init_device_with_commands(handler):
+    def init_device(handler):
         test_id = test.generate_id('d-l-c')
         options = [{'command': '%s-name-1' % test_id},
                    {'command': '%s-name-2' % test_id}]
@@ -87,7 +87,7 @@ def test_subscribe_insert_commands(test):
         handler.data['subscription_id'] = subscription_id
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device_with_commands(handler)
+        device, commands, command_ids = init_device(handler)
         subscription_id = device.subscribe_insert_commands()
         set_handler_data(handler, device, commands, command_ids,
                          subscription_id)
@@ -104,7 +104,7 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device_with_commands(handler)
+        device, commands, command_ids = init_device(handler)
         command_name = commands[0].command
         subscription_id = device.subscribe_insert_commands(names=[command_name])
         set_handler_data(handler, device, commands, command_ids,
@@ -119,7 +119,7 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device_with_commands(handler)
+        device, commands, command_ids = init_device(handler)
         subscription_id = device.subscribe_insert_commands(limit=1)
         set_handler_data(handler, device, commands, command_ids,
                          subscription_id)
@@ -127,7 +127,7 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device_with_commands(handler)
+        device, commands, command_ids = init_device(handler)
         device_1 = handler.api.get_device(device.id)
         device.remove()
         try:
@@ -135,9 +135,9 @@ def test_subscribe_insert_commands(test):
             assert False
         except DeviceError:
             pass
-        if not test.websocket_transport:
-            return
         # TODO: add http transport support after server response will be fixed.
+        if test.http_transport:
+            return
         try:
             device_1.subscribe_insert_commands()
             assert False
