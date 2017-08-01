@@ -35,7 +35,7 @@ class Device(object):
     def _ensure_exists(self):
         if self._id:
             return
-        raise DeviceError('Does not exist.')
+        raise DeviceError('Device does not exist.')
 
     @property
     def id(self):
@@ -145,6 +145,27 @@ class Device(object):
         command[Command.STATUS_KEY] = status
         command[Command.RESULT_KEY] = result
         return Command(self._api, command)
+
+    def subscribe_notifications(self, names=None, timestamp=None):
+        self._ensure_exists()
+        join_names = ','.join(names) if names else None
+        if not timestamp:
+            timestamp = self._api.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
+        auth_subscription_api_request.action('notification/insert')
+        auth_subscription_api_request.url('device/{deviceId}/notification/poll',
+                                          deviceId=self._id)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_key('notification')
+        api_request = ApiRequest(self._api)
+        api_request.action('notification/subscribe')
+        api_request.set('deviceId', self._id)
+        api_request.set('names', names)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        subscription = api_request.execute('Subscribe notifications failure.')
+        return subscription['subscriptionId']
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
