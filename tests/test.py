@@ -19,7 +19,7 @@ class TestHandler(Handler):
     def handle_connect(self):
         self._handle_connect(self)
         if not any([self._handle_command_insert, self._handle_command_update]):
-            self.api.disconnect()
+            self.disconnect()
 
     def handle_command_insert(self, subscription_id, command):
         if not self._handle_command_insert:
@@ -30,6 +30,11 @@ class TestHandler(Handler):
         if not self._handle_command_update:
             return
         self._handle_command_update(self, subscription_id, command)
+
+    def disconnect(self):
+        if not self.api.transport.connected:
+            return
+        self.api.transport.disconnect()
 
 
 class Test(object):
