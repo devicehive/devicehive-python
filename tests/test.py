@@ -9,17 +9,12 @@ class TestHandler(Handler):
     """Test handler class."""
 
     def __init__(self, api, handle_connect, handle_command_insert,
-                 handle_command_update, test_type):
+                 handle_command_update):
         Handler.__init__(self, api)
         self._handle_connect = handle_connect
         self._handle_command_insert = handle_command_insert
         self._handle_command_update = handle_command_update
-        self._test_type = test_type
         self.data = {}
-
-    @property
-    def test_type(self):
-        return self._test_type
 
     def handle_connect(self):
         self._handle_connect(self)
@@ -52,9 +47,9 @@ class Test(object):
 
     def generate_id(self, key=None):
         time_key = repr(time.time())
-        if key:
-            return '%s-%s-%s' % (self._transport_name, key, time_key)
-        return '%s-%s' % (self._transport_name, time_key)
+        if not key:
+            return '%s-%s' % (self._transport_name, time_key)
+        return '%s-%s-%s' % (self._transport_name, key, time_key)
 
     @property
     def transport_name(self):
@@ -79,11 +74,10 @@ class Test(object):
         pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_command_insert=None,
-            handle_command_update=None, test_type='default'):
+            handle_command_update=None):
         handler_kwargs = {'handle_connect': handle_connect,
                           'handle_command_insert': handle_command_insert,
-                          'handle_command_update': handle_command_update,
-                          'test_type': test_type}
+                          'handle_command_update': handle_command_update}
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
