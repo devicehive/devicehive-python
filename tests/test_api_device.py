@@ -11,7 +11,7 @@ def list_notifications(device, **params):
 def test_save(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('save')
+        device_id = test.generate_id('d-s')
         device = handler.api.put_device(device_id)
         name = '%s-name' % device_id
         data = {'data_key': 'data_value'}
@@ -38,7 +38,7 @@ def test_save(test):
 def test_remove(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('remove-device')
+        device_id = test.generate_id('d-r')
         device = handler.api.put_device(device_id)
         device.remove()
         assert not device.id
@@ -68,8 +68,8 @@ def test_remove(test):
 def test_subscribe_insert_commands(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('insert-commands')
-        command_name = test.generate_id('insert-commands')
+        device_id = test.generate_id('d-s-i-c')
+        command_name = test.generate_id('d-s-i-c')
         device = handler.api.put_device(device_id)
         device.send_command(command_name)
         device.subscribe_insert_commands()
@@ -91,8 +91,8 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect)
 
     def handle_connect(handler):
-        device_id = test.generate_id('insert-commands')
-        command_name = test.generate_id('insert-commands')
+        device_id = test.generate_id('d-s-i-c')
+        command_name = test.generate_id('d-s-i-c')
         device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         subscription_id = device.subscribe_insert_commands()
@@ -109,7 +109,7 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device_id = test.generate_id('insert-commands')
+        device_id = test.generate_id('d-s-i-c')
         device = handler.api.put_device(device_id)
         device.send_command('%s-name-1' % device_id)
         command = device.send_command('%s-name-2' % device_id)
@@ -128,7 +128,7 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device_id = test.generate_id('insert-commands')
+        device_id = test.generate_id('d-s-i-c')
         device = handler.api.put_device(device_id)
         command = device.send_command('%s-name-1' % device_id)
         device.send_command('%s-name-2' % device_id)
@@ -150,7 +150,7 @@ def test_list_commands(test):
 
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
-        test_id = test.generate_id('list-commands')
+        test_id = test.generate_id('d-l-c')
         options = [{'command': '%s-name-1' % test_id, 'lifetime': 100,
                     'status': '1'},
                    {'command': '%s-name-2' % test_id, 'lifetime': 100,
@@ -206,8 +206,8 @@ def test_list_commands(test):
 def test_send_command(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('send-command')
-        command_name = test.generate_id('send-command')
+        device_id = test.generate_id('d-s-c')
+        command_name = test.generate_id('d-s-c')
         device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         assert command.device_id == device_id
@@ -220,7 +220,7 @@ def test_send_command(test):
         assert command.last_updated
         assert not command.status
         assert not command.result
-        command_name = test.generate_id('send-command')
+        command_name = test.generate_id('d-s-c')
         parameters = {'parameters_key': 'parameters_value'}
         lifetime = 10
         status = 'status'
@@ -260,7 +260,7 @@ def test_list_notifications(test):
 
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
-        test_id = test.generate_id('list-notifications')
+        test_id = test.generate_id('d-l-n')
         options = [{'notification': '%s-name-1' % test_id,
                     'parameters': {'parameters_key': '1'}},
                    {'notification': '%s-name-2' % test_id,
@@ -326,8 +326,8 @@ def test_list_notifications(test):
 def test_send_notification(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('send-notification')
-        notification_name = test.generate_id('send-notification')
+        device_id = test.generate_id('d-s-n')
+        notification_name = test.generate_id('d-s-n')
         device = handler.api.put_device(device_id)
         notification = device.send_notification(notification_name)
         assert notification.device_id == device_id

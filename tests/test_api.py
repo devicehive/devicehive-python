@@ -31,7 +31,7 @@ def test_get_cluster_info(test):
 def test_subscribe_insert_commands(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('insert-commands')
+        test_id = test.generate_id('s-i-c')
         options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
         devices, device_ids, command_ids, command_names = [], [], [], []
         for option in options:
@@ -92,7 +92,7 @@ def test_subscribe_insert_commands(test):
 def test_list_devices(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('list-devices')
+        test_id = test.generate_id('l-d')
         options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
                    {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
         test_devices = [handler.api.put_device(option['id'],
@@ -103,7 +103,7 @@ def test_list_devices(test):
         name = options[0]['name']
         device, = handler.api.list_devices(name=name)
         assert device.name == name
-        name_pattern = test.generate_id('list-not-exist')
+        name_pattern = test.generate_id('l-d-n-e')
         assert not handler.api.list_devices(name_pattern=name_pattern)
         name_pattern = test_id + '%'
         devices = handler.api.list_devices(name_pattern=name_pattern)
@@ -135,7 +135,7 @@ def test_list_devices(test):
 def test_get_device(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('get-device')
+        device_id = test.generate_id('g-d')
         name = '%s-name' % device_id
         data = {'data_key': 'data_value'}
         handler.api.put_device(device_id, name=name, data=data)
@@ -146,7 +146,7 @@ def test_get_device(test):
         assert isinstance(device.network_id, int)
         assert not device.is_blocked
         device.remove()
-        device_id = test.generate_id('not-exist')
+        device_id = test.generate_id('g-d-n-e')
         try:
             handler.api.get_device(device_id)
             assert False
@@ -161,7 +161,7 @@ def test_get_device(test):
 def test_put_device(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('put-device')
+        device_id = test.generate_id('p-d')
         device = handler.api.put_device(device_id)
         assert device.id == device_id
         assert device.name == device_id

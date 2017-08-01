@@ -4,8 +4,8 @@ from devicehive import ApiResponseError
 def test_save(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('save-command')
-        command_name = test.generate_id('save-command')
+        device_id = test.generate_id('c-s')
+        command_name = test.generate_id('c-s')
         device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         status = 'status'
