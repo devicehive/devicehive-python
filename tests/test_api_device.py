@@ -67,83 +67,84 @@ def test_remove(test):
 
 def test_subscribe_insert_commands(test):
 
+    def init_device_with_commands(handler):
+        test_id = test.generate_id('d-l-c')
+        options = [{'command': '%s-name-1' % test_id},
+                   {'command': '%s-name-2' % test_id}]
+        device = handler.api.put_device(test_id)
+        commands, command_ids = [], []
+        for option in options:
+            command = device.send_command(option['command'])
+            commands.append(command)
+            command_ids.append(command.id)
+        return device, commands, command_ids
+
+    def set_handler_data(handler, device, commands, command_ids,
+                         subscription_id):
+        handler.data['device'] = device
+        handler.data['commands'] = commands
+        handler.data['command_ids'] = command_ids
+        handler.data['subscription_id'] = subscription_id
+
     def handle_connect(handler):
-        device_id = test.generate_id('d-s-i-c')
-        command_name = test.generate_id('d-s-i-c')
-        device = handler.api.put_device(device_id)
-        device.send_command(command_name)
-        device.subscribe_insert_commands()
-        # device_1 = handler.api.get_device(device_id)
+        device, commands, command_ids = init_device_with_commands(handler)
+        subscription_id = device.subscribe_insert_commands()
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    def handle_command_insert(handler, subscription_id, command):
+        assert subscription_id == handler.data['subscription_id']
+        assert command.id in handler.data['command_ids']
+        handler.data['command_ids'].remove(command.id)
+        if handler.data['command_ids']:
+            return
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_insert)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device_with_commands(handler)
+        command_name = commands[0].command
+        subscription_id = device.subscribe_insert_commands(names=[command_name])
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    def handle_command_insert(handler, subscription_id, command):
+        assert subscription_id == handler.data['subscription_id']
+        assert command.id == handler.data['command_ids'][0]
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_insert)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device_with_commands(handler)
+        subscription_id = device.subscribe_insert_commands(limit=1)
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    test.run(handle_connect, handle_command_insert)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device_with_commands(handler)
+        device_1 = handler.api.get_device(device.id)
         device.remove()
         try:
             device.subscribe_insert_commands()
             assert False
         except DeviceError:
             pass
-        # TODO: uncomment after server response will be fixed.
-        # assert api_response_error.code() == 404
-        # try:
-        #     device_1.subscribe_insert_commands()
-        #     assert False
-        # except ApiResponseError as api_response_error:
-        #     pass
+        if not test.websocket_transport:
+            return
+        # TODO: add http transport support after server response will be fixed.
+        try:
+            device_1.subscribe_insert_commands()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
 
     test.run(handle_connect)
-
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s-i-c')
-        command_name = test.generate_id('d-s-i-c')
-        device = handler.api.put_device(device_id)
-        command = device.send_command(command_name)
-        subscription_id = device.subscribe_insert_commands()
-        handler.data['device'] = device
-        handler.data['command'] = command
-        handler.data['subscription_id'] = subscription_id
-
-    def handle_command_insert(handler, subscription_id, command):
-        assert subscription_id == handler.data['subscription_id']
-        assert command.id == handler.data['command'].id
-        handler.data['device'].remove()
-        handler.disconnect()
-
-    test.run(handle_connect, handle_command_insert)
-
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s-i-c')
-        device = handler.api.put_device(device_id)
-        device.send_command('%s-name-1' % device_id)
-        command = device.send_command('%s-name-2' % device_id)
-        command_name = command.command
-        subscription_id = device.subscribe_insert_commands(names=[command_name])
-        handler.data['device'] = device
-        handler.data['command'] = command
-        handler.data['subscription_id'] = subscription_id
-
-    def handle_command_insert(handler, subscription_id, command):
-        assert subscription_id == handler.data['subscription_id']
-        assert command.id == handler.data['command'].id
-        handler.data['device'].remove()
-        handler.disconnect()
-
-    test.run(handle_connect, handle_command_insert)
-
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s-i-c')
-        device = handler.api.put_device(device_id)
-        command = device.send_command('%s-name-1' % device_id)
-        device.send_command('%s-name-2' % device_id)
-        subscription_id = device.subscribe_insert_commands(limit=1)
-        handler.data['device'] = device
-        handler.data['command'] = command
-        handler.data['subscription_id'] = subscription_id
-
-    def handle_command_insert(handler, subscription_id, command):
-        assert subscription_id == handler.data['subscription_id']
-        assert command.id == handler.data['command'].id
-        handler.data['device'].remove()
-        handler.disconnect()
-
-    test.run(handle_connect, handle_command_insert)
 
 
 def test_list_commands(test):
