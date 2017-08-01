@@ -68,7 +68,7 @@ def test_remove(test):
 def test_subscribe_insert_commands(test):
 
     def init_device(handler):
-        test_id = test.generate_id('d-l-c')
+        test_id = test.generate_id('d-s-i-c')
         options = [{'command': '%s-name-1' % test_id},
                    {'command': '%s-name-2' % test_id}]
         device = handler.api.put_device(test_id)
