@@ -91,6 +91,7 @@ class Device(object):
         auth_subscription_api_request.response_key('command')
         api_request = ApiRequest(self._api)
         api_request.action('command/subscribe')
+        api_request.set('deviceId', self._id)
         api_request.set('names', names)
         api_request.set('limit', limit)
         api_request.set('timestamp', timestamp)
