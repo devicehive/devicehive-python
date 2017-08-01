@@ -9,12 +9,17 @@ class TestHandler(Handler):
     """Test handler class."""
 
     def __init__(self, api, handle_connect, handle_command_insert,
-                 handle_command_update):
+                 handle_command_update, test_type):
         Handler.__init__(self, api)
         self._handle_connect = handle_connect
         self._handle_command_insert = handle_command_insert
         self._handle_command_update = handle_command_update
+        self._test_type = test_type
         self.data = {}
+
+    @property
+    def test_type(self):
+        return self._test_type
 
     def handle_connect(self):
         self._handle_connect(self)
@@ -74,10 +79,11 @@ class Test(object):
         pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_command_insert=None,
-            handle_command_update=None):
+            handle_command_update=None, test_type='default'):
         handler_kwargs = {'handle_connect': handle_connect,
                           'handle_command_insert': handle_command_insert,
-                          'handle_command_update': handle_command_update}
+                          'handle_command_update': handle_command_update,
+                          'test_type': test_type}
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
