@@ -123,8 +123,3 @@ class Api(object):
         device.save()
         device.get(device_id)
         return device
-
-    def disconnect(self):
-        if not self._transport.connected:
-            return
-        self._transport.disconnect()
