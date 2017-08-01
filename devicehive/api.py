@@ -1,6 +1,7 @@
 from devicehive.token import Token
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
+from devicehive.api_request import AuthSubscriptionApiRequest
 from devicehive.device import Device
 
 
@@ -61,6 +62,30 @@ class Api(object):
     def refresh_token(self):
         self._token.refresh()
         return self._token.access_token
+
+    def subscribe_insert_commands(self, device_ids, names=None, limit=None,
+                                  timestamp=None):
+        join_device_ids = ','.join(device_ids)
+        join_names = ','.join(names) if names else None
+        if not timestamp:
+            timestamp = self.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
+        auth_subscription_api_request.action('command/insert')
+        auth_subscription_api_request.url('device/command/poll',
+                                          deviceIds=join_device_ids)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('limit', limit)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_key('command')
+        api_request = ApiRequest(self)
+        api_request.action('command/subscribe')
+        api_request.set('deviceIds', device_ids)
+        api_request.set('names', names)
+        api_request.set('limit', limit)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        subscription = api_request.execute('Subscribe insert commands failure.')
+        return subscription['subscriptionId']
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
