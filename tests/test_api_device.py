@@ -71,6 +71,29 @@ def test_subscribe_insert_commands(test):
         device_id = test.generate_id('insert-commands')
         command_name = test.generate_id('insert-commands')
         device = handler.api.put_device(device_id)
+        device.send_command(command_name)
+        device.subscribe_insert_commands()
+        # device_1 = handler.api.get_device(device_id)
+        device.remove()
+        try:
+            device.subscribe_insert_commands()
+            assert False
+        except DeviceError:
+            pass
+        # TODO: uncomment after server response will be fixed.
+        # assert api_response_error.code() == 404
+        # try:
+        #     device_1.subscribe_insert_commands()
+        #     assert False
+        # except ApiResponseError as api_response_error:
+        #     pass
+
+    test.run(handle_connect)
+
+    def handle_connect(handler):
+        device_id = test.generate_id('insert-commands')
+        command_name = test.generate_id('insert-commands')
+        device = handler.api.put_device(device_id)
         command = device.send_command(command_name)
         subscription_id = device.subscribe_insert_commands()
         handler.data['device'] = device
@@ -83,7 +106,7 @@ def test_subscribe_insert_commands(test):
         handler.data['device'].remove()
         handler.disconnect()
 
-    test.run(handle_connect, handle_command_insert=handle_command_insert)
+    test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
         device_id = test.generate_id('insert-commands')
@@ -102,7 +125,7 @@ def test_subscribe_insert_commands(test):
         handler.data['device'].remove()
         handler.disconnect()
 
-    test.run(handle_connect, handle_command_insert=handle_command_insert)
+    test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
         device_id = test.generate_id('insert-commands')
@@ -120,7 +143,7 @@ def test_subscribe_insert_commands(test):
         handler.data['device'].remove()
         handler.disconnect()
 
-    test.run(handle_connect, handle_command_insert=handle_command_insert)
+    test.run(handle_connect, handle_command_insert)
 
 
 def test_list_commands(test):
