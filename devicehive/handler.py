@@ -24,8 +24,8 @@ class Handler(object):
         message %= subscription_id
         warnings.warn(message, HandlerWarning)
 
-    def handle_notification_insert(self, subscription_id, notification):
-        message = 'Inserted notification received. Subscription id: %s.'
+    def handle_notification(self, subscription_id, notification):
+        message = 'Notification received. Subscription id: %s.'
         message %= subscription_id
         warnings.warn(message, HandlerWarning)
 
