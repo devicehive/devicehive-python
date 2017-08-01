@@ -87,6 +87,27 @@ class Api(object):
         subscription = api_request.execute('Subscribe insert commands failure.')
         return subscription['subscriptionId']
 
+    def subscribe_notifications(self, device_ids, names=None, timestamp=None):
+        join_device_ids = ','.join(device_ids)
+        join_names = ','.join(names) if names else None
+        if not timestamp:
+            timestamp = self.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
+        auth_subscription_api_request.action('command/insert')
+        auth_subscription_api_request.url('device/notification/poll',
+                                          deviceIds=join_device_ids)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_key('command')
+        api_request = ApiRequest(self)
+        api_request.action('notification/subscribe')
+        api_request.set('deviceIds', device_ids)
+        api_request.set('names', names)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        subscription = api_request.execute('Subscribe notifications failure.')
+        return subscription['subscriptionId']
+
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
