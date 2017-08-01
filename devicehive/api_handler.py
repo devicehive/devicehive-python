@@ -2,6 +2,7 @@ from devicehive.handlers.handler import Handler
 from devicehive.api import Api
 from devicehive.api_event import ApiEvent
 from devicehive.command import Command
+from devicehive.notification import Notification
 
 
 class ApiHandler(Handler):
@@ -10,6 +11,8 @@ class ApiHandler(Handler):
     EVENT_COMMAND_INSERT_ACTION = 'command/insert'
     EVENT_COMMAND_UPDATE_ACTION = 'command/update'
     EVENT_COMMAND_KEY = 'command'
+    EVENT_NOTIFICATION_INSERT_ACTION = 'notification/insert'
+    EVENT_NOTIFICATION_KEY = 'notification'
 
     def __init__(self, transport, auth, handler_class, handler_args,
                  handler_kwargs):
@@ -37,6 +40,10 @@ class ApiHandler(Handler):
         if action == self.EVENT_COMMAND_UPDATE_ACTION:
             command = Command(self._api, event[self.EVENT_COMMAND_KEY])
             return self._handler.handle_command_update(subscription_id, command)
+        if action == self.EVENT_NOTIFICATION_INSERT_ACTION:
+            notification = Notification(event[self.EVENT_NOTIFICATION_KEY])
+            return self._handler.handle_notification_insert(subscription_id,
+                                                            notification)
 
     def handle_disconnect(self):
         # TODO: handle disconnect here.

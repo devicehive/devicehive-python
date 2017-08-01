@@ -93,12 +93,12 @@ class Api(object):
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action('command/insert')
+        auth_subscription_api_request.action('notification/insert')
         auth_subscription_api_request.url('device/notification/poll',
                                           deviceIds=join_device_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
-        auth_subscription_api_request.response_key('command')
+        auth_subscription_api_request.response_key('notification')
         api_request = ApiRequest(self)
         api_request.action('notification/subscribe')
         api_request.set('deviceIds', device_ids)
