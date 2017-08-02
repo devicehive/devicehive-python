@@ -2,12 +2,6 @@ from devicehive import DeviceError
 from devicehive import ApiResponseError
 
 
-def list_notifications(device, **params):
-    notifications = device.list_notifications(**params)
-    return [notification for notification in notifications
-            if notification.notification[0] != '$']
-
-
 def test_save(test):
 
     def handle_connect(handler):
@@ -369,6 +363,11 @@ def test_subscribe_notifications(test):
 
 
 def test_list_notifications(test):
+
+    def list_notifications(device, **params):
+        notifications = device.list_notifications(**params)
+        return [notification for notification in notifications
+                if notification.notification[0] != '$']
 
     def handle_connect(handler):
         server_timestamp = handler.api.get_info()['server_timestamp']
