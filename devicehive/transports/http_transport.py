@@ -115,7 +115,7 @@ class HttpTransport(Transport):
                                             'timestamp')
         response_subscription_id_key = params.pop(
             'response_subscription_id_key', 'subscriptionId')
-        while self._connected and subscription_id in self._subscription_ids:
+        while subscription_id in self._subscription_ids:
             try:
                 response = self._request(request_id, action, request.copy(),
                                          **params)
