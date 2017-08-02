@@ -105,6 +105,8 @@ class Device(object):
         api_request.set('subscriptionId', subscription_id)
         api_request.remove_subscription_request(subscription_id)
         api_request.execute('Unsubscribe commands failure.')
+        self._api.remove_subscription_id('command/insert', subscription_id)
+        self._api.remove_subscription_id('command/update', subscription_id)
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
