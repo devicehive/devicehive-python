@@ -291,6 +291,83 @@ def test_send_command(test):
     test.run(handle_connect)
 
 
+def test_subscribe_notifications(test):
+
+    def init_device(handler):
+        test_id = test.generate_id('d-s-n')
+        options = [{'notification': '%s-name-1' % test_id},
+                   {'notification': '%s-name-2' % test_id}]
+        device = handler.api.put_device(test_id)
+        notifications, notification_ids = [], []
+        for option in options:
+            notification = device.send_notification(option['notification'])
+            notifications.append(notification)
+            notification_ids.append(notification.id)
+        return device, notifications, notification_ids
+
+    def set_handler_data(handler, device, notifications, notification_ids,
+                         subscription_id):
+        handler.data['device'] = device
+        handler.data['notifications'] = notifications
+        handler.data['notification_ids'] = notification_ids
+        handler.data['subscription_id'] = subscription_id
+
+    def handle_connect(handler):
+        device, notifications, notification_ids = init_device(handler)
+        subscription_id = device.subscribe_notifications()
+        set_handler_data(handler, device, notifications, notification_ids,
+                         subscription_id)
+
+    def handle_notification(handler, subscription_id, notification):
+        assert subscription_id == handler.data['subscription_id']
+        if notification.notification[0] == '$':
+            return
+        assert notification.id in handler.data['notification_ids']
+        handler.data['notification_ids'].remove(notification.id)
+        if handler.data['notification_ids']:
+            return
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_notification=handle_notification)
+
+    def handle_connect(handler):
+        device, notifications, notification_ids = init_device(handler)
+        notification_name = notifications[0].notification
+        subscription_id = device.subscribe_notifications(
+            names=[notification_name])
+        set_handler_data(handler, device, notifications, notification_ids,
+                         subscription_id)
+
+    def handle_notification(handler, subscription_id, notification):
+        assert subscription_id == handler.data['subscription_id']
+        assert notification.id == handler.data['notification_ids'][0]
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_notification=handle_notification)
+
+    def handle_connect(handler):
+        device, notifications, notification_ids = init_device(handler)
+        device_1 = handler.api.get_device(device.id)
+        device.remove()
+        try:
+            device.subscribe_notifications()
+            assert False
+        except DeviceError:
+            pass
+        # TODO: add http support after server response will be fixed.
+        if test.http_transport:
+            return
+        try:
+            device_1.subscribe_notifications()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+
+    test.run(handle_connect)
+
+
 def test_list_notifications(test):
 
     def handle_connect(handler):
