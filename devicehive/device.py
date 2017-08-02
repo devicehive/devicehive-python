@@ -176,6 +176,14 @@ class Device(object):
         subscription = api_request.execute('Subscribe notifications failure.')
         return subscription['subscriptionId']
 
+    def unsubscribe_notifications(self, subscription_id):
+        api_request = ApiRequest(self._api)
+        api_request.action('notification/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(subscription_id)
+        api_request.execute('Unsubscribe notifications failure.')
+        self._api.remove_subscription_id('notification/insert', subscription_id)
+
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
                            skip=None):
