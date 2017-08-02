@@ -99,6 +99,13 @@ class Device(object):
         subscription = api_request.execute('Subscribe insert commands failure.')
         return subscription['subscriptionId']
 
+    def unsubscribe_commands(self, subscription_id):
+        api_request = ApiRequest(self._api)
+        api_request.action('command/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(subscription_id)
+        api_request.execute('Unsubscribe commands failure.')
+
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
         self._ensure_exists()
