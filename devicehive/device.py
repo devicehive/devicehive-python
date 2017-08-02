@@ -128,6 +128,7 @@ class Device(object):
         return subscription['subscriptionId']
 
     def unsubscribe_commands(self, subscription_id):
+        self._ensure_exists()
         remove_subscription_api_request = RemoveSubscriptionApiRequest()
         remove_subscription_api_request.subscription_id(subscription_id)
         api_request = ApiRequest(self._api)

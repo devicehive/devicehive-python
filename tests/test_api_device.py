@@ -231,32 +231,48 @@ def test_unsubscribe_commands(test):
 
     def handle_connect(handler):
         device_id = test.generate_id('d-u-c')
-        command_name = test.generate_id('d-u-c')
         device = handler.api.put_device(device_id)
-        device.send_command(command_name)
-        insert_subscription_id = device.subscribe_insert_commands()
-        # TODO: add device.subscribe_update_commands()
-        device.unsubscribe_commands(insert_subscription_id)
-        # TODO: add websocket support after server response will be fixed.
-        if test.http_transport:
-            try:
-                device.unsubscribe_commands(insert_subscription_id)
-                assert False
-            except ApiResponseError as api_response_error:
-                assert api_response_error.code == 403
+        subscription_id = device.subscribe_insert_commands()
+        device.unsubscribe_commands(subscription_id)
         device_1 = handler.api.get_device(device_id)
         device.remove()
         try:
-            device.subscribe_insert_commands()
+            device.unsubscribe_commands(subscription_id)
             assert False
         except DeviceError:
             pass
-        # TODO: uncomment after server response will be fixed.
-        # try:
-        #     device_1.subscribe_insert_commands()
-        #     assert False
-        # except ApiResponseError as api_response_error:
-        #     assert api_response_error.code == 403
+        # TODO: add websocket support after server response will be fixed.
+        if not test.http_transport:
+            return
+        try:
+            device_1.unsubscribe_commands(subscription_id)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+
+    test.run(handle_connect)
+
+    # TODO: add websocket support after server response will be fixed.
+    if test.websocket_transport:
+        return
+
+    def handle_connect(handler):
+        device_id = test.generate_id('d-u-c')
+        device = handler.api.put_device(device_id)
+        subscription_id = device.subscribe_update_commands()
+        device.unsubscribe_commands(subscription_id)
+        device_1 = handler.api.get_device(device_id)
+        device.remove()
+        try:
+            device.unsubscribe_commands(subscription_id)
+            assert False
+        except DeviceError:
+            pass
+        try:
+            device_1.unsubscribe_commands(subscription_id)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
 
     test.run(handle_connect)
 
