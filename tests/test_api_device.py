@@ -141,6 +141,92 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect)
 
 
+def test_subscribe_update_commands(test):
+
+    test.only_http_implementation()
+
+    def init_device(handler):
+        test_id = test.generate_id('d-s-u-c')
+        options = [{'command': '%s-name-1' % test_id},
+                   {'command': '%s-name-2' % test_id}]
+        device = handler.api.put_device(test_id)
+        commands, command_ids = [], []
+        for option in options:
+            command = device.send_command(option['command'])
+            command.status = 'status'
+            command.save()
+            commands.append(command)
+            command_ids.append(command.id)
+        return device, commands, command_ids
+
+    def set_handler_data(handler, device, commands, command_ids,
+                         subscription_id):
+        handler.data['device'] = device
+        handler.data['commands'] = commands
+        handler.data['command_ids'] = command_ids
+        handler.data['subscription_id'] = subscription_id
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        subscription_id = device.subscribe_update_commands()
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    def handle_command_update(handler, subscription_id, command):
+        assert subscription_id == handler.data['subscription_id']
+        assert command.id in handler.data['command_ids']
+        handler.data['command_ids'].remove(command.id)
+        if handler.data['command_ids']:
+            return
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_update=handle_command_update)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        command_name = commands[0].command
+        subscription_id = device.subscribe_update_commands(names=[command_name])
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    def handle_command_update(handler, subscription_id, command):
+        assert subscription_id == handler.data['subscription_id']
+        assert command.id == handler.data['command_ids'][0]
+        handler.data['device'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_update=handle_command_update)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        subscription_id = device.subscribe_update_commands(limit=1)
+        set_handler_data(handler, device, commands, command_ids,
+                         subscription_id)
+
+    test.run(handle_connect, handle_command_update=handle_command_update)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        device_1 = handler.api.get_device(device.id)
+        device.remove()
+        try:
+            device.subscribe_update_commands()
+            assert False
+        except DeviceError:
+            pass
+        # TODO: add http support after server response will be fixed.
+        if test.http_transport:
+            return
+        try:
+            device_1.subscribe_update_commands()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+
+    test.run(handle_connect)
+
+
 def test_unsubscribe_commands(test):
 
     def handle_connect(handler):
