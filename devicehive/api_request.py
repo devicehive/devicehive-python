@@ -52,15 +52,8 @@ class ApiRequest(object):
     def response_subscription_id_key(self, key):
         self._params['response_subscription_id_key'] = key
 
-    def remove_subscription_request(self, subscription_id, response_code=None,
-                                    response_error=None):
-        if not response_code:
-            response_code = 403
-        if not response_error:
-            response_error = 'Subscription has already removed.'
-        request = {'subscription_id': subscription_id,
-                   'response_code': response_code,
-                   'response_error': response_error}
+    def remove_subscription_request(self, remove_subscription_api_request):
+        request = remove_subscription_api_request.extract()
         self._params['remove_subscription_request'] = request
 
     def method(self, method):
@@ -194,6 +187,29 @@ class AuthSubscriptionApiRequest(SubscriptionApiRequest):
             return True
         except ApiResponseError:
             return
+
+
+class RemoveSubscriptionApiRequest(object):
+    """Remove subscription api request class."""
+
+    def __init__(self):
+        self._subscription_id = None
+        self._response_code = 403
+        self._response_error = 'Subscription has already removed.'
+
+    def subscription_id(self, subscription_id):
+        self._subscription_id = subscription_id
+
+    def response_code(self, code):
+        self._response_code = code
+
+    def response_error(self, error):
+        self._response_error = error
+
+    def extract(self):
+        return {'subscription_id': self._subscription_id,
+                'response_code': self._response_code,
+                'response_error': self._response_error}
 
 
 class ApiRequestError(TransportError):

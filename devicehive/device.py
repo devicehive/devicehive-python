@@ -1,6 +1,7 @@
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
+from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
 from devicehive.api_request import ApiRequestError
@@ -100,10 +101,12 @@ class Device(object):
         return subscription['subscriptionId']
 
     def unsubscribe_commands(self, subscription_id):
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
         api_request = ApiRequest(self._api)
         api_request.action('command/unsubscribe')
         api_request.set('subscriptionId', subscription_id)
-        api_request.remove_subscription_request(subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe commands failure.')
         self._api.remove_subscription_id('command/insert', subscription_id)
         self._api.remove_subscription_id('command/update', subscription_id)
@@ -177,10 +180,12 @@ class Device(object):
         return subscription['subscriptionId']
 
     def unsubscribe_notifications(self, subscription_id):
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
         api_request = ApiRequest(self._api)
         api_request.action('notification/unsubscribe')
         api_request.set('subscriptionId', subscription_id)
-        api_request.remove_subscription_request(subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe notifications failure.')
         self._api.remove_subscription_id('notification/insert', subscription_id)
 
