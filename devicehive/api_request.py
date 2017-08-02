@@ -13,7 +13,7 @@ class ApiRequest(object):
         self._request = {}
         self._params = {'subscription_request': {},
                         'response_subscription_id_key': 'subscriptionId',
-                        'remove_subscription_id': None,
+                        'remove_subscription_request': {},
                         'method': 'GET',
                         'url': None,
                         'request_delete_keys': [],
@@ -46,15 +46,22 @@ class ApiRequest(object):
         self._params['request_key'] = key
 
     def subscription_request(self, subscription_api_request):
-        subscription_request = subscription_api_request.extract(self._uuid(),
-                                                                self._uuid())
-        self._params['subscription_request'] = subscription_request
+        request = subscription_api_request.extract(self._uuid(), self._uuid())
+        self._params['subscription_request'] = request
 
     def response_subscription_id_key(self, key):
         self._params['response_subscription_id_key'] = key
 
-    def remove_subscription_request(self, subscription_id):
-        self._params['remove_subscription_id'] = subscription_id
+    def remove_subscription_request(self, subscription_id, response_code=None,
+                                    response_error=None):
+        if not response_code:
+            response_code = 403
+        if not response_error:
+            response_error = 'Subscription has already removed.'
+        request = {'subscription_id': subscription_id,
+                   'response_code': response_code,
+                   'response_error': response_error}
+        self._params['remove_subscription_request'] = request
 
     def method(self, method):
         self._params['method'] = method

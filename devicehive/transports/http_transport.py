@@ -153,9 +153,15 @@ class HttpTransport(Transport):
             except:
                 self._exception_info = sys.exc_info()
 
-    def _remove_subscription_request(self, request_id, action, subscription_id):
-        if subscription_id in self._subscription_ids:
-            self._subscription_ids.remove(subscription_id)
+    def _remove_subscription_request(self, request_id, action, subscription_id,
+                                     response_code, response_error):
+        if subscription_id not in self._subscription_ids:
+            return {self.REQUEST_ID_KEY: request_id,
+                    self.REQUEST_ACTION_KEY: action,
+                    self.RESPONSE_STATUS_KEY: self.RESPONSE_ERROR_STATUS,
+                    self.RESPONSE_CODE_KEY: response_code,
+                    self.RESPONSE_ERROR_KEY: response_error}
+        self._subscription_ids.remove(subscription_id)
         return {self.REQUEST_ID_KEY: request_id,
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS}
@@ -165,14 +171,15 @@ class HttpTransport(Transport):
         subscription_request = params.pop('subscription_request', {})
         response_subscription_id_key = params.pop(
             'response_subscription_id_key', 'subscriptionId')
-        remove_subscription_id = params.pop('remove_subscription_id', None)
+        remove_subscription_request = params.pop('remove_subscription_request',
+                                                 {})
         if subscription_request:
             response = self._subscription_request(request_id, action,
                                                   subscription_request,
                                                   response_subscription_id_key)
-        elif remove_subscription_id:
-            response = self._remove_subscription_request(request_id, action,
-                                                         remove_subscription_id)
+        elif remove_subscription_request:
+            response = self._remove_subscription_request(
+                request_id, action, **remove_subscription_request)
         else:
             response = self._request(request_id, action, request, **params)
         self._events_queue.append([response])
@@ -182,14 +189,15 @@ class HttpTransport(Transport):
         subscription_request = params.pop('subscription_request', {})
         response_subscription_id_key = params.pop(
             'response_subscription_id_key', 'subscriptionId')
-        remove_subscription_id = params.pop('remove_subscription_id', None)
+        remove_subscription_request = params.pop('remove_subscription_request',
+                                                 {})
         if subscription_request:
             return self._subscription_request(request_id, action,
                                               subscription_request,
                                               response_subscription_id_key)
-        if remove_subscription_id:
-            return self._remove_subscription_request(request_id, action,
-                                                     remove_subscription_id)
+        if remove_subscription_request:
+            return self._remove_subscription_request(
+                request_id, action, **remove_subscription_request)
         return self._request(request_id, action, request, **params)
 
 
