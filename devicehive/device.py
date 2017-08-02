@@ -100,6 +100,33 @@ class Device(object):
         subscription = api_request.execute('Subscribe insert commands failure.')
         return subscription['subscriptionId']
 
+    def subscribe_update_commands(self, names=None, limit=None, timestamp=None):
+        self._ensure_exists()
+        join_names = ','.join(names) if names else None
+        if not timestamp:
+            timestamp = self._api.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
+        auth_subscription_api_request.action('command/update')
+        auth_subscription_api_request.url('device/{deviceId}/command/poll',
+                                          deviceId=self._id)
+        auth_subscription_api_request.param('returnUpdatedCommands', True)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('limit', limit)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_timestamp_key('lastUpdated')
+        auth_subscription_api_request.response_key('command')
+        api_request = ApiRequest(self._api)
+        api_request.action('command/subscribe')
+        api_request.set('deviceId', self._id)
+        # TODO: uncomment after server response will be ready.
+        # api_request.set('subscribeUpdatedCommands', True)
+        api_request.set('names', names)
+        api_request.set('limit', limit)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        subscription = api_request.execute('Subscribe update commands failure.')
+        return subscription['subscriptionId']
+
     def unsubscribe_commands(self, subscription_id):
         remove_subscription_api_request = RemoveSubscriptionApiRequest()
         remove_subscription_api_request.subscription_id(subscription_id)
