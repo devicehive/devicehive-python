@@ -23,20 +23,20 @@ class TestHandler(Handler):
                     self._handle_notification]):
             self.disconnect()
 
-    def handle_command_insert(self, subscription_id, command):
+    def handle_command_insert(self, command):
         if not self._handle_command_insert:
             return
-        self._handle_command_insert(self, subscription_id, command)
+        self._handle_command_insert(self, command)
 
-    def handle_command_update(self, subscription_id, command):
+    def handle_command_update(self, command):
         if not self._handle_command_update:
             return
-        self._handle_command_update(self, subscription_id, command)
+        self._handle_command_update(self, command)
 
-    def handle_notification(self, subscription_id, notification):
+    def handle_notification(self, notification):
         if not self._handle_notification:
             return
-        self._handle_notification(self, subscription_id, notification)
+        self._handle_notification(self, notification)
 
     def disconnect(self):
         if not self.api.transport.connected:

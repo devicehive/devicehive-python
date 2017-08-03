@@ -14,19 +14,17 @@ class Handler(object):
     def handle_connect(self):
         raise NotImplementedError
 
-    def handle_command_insert(self, subscription_id, command):
-        message = 'Inserted command received. Subscription id: %s.'
-        message %= subscription_id
+    def handle_command_insert(self, command):
+        message = 'Inserted command received. Command id: %s.' % command.id
         warnings.warn(message, HandlerWarning)
 
-    def handle_command_update(self, subscription_id, command):
-        message = 'Updated command received. Subscription id: %s.'
-        message %= subscription_id
+    def handle_command_update(self, command):
+        message = 'Updated command received. Command id: %s.' % command.id
         warnings.warn(message, HandlerWarning)
 
-    def handle_notification(self, subscription_id, notification):
-        message = 'Notification received. Subscription id: %s.'
-        message %= subscription_id
+    def handle_notification(self, notification):
+        message = 'Notification received. Notification id: %s.'
+        message %= notification.id
         warnings.warn(message, HandlerWarning)
 
 
