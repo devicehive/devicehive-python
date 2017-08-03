@@ -33,7 +33,7 @@ class ApiHandler(Handler):
         api_event = ApiEvent(event)
         action = api_event.action
         subscription_id = api_event.subscription_id
-        if self._api.remove_subscription_id_exists(action, subscription_id):
+        if self._api.removed_subscription_id_exists(action, subscription_id):
             return
         event = api_event.event
         if action == self.EVENT_COMMAND_INSERT_ACTION:

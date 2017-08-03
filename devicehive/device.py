@@ -132,6 +132,15 @@ class Device(object):
         subscription = api_request.execute('Subscribe insert commands failure.')
         self._subscription(action, subscription['subscriptionId'])
 
+    def unsubscribe_insert_commands(self):
+        self._ensure_exists()
+        action = 'command/insert'
+        self._ensure_subscription_exists(action)
+        subscription_id = self._subscription_id(action)
+        self._unsubscribe_commands(subscription_id)
+        self._remove_subscription(action)
+        self._api.removed_subscription_id(action, subscription_id)
+
     def subscribe_update_commands(self, names=None, limit=None, timestamp=None):
         self._ensure_exists()
         action = 'command/update'
@@ -160,15 +169,6 @@ class Device(object):
         subscription = api_request.execute('Subscribe update commands failure.')
         self._subscription(action, subscription['subscriptionId'])
 
-    def unsubscribe_insert_commands(self):
-        self._ensure_exists()
-        action = 'command/insert'
-        self._ensure_subscription_exists(action)
-        subscription_id = self._subscription_id(action)
-        self._unsubscribe_commands(subscription_id)
-        self._remove_subscription(action)
-        self._api.remove_subscription_id(action, subscription_id)
-
     def unsubscribe_update_commands(self):
         self._ensure_exists()
         action = 'command/update'
@@ -176,7 +176,7 @@ class Device(object):
         subscription_id = self._subscription_id(action)
         self._unsubscribe_commands(subscription_id)
         self._remove_subscription(action)
-        self._api.remove_subscription_id(action, subscription_id)
+        self._api.removed_subscription_id(action, subscription_id)
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
@@ -261,7 +261,7 @@ class Device(object):
         api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe notifications failure.')
         self._remove_subscription(action)
-        self._api.remove_subscription_id(action, subscription_id)
+        self._api.removed_subscription_id(action, subscription_id)
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
