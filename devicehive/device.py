@@ -25,6 +25,7 @@ class Device(object):
         self.is_blocked = None
         if device:
             self._init(device)
+        self._subscriptions = {}
 
     def _init(self, device):
         self._id = device[self.ID_KEY]
@@ -37,6 +38,34 @@ class Device(object):
         if self._id:
             return
         raise DeviceError('Device does not exist.')
+
+    def _ensure_subscription_not_exist(self, action):
+        if not self._subscriptions.get(action):
+            return
+        raise DeviceError('Device has already subscribed for %s.' % action)
+
+    def _ensure_subscription_exists(self, action):
+        if self._subscriptions.get(action):
+            return
+        raise DeviceError('Device has not subscribed for %s.' % action)
+
+    def _subscription(self, action, subscription_id):
+        self._subscriptions[action] = subscription_id
+
+    def _subscription_id(self, action):
+        return self._subscriptions[action]
+
+    def _remove_subscription(self, action):
+        del self._subscriptions[action]
+
+    def _unsubscribe_commands(self, subscription_id):
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
+        api_request = ApiRequest(self._api)
+        api_request.action('command/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
+        api_request.execute('Unsubscribe commands failure.')
 
     @property
     def id(self):
@@ -76,14 +105,17 @@ class Device(object):
         self.data = None
         self.network_id = None
         self.is_blocked = None
+        self._subscriptions = {}
 
     def subscribe_insert_commands(self, names=None, limit=None, timestamp=None):
         self._ensure_exists()
+        action = 'command/insert'
+        self._ensure_subscription_not_exist(action)
         join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self._api.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
-        auth_subscription_api_request.action('command/insert')
+        auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
         auth_subscription_api_request.param('names', join_names)
@@ -98,15 +130,17 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
-        return subscription['subscriptionId']
+        self._subscription(action, subscription['subscriptionId'])
 
     def subscribe_update_commands(self, names=None, limit=None, timestamp=None):
         self._ensure_exists()
+        action = 'command/update'
+        self._ensure_subscription_not_exist(action)
         join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self._api.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
-        auth_subscription_api_request.action('command/update')
+        auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
         auth_subscription_api_request.param('returnUpdatedCommands', True)
@@ -124,19 +158,25 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe update commands failure.')
-        return subscription['subscriptionId']
+        self._subscription(action, subscription['subscriptionId'])
 
-    def unsubscribe_commands(self, subscription_id):
+    def unsubscribe_insert_commands(self):
         self._ensure_exists()
-        remove_subscription_api_request = RemoveSubscriptionApiRequest()
-        remove_subscription_api_request.subscription_id(subscription_id)
-        api_request = ApiRequest(self._api)
-        api_request.action('command/unsubscribe')
-        api_request.set('subscriptionId', subscription_id)
-        api_request.remove_subscription_request(remove_subscription_api_request)
-        api_request.execute('Unsubscribe commands failure.')
-        self._api.remove_subscription_id('command/insert', subscription_id)
-        self._api.remove_subscription_id('command/update', subscription_id)
+        action = 'command/insert'
+        self._ensure_subscription_exists(action)
+        subscription_id = self._subscription_id(action)
+        self._unsubscribe_commands(subscription_id)
+        self._remove_subscription(action)
+        self._api.remove_subscription_id(action, subscription_id)
+
+    def unsubscribe_update_commands(self):
+        self._ensure_exists()
+        action = 'command/update'
+        self._ensure_subscription_exists(action)
+        subscription_id = self._subscription_id(action)
+        self._unsubscribe_commands(subscription_id)
+        self._remove_subscription(action)
+        self._api.remove_subscription_id(action, subscription_id)
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
@@ -187,11 +227,13 @@ class Device(object):
 
     def subscribe_notifications(self, names=None, timestamp=None):
         self._ensure_exists()
+        action = 'notification/insert'
+        self._ensure_subscription_not_exist(action)
         join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self._api.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self._api)
-        auth_subscription_api_request.action('notification/insert')
+        auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/{deviceId}/notification/poll',
                                           deviceId=self._id)
         auth_subscription_api_request.param('names', join_names)
@@ -204,9 +246,13 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe notifications failure.')
-        return subscription['subscriptionId']
+        self._subscription(action, subscription['subscriptionId'])
 
-    def unsubscribe_notifications(self, subscription_id):
+    def unsubscribe_notifications(self):
+        self._ensure_exists()
+        action = 'notification/insert'
+        self._ensure_subscription_exists(action)
+        subscription_id = self._subscription_id(action)
         remove_subscription_api_request = RemoveSubscriptionApiRequest()
         remove_subscription_api_request.subscription_id(subscription_id)
         api_request = ApiRequest(self._api)
@@ -214,7 +260,8 @@ class Device(object):
         api_request.set('subscriptionId', subscription_id)
         api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe notifications failure.')
-        self._api.remove_subscription_id('notification/insert', subscription_id)
+        self._remove_subscription(action)
+        self._api.remove_subscription_id(action, subscription_id)
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
