@@ -115,6 +115,12 @@ def test_subscribe_insert_commands(test):
 
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
+        device.subscribe_insert_commands()
+        try:
+            device.subscribe_insert_commands()
+            assert False
+        except DeviceError:
+            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
         try:
@@ -194,6 +200,12 @@ def test_subscribe_update_commands(test):
 
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
+        device.subscribe_update_commands()
+        try:
+            device.subscribe_update_commands()
+            assert False
+        except DeviceError:
+            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
         try:
@@ -374,6 +386,12 @@ def test_subscribe_notifications(test):
 
     def handle_connect(handler):
         device, notifications, notification_ids = init_device(handler)
+        device.subscribe_notifications()
+        try:
+            device.subscribe_notifications()
+            assert False
+        except DeviceError:
+            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
         try:
