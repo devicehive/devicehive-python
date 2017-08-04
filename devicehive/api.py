@@ -11,7 +11,8 @@ class Api(object):
     def __init__(self, transport, auth):
         self._transport = transport
         self._token = Token(self, auth)
-        self._removed_subscriptions = {}
+        self._subscriptions = {}
+        self._removed_subscription_ids = {}
         self.server_timestamp = None
 
     @property
@@ -22,13 +23,26 @@ class Api(object):
     def token(self):
         return self._token
 
-    def removed_subscription_id(self, action, subscription_id):
-        if not self._removed_subscriptions.get(action):
-            self._removed_subscriptions[action] = []
-        self._removed_subscriptions[action].append(subscription_id)
+    def subscription_id(self, action, device_id):
+        if not self._subscriptions.get(action):
+            return None
+        for subscription_id in self._subscriptions[action]:
+            if device_id in self._subscriptions[action][subscription_id]:
+                return subscription_id
+
+    def subscription(self, action, subscription_id, *device_ids):
+        if not self._subscriptions.get(action):
+            self._subscriptions[action] = {}
+        self._subscriptions[action][subscription_id] = device_ids
+
+    def remove_subscription(self, action, subscription_id):
+        del self._subscriptions[action][subscription_id]
+        if not self._removed_subscription_ids.get(action):
+            self._removed_subscription_ids[action] = []
+        self._removed_subscription_ids[action].append(subscription_id)
 
     def removed_subscription_id_exists(self, action, subscription_id):
-        subscription_ids = self._removed_subscriptions.get(action)
+        subscription_ids = self._removed_subscription_ids.get(action)
         if not subscription_ids:
             return False
         return subscription_id in subscription_ids
