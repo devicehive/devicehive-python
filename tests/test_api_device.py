@@ -144,6 +144,19 @@ def test_unsubscribe_insert_commands(test):
 
     def handle_connect(handler):
         device_id = test.generate_id('d-u-i-c')
+        command_name = test.generate_id('d-u-i-c')
+        device = handler.api.put_device(device_id)
+        device.subscribe_insert_commands()
+        device.send_command(command_name)
+        device.unsubscribe_insert_commands()
+
+    def handle_command_insert(handler, command):
+        assert False
+
+    test.run(handle_connect, handle_command_insert, timeout=5)
+
+    def handle_connect(handler):
+        device_id = test.generate_id('d-u-i-c')
         device = handler.api.put_device(device_id)
         device.subscribe_insert_commands()
         device.unsubscribe_insert_commands()
@@ -256,6 +269,24 @@ def test_subscribe_update_commands(test):
 
 
 def test_unsubscribe_update_commands(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('d-u-u-c')
+        command_name = test.generate_id('d-u-u-c')
+        device = handler.api.put_device(device_id)
+        device.subscribe_update_commands()
+        command = device.send_command(command_name)
+        command.status = 'status'
+        command.save()
+        device.unsubscribe_update_commands()
+
+    def handle_command_update(handler, command):
+        assert False
+
+    # TODO: add websocket support after server response will be fixed.
+    if test.http_transport:
+        test.run(handle_connect, handle_command_update=handle_command_update,
+                 timeout=5)
 
     def handle_connect(handler):
         device_id = test.generate_id('d-u-u-c')
@@ -472,6 +503,19 @@ def test_subscribe_notifications(test):
 
 
 def test_unsubscribe_notifications(test):
+
+    def handle_connect(handler):
+        device_id = test.generate_id('d-u-n')
+        notification_name = test.generate_id('d-u-n')
+        device = handler.api.put_device(device_id)
+        device.subscribe_notifications()
+        device.send_notification(notification_name)
+        device.unsubscribe_notifications()
+
+    def handle_notification(handler, command):
+        assert False
+
+    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
 
     def handle_connect(handler):
         device_id = test.generate_id('d-u-n')
