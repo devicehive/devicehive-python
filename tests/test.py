@@ -81,7 +81,7 @@ class Test(object):
         pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_command_insert=None,
-            handle_command_update=None, handle_notification=None):
+            handle_command_update=None, handle_notification=None, timeout=5):
         handler_kwargs = {'handle_connect': handle_connect,
                           'handle_command_insert': handle_command_insert,
                           'handle_command_update': handle_command_update,
@@ -89,7 +89,7 @@ class Test(object):
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
-        device_hive.join()
+        device_hive.join(timeout)
         exception_info = device_hive.exception_info()
         if not exception_info:
             return
