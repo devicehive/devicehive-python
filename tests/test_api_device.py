@@ -185,8 +185,6 @@ def test_unsubscribe_insert_commands(test):
 
 def test_subscribe_update_commands(test):
 
-    test.only_http_implementation()
-
     def init_device(handler):
         test_id = test.generate_id('d-s-u-c')
         options = [{'command': '%s-name-1' % test_id},
