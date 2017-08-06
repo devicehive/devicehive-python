@@ -34,12 +34,12 @@ class Api(object):
         self._subscriptions[action][device_id] = subscription_id
 
     def remove_subscription(self, action, subscription_id):
-        subscriptions = {}
+        subscription_ids = {}
         for device_id in self._subscriptions[action]:
             if self._subscriptions[action][device_id] == subscription_id:
                 continue
-            subscriptions[device_id] = self._subscriptions[action][device_id]
-        self._subscriptions[action] = subscriptions
+            subscription_ids[device_id] = self._subscriptions[action][device_id]
+        self._subscriptions[action] = subscription_ids
         if not self._removed_subscription_ids.get(action):
             self._removed_subscription_ids[action] = []
         self._removed_subscription_ids[action].append(subscription_id)
