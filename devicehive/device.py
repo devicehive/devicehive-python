@@ -52,7 +52,7 @@ class Device(object):
         return self._api.subscription_id(action, self._id)
 
     def _subscription(self, action, subscription_id):
-        self._api.subscription(action, subscription_id, self._id)
+        self._api.subscription(action, self._id, subscription_id)
 
     def _remove_subscription(self, action, subscription_id):
         self._api.remove_subscription(action, subscription_id)

@@ -26,20 +26,21 @@ class Api(object):
     def subscription_id(self, action, device_id):
         if not self._subscriptions.get(action):
             return None
-        for subscription_id in self._subscriptions[action]:
-            if device_id in self._subscriptions[action][subscription_id]:
-                return subscription_id
+        return self._subscriptions[action].get(device_id)
 
-    def subscription(self, action, subscription_id, *device_ids):
+    def subscription(self, action, device_id, subscription_id):
         if not self._subscriptions.get(action):
             self._subscriptions[action] = {}
-        self._subscriptions[action][subscription_id] = device_ids
+        self._subscriptions[action][device_id] = subscription_id
 
-    def remove_subscription(self, action, subscription_id):
-        del self._subscriptions[action][subscription_id]
+    def remove_subscription(self, action, remove_subscription_id):
+        for device_id, subscription_id in self._subscriptions[action].items():
+            if not subscription_id == remove_subscription_id:
+                continue
+            del self._subscriptions[action][device_id]
         if not self._removed_subscription_ids.get(action):
             self._removed_subscription_ids[action] = []
-        self._removed_subscription_ids[action].append(subscription_id)
+        self._removed_subscription_ids[action].append(remove_subscription_id)
 
     def removed_subscription_id_exists(self, action, subscription_id):
         subscription_ids = self._removed_subscription_ids.get(action)
