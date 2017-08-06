@@ -116,6 +116,16 @@ def test_subscribe_insert_commands(test):
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
         device.subscribe_insert_commands()
+        device.remove()
+
+    def handle_command_insert(handler, command):
+        assert False
+
+    test.run(handle_connect, handle_command_insert, timeout=5)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        device.subscribe_insert_commands()
         try:
             device.subscribe_insert_commands()
             assert False
@@ -238,6 +248,17 @@ def test_subscribe_update_commands(test):
         set_handler_data(handler, device, commands, command_ids)
 
     test.run(handle_connect, handle_command_update=handle_command_update)
+
+    def handle_connect(handler):
+        device, commands, command_ids = init_device(handler)
+        device.subscribe_update_commands()
+        device.remove()
+
+    def handle_command_update(handler, command):
+        assert False
+
+    test.run(handle_connect, handle_command_update=handle_command_update,
+             timeout=5)
 
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
@@ -472,6 +493,16 @@ def test_subscribe_notifications(test):
         handler.disconnect()
 
     test.run(handle_connect, handle_notification=handle_notification)
+
+    def handle_connect(handler):
+        device, notifications, notification_ids = init_device(handler)
+        device.subscribe_notifications()
+        device.remove()
+
+    def handle_notification(handler, command):
+        assert False
+
+    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
 
     def handle_connect(handler):
         device, notifications, notification_ids = init_device(handler)
