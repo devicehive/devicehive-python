@@ -3,6 +3,7 @@ from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
 from devicehive.device import Device
+from devicehive.device import DeviceError
 
 
 class Api(object):
@@ -22,6 +23,20 @@ class Api(object):
     @property
     def token(self):
         return self._token
+
+    def ensure_subscription_not_exist(self, action, *device_ids):
+        for device_id in device_ids:
+            if not self.subscription_id(action, device_id):
+                continue
+            raise DeviceError('Device %s has already subscribed for %s.' %
+                              (device_id, action))
+
+    def ensure_subscription_exist(self, action, *device_ids):
+        for device_id in device_ids:
+            if self.subscription_id(action, device_id):
+                continue
+            raise DeviceError('Device %s has not subscribed for %s.' %
+                              (device_id, action))
 
     def subscription_id(self, action, device_id):
         if not self._subscriptions.get(action):
@@ -94,12 +109,13 @@ class Api(object):
 
     def subscribe_insert_commands(self, device_ids, names=None, limit=None,
                                   timestamp=None):
+        action = 'command/insert'
         join_device_ids = ','.join(device_ids)
         join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action('command/insert')
+        auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/command/poll',
                                           deviceIds=join_device_ids)
         auth_subscription_api_request.param('names', join_names)
@@ -114,7 +130,9 @@ class Api(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
-        return subscription['subscriptionId']
+        subscription_id = subscription['subscriptionId']
+        for device_id in device_ids:
+            self.subscription(action, device_id, subscription_id)
 
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
         join_device_ids = ','.join(device_ids)

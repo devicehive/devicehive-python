@@ -39,14 +39,10 @@ class Device(object):
         raise DeviceError('Device does not exist.')
 
     def _ensure_subscription_not_exist(self, action):
-        if not self._api.subscription_id(action, self._id):
-            return
-        raise DeviceError('Device has already subscribed for %s.' % action)
+        self._api.ensure_subscription_not_exist(action, self._id)
 
     def _ensure_subscription_exists(self, action):
-        if self._api.subscription_id(action, self._id):
-            return
-        raise DeviceError('Device has not subscribed for %s.' % action)
+        self._api.ensure_subscription_exist(action, self._id)
 
     def _subscription_id(self, action):
         return self._api.subscription_id(action, self._id)
