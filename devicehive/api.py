@@ -111,6 +111,7 @@ class Api(object):
     def subscribe_insert_commands(self, device_ids, names=None, limit=None,
                                   timestamp=None):
         action = 'command/insert'
+        self.ensure_subscription_not_exist(action, *device_ids)
         join_device_ids = ','.join(device_ids)
         join_names = ','.join(names) if names else None
         if not timestamp:
@@ -132,8 +133,7 @@ class Api(object):
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
         subscription_id = subscription['subscriptionId']
-        for device_id in device_ids:
-            self.subscription(action, device_id, subscription_id)
+        self.subscription(action, subscription_id, *device_ids)
 
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
         join_device_ids = ','.join(device_ids)
