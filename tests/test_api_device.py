@@ -111,6 +111,11 @@ def test_subscribe_insert_commands(test):
         device.subscribe_insert_commands(limit=1)
         set_handler_data(handler, device, commands, command_ids)
 
+    def handle_command_insert(handler, command):
+        assert command.id in handler.data['command_ids']
+        handler.data['device'].remove()
+        handler.disconnect()
+
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
@@ -118,7 +123,7 @@ def test_subscribe_insert_commands(test):
         device.subscribe_insert_commands()
         device.remove()
 
-    def handle_command_insert(handler, command):
+    def handle_command_insert(*_):
         assert False
 
     test.run(handle_connect, handle_command_insert, timeout=5)
@@ -152,22 +157,22 @@ def test_subscribe_insert_commands(test):
 
 def test_unsubscribe_insert_commands(test):
 
+    device_id = test.generate_id('d-u-i-c')
+
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-i-c')
         command_name = test.generate_id('d-u-i-c')
         device = handler.api.put_device(device_id)
         device.subscribe_insert_commands()
         device.send_command(command_name)
         device.unsubscribe_insert_commands()
 
-    def handle_command_insert(handler, command):
+    def handle_command_insert(*_):
         assert False
 
     test.run(handle_connect, handle_command_insert, timeout=5)
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-i-c')
-        device = handler.api.put_device(device_id)
+        device = handler.api.get_device(device_id)
         device.subscribe_insert_commands()
         device.unsubscribe_insert_commands()
         try:
@@ -247,6 +252,11 @@ def test_subscribe_update_commands(test):
         device.subscribe_update_commands(limit=1)
         set_handler_data(handler, device, commands, command_ids)
 
+    def handle_command_update(handler, command):
+        assert command.id in handler.data['command_ids']
+        handler.data['device'].remove()
+        handler.disconnect()
+
     test.run(handle_connect, handle_command_update=handle_command_update)
 
     def handle_connect(handler):
@@ -254,7 +264,7 @@ def test_subscribe_update_commands(test):
         device.subscribe_update_commands()
         device.remove()
 
-    def handle_command_update(handler, command):
+    def handle_command_update(*_):
         assert False
 
     test.run(handle_connect, handle_command_update=handle_command_update,
@@ -289,8 +299,9 @@ def test_subscribe_update_commands(test):
 
 def test_unsubscribe_update_commands(test):
 
+    device_id = test.generate_id('d-u-u-c')
+
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-u-c')
         command_name = test.generate_id('d-u-u-c')
         device = handler.api.put_device(device_id)
         device.subscribe_update_commands()
@@ -299,17 +310,14 @@ def test_unsubscribe_update_commands(test):
         command.save()
         device.unsubscribe_update_commands()
 
-    def handle_command_update(handler, command):
+    def handle_command_update(*_):
         assert False
 
-    # TODO: add websocket support after server response will be fixed.
-    if test.http_transport:
-        test.run(handle_connect, handle_command_update=handle_command_update,
-                 timeout=5)
+    test.run(handle_connect, handle_command_update=handle_command_update,
+             timeout=5)
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-u-c')
-        device = handler.api.put_device(device_id)
+        device = handler.api.get_device(device_id)
         device.subscribe_update_commands()
         device.unsubscribe_update_commands()
         try:
@@ -499,7 +507,7 @@ def test_subscribe_notifications(test):
         device.subscribe_notifications()
         device.remove()
 
-    def handle_notification(handler, command):
+    def handle_notification(*_):
         assert False
 
     test.run(handle_connect, handle_notification=handle_notification, timeout=5)
@@ -533,22 +541,22 @@ def test_subscribe_notifications(test):
 
 def test_unsubscribe_notifications(test):
 
+    device_id = test.generate_id('d-u-n')
+
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-n')
         notification_name = test.generate_id('d-u-n')
         device = handler.api.put_device(device_id)
         device.subscribe_notifications()
         device.send_notification(notification_name)
         device.unsubscribe_notifications()
 
-    def handle_notification(handler, command):
+    def handle_notification(*_):
         assert False
 
     test.run(handle_connect, handle_notification=handle_notification, timeout=5)
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-n')
-        device = handler.api.put_device(device_id)
+        device = handler.api.get_device(device_id)
         device.subscribe_notifications()
         device.unsubscribe_notifications()
         try:
@@ -602,31 +610,24 @@ def test_list_notifications(test):
         notification, = list_notifications(device,
                                            notification=notification_name)
         assert notification.notification == notification_name
-        notification_0, notification_1 = list_notifications(device,
-                                                            sort_field=
-                                                            'notification',
-                                                            sort_order='ASC')
+        notification_0, notification_1 = list_notifications(
+            device, sort_field='notification', sort_order='ASC')
         assert notification_0.notification == options[0]['notification']
         assert notification_1.notification == options[1]['notification']
-        notification_0, notification_1 = list_notifications(device,
-                                                            sort_field=
-                                                            'notification',
-                                                            sort_order='DESC')
+        notification_0, notification_1 = list_notifications(
+            device, sort_field='notification', sort_order='DESC')
         assert notification_0.notification == options[1]['notification']
         assert notification_1.notification == options[0]['notification']
         notification_name = test_id
         notification_0 = device.send_notification(notification_name)
         notification_1 = device.send_notification(notification_name)
-        notification, = device.list_notifications(notification=
-                                                  notification_name,
-                                                  sort_field='timestamp',
-                                                  sort_order='ASC', take=1)
+        notification, = device.list_notifications(
+            notification=notification_name, sort_field='timestamp',
+            sort_order='ASC', take=1)
         assert notification.id == notification_0.id
-        notification, = device.list_notifications(notification=
-                                                  notification_name,
-                                                  sort_field='timestamp',
-                                                  sort_order='ASC', take=1,
-                                                  skip=1)
+        notification, = device.list_notifications(
+            notification=notification_name, sort_field='timestamp',
+            sort_order='ASC', take=1, skip=1)
         assert notification.id == notification_1.id
         device_1 = handler.api.get_device(test_id)
         device.remove()
