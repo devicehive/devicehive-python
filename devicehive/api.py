@@ -43,10 +43,11 @@ class Api(object):
             return None
         return self._subscriptions[action].get(device_id)
 
-    def subscription(self, action, device_id, subscription_id):
+    def subscription(self, action, subscription_id, *device_ids):
         if not self._subscriptions.get(action):
             self._subscriptions[action] = {}
-        self._subscriptions[action][device_id] = subscription_id
+        self._subscriptions[action] = {device_id: subscription_id
+                                       for device_id in device_ids}
 
     def remove_subscription(self, action, subscription_id):
         subscription_ids = {}
