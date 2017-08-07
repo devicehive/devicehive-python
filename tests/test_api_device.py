@@ -108,18 +108,6 @@ def test_subscribe_insert_commands(test):
 
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
-        device.subscribe_insert_commands(limit=1)
-        set_handler_data(handler, device, commands, command_ids)
-
-    def handle_command_insert(handler, command):
-        assert command.id in handler.data['command_ids']
-        handler.data['device'].remove()
-        handler.disconnect()
-
-    test.run(handle_connect, handle_command_insert)
-
-    def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
         device.subscribe_insert_commands()
         device.remove()
 
@@ -242,18 +230,6 @@ def test_subscribe_update_commands(test):
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
-        handler.data['device'].remove()
-        handler.disconnect()
-
-    test.run(handle_connect, handle_command_update=handle_command_update)
-
-    def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
-        device.subscribe_update_commands(limit=1)
-        set_handler_data(handler, device, commands, command_ids)
-
-    def handle_command_update(handler, command):
-        assert command.id in handler.data['command_ids']
         handler.data['device'].remove()
         handler.disconnect()
 

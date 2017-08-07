@@ -123,7 +123,7 @@ class Device(object):
         self.network_id = None
         self.is_blocked = None
 
-    def subscribe_insert_commands(self, names=None, limit=None, timestamp=None):
+    def subscribe_insert_commands(self, names=None, timestamp=None):
         self._ensure_exists()
         action = 'command/insert'
         self._ensure_subscription_not_exist(action)
@@ -135,14 +135,12 @@ class Device(object):
         auth_subscription_api_request.url('device/{deviceId}/command/poll',
                                           deviceId=self._id)
         auth_subscription_api_request.param('names', join_names)
-        auth_subscription_api_request.param('limit', limit)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('command')
         api_request = ApiRequest(self._api)
         api_request.action('command/subscribe')
         api_request.set('deviceId', self._id)
         api_request.set('names', names)
-        api_request.set('limit', limit)
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
@@ -154,7 +152,7 @@ class Device(object):
         self._ensure_subscription_exists(action)
         self._unsubscribe_commands(action)
 
-    def subscribe_update_commands(self, names=None, limit=None, timestamp=None):
+    def subscribe_update_commands(self, names=None, timestamp=None):
         self._ensure_exists()
         action = 'command/update'
         self._ensure_subscription_not_exist(action)
@@ -167,7 +165,6 @@ class Device(object):
                                           deviceId=self._id)
         auth_subscription_api_request.param('returnUpdatedCommands', True)
         auth_subscription_api_request.param('names', join_names)
-        auth_subscription_api_request.param('limit', limit)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_timestamp_key('lastUpdated')
         auth_subscription_api_request.response_key('command')
@@ -176,7 +173,6 @@ class Device(object):
         api_request.set('returnUpdatedCommands', True)
         api_request.set('deviceId', self._id)
         api_request.set('names', names)
-        api_request.set('limit', limit)
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe update commands failure.')
