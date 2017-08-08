@@ -113,6 +113,63 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect)
 
 
+def test_unsubscribe_insert_commands(test):
+
+    test_id = test.generate_id('u-i-c')
+    device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
+
+    def handle_connect(handler):
+        for device_id in device_ids:
+            device = handler.api.put_device(device_id)
+            command_name = '%s-name' % device_id
+            device.send_command(command_name)
+        handler.api.subscribe_insert_commands(device_ids)
+        handler.api.unsubscribe_insert_commands(device_ids)
+
+    def handle_command_insert(*_):
+        assert False
+
+    test.run(handle_connect, handle_command_insert, timeout=5)
+
+    def handle_connect(handler):
+        for device_id in device_ids:
+            device = handler.api.get_device(device_id)
+            command_name = '%s-name' % device_id
+            device.send_command(command_name)
+        handler.api.subscribe_insert_commands(device_ids[:1])
+        handler.api.subscribe_insert_commands(device_ids[1:])
+        handler.api.unsubscribe_insert_commands(device_ids[:-1])
+
+    def handle_command_insert(_, command):
+        assert command.device_id == device_ids[:-1]
+
+    test.run(handle_connect, handle_command_insert, timeout=5)
+
+    def handle_connect(handler):
+        devices = []
+        for device_id in device_ids:
+            device = handler.api.get_device(device_id)
+            devices.append(device)
+            command_name = '%s-name' % device_id
+            device.send_command(command_name)
+        handler.api.subscribe_insert_commands(device_ids)
+        handler.api.unsubscribe_insert_commands(device_ids)
+        try:
+            handler.api.unsubscribe_insert_commands(device_ids)
+            assert False
+        except DeviceError:
+            pass
+        handler.api.subscribe_insert_commands(device_ids)
+        [device.remove() for device in devices]
+        try:
+            handler.api.unsubscribe_insert_commands(device_ids)
+            assert False
+        except DeviceError:
+            pass
+
+    test.run(handle_connect)
+
+
 def test_list_devices(test):
 
     def handle_connect(handler):
