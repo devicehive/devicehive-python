@@ -31,8 +31,6 @@ def test_get_cluster_info(test):
 
 def test_subscribe_insert_commands(test):
 
-    test.only_websocket_implementation()
-
     def init_devices(handler):
         test_id = test.generate_id('s-i-c')
         options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]

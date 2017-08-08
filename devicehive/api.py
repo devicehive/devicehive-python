@@ -172,8 +172,8 @@ class Api(object):
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
         auth_subscription_api_request.action(action)
-        auth_subscription_api_request.url('device/command/poll',
-                                          deviceIds=join_device_ids)
+        auth_subscription_api_request.url('device/command/poll')
+        auth_subscription_api_request.param('deviceIds', join_device_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('command')
