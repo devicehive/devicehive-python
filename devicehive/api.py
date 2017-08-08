@@ -24,14 +24,14 @@ class Api(object):
     def token(self):
         return self._token
 
-    def ensure_subscription_not_exist(self, action, *device_ids):
+    def ensure_subscription_not_exist(self, action, device_ids):
         for device_id in device_ids:
             if not self.subscription_id(action, device_id):
                 continue
             raise DeviceError('Device %s has already subscribed for %s.' %
                               (device_id, action))
 
-    def ensure_subscription_exist(self, action, *device_ids):
+    def ensure_subscription_exist(self, action, device_ids):
         for device_id in device_ids:
             if self.subscription_id(action, device_id):
                 continue
@@ -41,21 +41,25 @@ class Api(object):
     def subscription_id(self, action, device_id):
         if not self._subscriptions.get(action):
             return None
-        return self._subscriptions[action].get(device_id)
+        for subscription in self._subscriptions[action]:
+            if subscription['device_id'] != device_id:
+                continue
+            return subscription['subscription_id']
 
-    def subscription(self, action, subscription_id, *device_ids):
+    def subscription(self, action, subscription_id, device_ids, names):
         if not self._subscriptions.get(action):
-            self._subscriptions[action] = {}
-        self._subscriptions[action] = {device_id: subscription_id
-                                       for device_id in device_ids}
+            self._subscriptions[action] = []
+        subscriptions = [{'subscription_id': subscription_id,
+                          'device_id': device_id,
+                          'names': names}
+                         for device_id in device_ids]
+        self._subscriptions[action].extend(subscriptions)
 
     def remove_subscription(self, action, subscription_id):
-        subscription_ids = {}
-        for device_id in self._subscriptions[action]:
-            if self._subscriptions[action][device_id] == subscription_id:
-                continue
-            subscription_ids[device_id] = self._subscriptions[action][device_id]
-        self._subscriptions[action] = subscription_ids
+        subscriptions = [subscription
+                         for subscription in self._subscriptions[action]
+                         if subscription['subscription_id'] != subscription_id]
+        self._subscriptions[action] = subscriptions
         if not self._removed_subscription_ids.get(action):
             self._removed_subscription_ids[action] = []
         self._removed_subscription_ids[action].append(subscription_id)
@@ -110,7 +114,7 @@ class Api(object):
 
     def subscribe_insert_commands(self, device_ids, names=None, timestamp=None):
         action = 'command/insert'
-        self.ensure_subscription_not_exist(action, *device_ids)
+        self.ensure_subscription_not_exist(action, device_ids)
         join_device_ids = ','.join(device_ids)
         join_names = ','.join(names) if names else None
         if not timestamp:
@@ -130,7 +134,7 @@ class Api(object):
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
         subscription_id = subscription['subscriptionId']
-        self.subscription(action, subscription_id, *device_ids)
+        self.subscription(action, subscription_id, device_ids, names)
 
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
         join_device_ids = ','.join(device_ids)

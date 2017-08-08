@@ -39,16 +39,16 @@ class Device(object):
         raise DeviceError('Device does not exist.')
 
     def _ensure_subscription_not_exist(self, action):
-        self._api.ensure_subscription_not_exist(action, self._id)
+        self._api.ensure_subscription_not_exist(action, [self._id])
 
     def _ensure_subscription_exists(self, action):
-        self._api.ensure_subscription_exist(action, self._id)
+        self._api.ensure_subscription_exist(action, [self._id])
 
     def _subscription_id(self, action):
         return self._api.subscription_id(action, self._id)
 
-    def _subscription(self, action, subscription_id):
-        self._api.subscription(action, subscription_id, self._id)
+    def _subscription(self, action, subscription_id, names):
+        self._api.subscription(action, subscription_id, [self._id], names)
 
     def _remove_subscription(self, action, subscription_id):
         self._api.remove_subscription(action, subscription_id)
@@ -144,7 +144,7 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
-        self._subscription(action, subscription['subscriptionId'])
+        self._subscription(action, subscription['subscriptionId'], names)
 
     def unsubscribe_insert_commands(self):
         self._ensure_exists()
@@ -176,7 +176,7 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe update commands failure.')
-        self._subscription(action, subscription['subscriptionId'])
+        self._subscription(action, subscription['subscriptionId'], names)
 
     def unsubscribe_update_commands(self):
         self._ensure_exists()
@@ -252,7 +252,7 @@ class Device(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe notifications failure.')
-        self._subscription(action, subscription['subscriptionId'])
+        self._subscription(action, subscription['subscriptionId'], names)
 
     def unsubscribe_notifications(self):
         self._ensure_exists()
