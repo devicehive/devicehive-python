@@ -422,6 +422,63 @@ def test_subscribe_notifications(test):
     test.run(handle_connect)
 
 
+def test_unsubscribe_notifications(test):
+
+    test_id = test.generate_id('u-n')
+    device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
+
+    def handle_connect(handler):
+        for device_id in device_ids:
+            device = handler.api.put_device(device_id)
+            notification_name = '%s-name' % device_id
+            device.send_notification(notification_name)
+        handler.api.subscribe_notifications(device_ids)
+        handler.api.unsubscribe_notifications(device_ids)
+
+    def handle_notification(*_):
+        assert False
+
+    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
+
+    def handle_connect(handler):
+        for device_id in device_ids:
+            device = handler.api.get_device(device_id)
+            notification_name = '%s-name' % device_id
+            device.send_notification(notification_name)
+        handler.api.subscribe_notifications(device_ids[:1])
+        handler.api.subscribe_notifications(device_ids[1:])
+        handler.api.unsubscribe_notifications(device_ids[:-1])
+
+    def handle_notification(_, notification):
+        assert notification.device_id == device_ids[-1]
+
+    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
+
+    def handle_connect(handler):
+        devices = []
+        for device_id in device_ids:
+            device = handler.api.get_device(device_id)
+            devices.append(device)
+            notification_name = '%s-name' % device_id
+            device.send_notification(notification_name)
+        handler.api.subscribe_notifications(device_ids)
+        handler.api.unsubscribe_notifications(device_ids)
+        try:
+            handler.api.unsubscribe_notifications(device_ids)
+            assert False
+        except DeviceError:
+            pass
+        handler.api.subscribe_notifications(device_ids)
+        [device.remove() for device in devices]
+        try:
+            handler.api.unsubscribe_notifications(device_ids)
+            assert False
+        except DeviceError:
+            pass
+
+    test.run(handle_connect)
+
+
 def test_list_devices(test):
 
     def handle_connect(handler):
