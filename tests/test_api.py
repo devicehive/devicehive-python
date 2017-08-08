@@ -322,6 +322,106 @@ def test_unsubscribe_update_commands(test):
     test.run(handle_connect)
 
 
+def test_subscribe_notifications(test):
+
+    def init_devices(handler):
+        test_id = test.generate_id('s-n')
+        options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
+        devices, device_ids, notification_ids = [], [], []
+        notification_names = []
+        for option in options:
+            device = handler.api.put_device(option['id'])
+            devices.append(device)
+            device_ids.append(device.id)
+            notification_name = '%s-name' % device.id
+            notification = device.send_notification(notification_name)
+            notification_ids.append(notification.id)
+            notification_names.append(notification_name)
+        return devices, device_ids, notification_ids, notification_names
+
+    def set_handler_data(handler, devices, device_ids, notification_ids,
+                         notification_names):
+        handler.data['devices'] = devices
+        handler.data['device_ids'] = device_ids
+        handler.data['notification_ids'] = notification_ids
+        handler.data['notification_names'] = notification_names
+
+    def handle_connect(handler):
+        (devices,
+         device_ids,
+         notification_ids,
+         notification_names) = init_devices(handler)
+        handler.api.subscribe_notifications(device_ids)
+        set_handler_data(handler, devices, device_ids, notification_ids,
+                         notification_names)
+
+    def handle_notification(handler, notification):
+        if notification.notification[0] == '$':
+            return
+        assert notification.id in handler.data['notification_ids']
+        handler.data['notification_ids'].remove(notification.id)
+        if handler.data['notification_ids']:
+            return
+        [device.remove() for device in handler.data['devices']]
+        handler.disconnect()
+
+    test.run(handle_connect, handle_notification=handle_notification)
+
+    def handle_connect(handler):
+        (devices,
+         device_ids,
+         notification_ids,
+         notification_names) = init_devices(handler)
+        notification_name = notification_names[0]
+        handler.api.subscribe_notifications(device_ids,
+                                            names=[notification_name])
+        set_handler_data(handler, devices, device_ids, notification_ids,
+                         notification_names)
+
+    def handle_notification(handler, notification):
+        assert notification.id == handler.data['notification_ids'][0]
+        [device.remove() for device in handler.data['devices']]
+        handler.disconnect()
+
+    test.run(handle_connect, handle_notification=handle_notification)
+
+    def handle_connect(handler):
+        (devices,
+         device_ids,
+         notification_ids,
+         notification_names) = init_devices(handler)
+        handler.api.subscribe_notifications(device_ids)
+        [device.remove() for device in devices]
+
+    def handle_notification(*_):
+        assert False
+
+    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
+
+    def handle_connect(handler):
+        (devices,
+         device_ids,
+         notification_ids,
+         notification_names) = init_devices(handler)
+        handler.api.subscribe_notifications(device_ids)
+        try:
+            handler.api.subscribe_notifications(device_ids)
+            assert False
+        except DeviceError:
+            pass
+        [device.remove() for device in devices]
+        # TODO: add http support after server response will be fixed.
+        if test.http_transport:
+            return
+        try:
+            handler.api.subscribe_notifications(device_ids)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+
+    test.run(handle_connect)
+
+
 def test_list_devices(test):
 
     def handle_connect(handler):
