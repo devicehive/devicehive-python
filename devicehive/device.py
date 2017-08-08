@@ -1,6 +1,7 @@
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
+from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.command import Command
 from devicehive.notification import Notification
 from devicehive.api_request import ApiRequestError
@@ -59,14 +60,6 @@ class Device(object):
             if not subscription_id:
                 continue
             self._remove_subscription(action, subscription_id)
-
-    def _unsubscribe_commands(self, action):
-        subscription_id = self._subscription_id(action)
-        self._api.unsubscribe_commands(action, [subscription_id])
-
-    def _unsubscribe_notifications(self, action):
-        subscription_id = self._subscription_id(action)
-        self._api.unsubscribe_notifications(action, [subscription_id])
 
     @property
     def id(self):
@@ -135,7 +128,15 @@ class Device(object):
         self._ensure_exists()
         action = 'command/insert'
         self._ensure_subscription_exists(action)
-        self._unsubscribe_commands(action)
+        subscription_id = self._subscription_id(action)
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
+        api_request = ApiRequest(self._api)
+        api_request.action('command/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
+        api_request.execute('Unsubscribe insert commands failure.')
+        self._remove_subscription(action, subscription_id)
 
     def subscribe_update_commands(self, names=None, timestamp=None):
         self._ensure_exists()
@@ -167,7 +168,15 @@ class Device(object):
         self._ensure_exists()
         action = 'command/update'
         self._ensure_subscription_exists(action)
-        self._unsubscribe_commands(action)
+        subscription_id = self._subscription_id(action)
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
+        api_request = ApiRequest(self._api)
+        api_request.action('command/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
+        api_request.execute('Unsubscribe update commands failure.')
+        self._remove_subscription(action, subscription_id)
 
     def list_commands(self, start=None, end=None, command=None, status=None,
                       sort_field=None, sort_order=None, take=None, skip=None):
@@ -243,7 +252,15 @@ class Device(object):
         self._ensure_exists()
         action = 'notification/insert'
         self._ensure_subscription_exists(action)
-        self._unsubscribe_notifications(action)
+        subscription_id = self._subscription_id(action)
+        remove_subscription_api_request = RemoveSubscriptionApiRequest()
+        remove_subscription_api_request.subscription_id(subscription_id)
+        api_request = ApiRequest(self._api)
+        api_request.action('notification/unsubscribe')
+        api_request.set('subscriptionId', subscription_id)
+        api_request.remove_subscription_request(remove_subscription_api_request)
+        api_request.execute('Unsubscribe notifications failure.')
+        self._remove_subscription(action, subscription_id)
 
     def list_notifications(self, start=None, end=None, notification=None,
                            sort_field=None, sort_order=None, take=None,
