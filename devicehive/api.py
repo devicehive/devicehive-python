@@ -31,7 +31,7 @@ class Api(object):
             raise DeviceError('Device %s has already subscribed for %s.' %
                               (device_id, action))
 
-    def ensure_subscription_exist(self, action, device_ids):
+    def ensure_subscription_exists(self, action, device_ids):
         for device_id in device_ids:
             if self.subscription_id(action, device_id):
                 continue

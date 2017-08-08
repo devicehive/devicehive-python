@@ -42,7 +42,7 @@ class Device(object):
         self._api.ensure_subscription_not_exist(action, [self._id])
 
     def _ensure_subscription_exists(self, action):
-        self._api.ensure_subscription_exist(action, [self._id])
+        self._api.ensure_subscription_exists(action, [self._id])
 
     def _subscription_id(self, action):
         return self._api.subscription_id(action, self._id)
