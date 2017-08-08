@@ -225,6 +225,17 @@ class Api(object):
         subscription_id = subscription['subscriptionId']
         self.subscription(action, subscription_id, device_ids, names)
 
+    def unsubscribe_update_commands(self, device_ids):
+        action = 'command/update'
+        self.ensure_subscription_exists(action, device_ids)
+        subscription_ids, subscription_calls = self._unsubscribe(action,
+                                                                 device_ids)
+        self.unsubscribe_commands(action, subscription_ids)
+        timestamp = self.get_info()['server_timestamp']
+        for subscription_call in subscription_calls:
+            subscription_call['timestamp'] = timestamp
+            self.subscribe_update_commands(**subscription_call)
+
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
         join_device_ids = ','.join(device_ids)
         join_names = ','.join(names) if names else None
