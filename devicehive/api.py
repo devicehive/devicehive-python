@@ -237,14 +237,16 @@ class Api(object):
             self.subscribe_update_commands(**subscription_call)
 
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
+        action = 'notification/insert'
+        self.ensure_subscription_not_exist(action, device_ids)
         join_device_ids = ','.join(device_ids)
         join_names = ','.join(names) if names else None
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action('notification/insert')
-        auth_subscription_api_request.url('device/notification/poll',
-                                          deviceIds=join_device_ids)
+        auth_subscription_api_request.action(action)
+        auth_subscription_api_request.url('device/notification/poll')
+        auth_subscription_api_request.param('deviceIds', join_device_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('notification')
@@ -255,7 +257,8 @@ class Api(object):
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe notifications failure.')
-        return subscription['subscriptionId']
+        subscription_id = subscription['subscriptionId']
+        self.subscription(action, subscription_id, device_ids, names)
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, sort_field=None, sort_order=None,
