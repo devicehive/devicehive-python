@@ -2,6 +2,7 @@ from devicehive.token import Token
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
+from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.device import Device
 from devicehive.device import DeviceError
 
@@ -15,6 +16,32 @@ class Api(object):
         self._subscriptions = {}
         self._removed_subscription_ids = {}
         self.server_timestamp = None
+
+    def _unsubscribe(self, action, device_ids):
+        subscription_ids, subscriptions, subscription_calls = [], [], []
+        for device_id in device_ids:
+            subscription_id = self.subscription_id(action, device_id)
+            if subscription_id in subscription_ids:
+                continue
+            subscription_ids.append(subscription_id)
+        for subscription in self._subscriptions[action]:
+            if subscription['device_id'] in device_ids:
+                continue
+            if subscription['subscription_id'] in subscription_ids:
+                subscriptions.append(subscription)
+        for subscription in subscriptions:
+            found = False
+            for subscription_call in subscription_calls:
+                if subscription_call['names'] == subscription['names']:
+                    found = True
+                    device_id = subscription['device_id']
+                    subscription_call['device_ids'].append(device_id)
+                    break
+            if not found:
+                subscription_call = {'device_ids': [subscription['device_id']],
+                                     'names': subscription['names']}
+                subscription_calls.append(subscription_call)
+        return subscription_ids, subscription_calls
 
     @property
     def transport(self):
@@ -69,6 +96,30 @@ class Api(object):
         if not subscription_ids:
             return False
         return subscription_id in subscription_ids
+
+    def unsubscribe_commands(self, action, subscription_ids):
+        for subscription_id in subscription_ids:
+            remove_subscription_api_request = RemoveSubscriptionApiRequest()
+            remove_subscription_api_request.subscription_id(subscription_id)
+            api_request = ApiRequest(self)
+            api_request.action('command/unsubscribe')
+            api_request.set('subscriptionId', subscription_id)
+            api_request.remove_subscription_request(
+                remove_subscription_api_request)
+            api_request.execute('Unsubscribe commands failure.')
+            self.remove_subscription(action, subscription_id)
+
+    def unsubscribe_notifications(self, action, subscription_ids):
+        for subscription_id in subscription_ids:
+            remove_subscription_api_request = RemoveSubscriptionApiRequest()
+            remove_subscription_api_request.subscription_id(subscription_id)
+            api_request = ApiRequest(self)
+            api_request.action('notification/unsubscribe')
+            api_request.set('subscriptionId', subscription_id)
+            api_request.remove_subscription_request(
+                remove_subscription_api_request)
+            api_request.execute('Unsubscribe notifications failure.')
+            self.remove_subscription(action, subscription_id)
 
     def get_info(self):
         api_request = ApiRequest(self)
@@ -135,6 +186,17 @@ class Api(object):
         subscription = api_request.execute('Subscribe insert commands failure.')
         subscription_id = subscription['subscriptionId']
         self.subscription(action, subscription_id, device_ids, names)
+
+    def unsubscribe_insert_commands(self, device_ids):
+        action = 'command/insert'
+        self.ensure_subscription_exists(action, device_ids)
+        subscription_ids, subscription_calls = self._unsubscribe(action,
+                                                                 device_ids)
+        self.unsubscribe_commands(action, subscription_ids)
+        timestamp = self.get_info()['server_timestamp']
+        for subscription_call in subscription_calls:
+            subscription_call['timestamp'] = timestamp
+            self.subscribe_insert_commands(**subscription_call)
 
     def subscribe_notifications(self, device_ids, names=None, timestamp=None):
         join_device_ids = ','.join(device_ids)
