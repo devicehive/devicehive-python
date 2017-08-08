@@ -141,7 +141,7 @@ def test_unsubscribe_insert_commands(test):
         handler.api.unsubscribe_insert_commands(device_ids[:-1])
 
     def handle_command_insert(_, command):
-        assert command.device_id == device_ids[:-1]
+        assert command.device_id == device_ids[-1]
 
     test.run(handle_connect, handle_command_insert, timeout=5)
 
@@ -290,7 +290,7 @@ def test_unsubscribe_update_commands(test):
         handler.api.unsubscribe_update_commands(device_ids[:-1])
 
     def handle_command_update(_, command):
-        assert command.device_id == device_ids[:-1]
+        assert command.device_id == device_ids[-1]
 
     test.run(handle_connect, handle_command_update=handle_command_update,
              timeout=5)
