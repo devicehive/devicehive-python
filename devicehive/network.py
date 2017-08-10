@@ -39,6 +39,18 @@ class Network(object):
         network = auth_api_request.execute('Network get failure.')
         self._init(network)
 
+    def save(self):
+        self._ensure_exists()
+        network = {self.ID_KEY: self._id,
+                   self.NAME_KEY: self.name,
+                   self.DESCRIPTION_KEY: self.description}
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('network/{id}', id=self._id)
+        auth_api_request.action('network/update')
+        auth_api_request.set('network', network, True)
+        auth_api_request.execute('Network save failure.')
+
 
 class NetworkError(ApiRequestError):
     """Network error."""
