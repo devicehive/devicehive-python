@@ -617,6 +617,27 @@ def test_list_networks(test):
     test.run(handle_connect)
 
 
+def test_get_network(test):
+
+    def handle_connect(handler):
+        name = test.generate_id('g-n')
+        description = 'description'
+        network = handler.api.create_network(name, description)
+        network = handler.api.get_network(network.id)
+        assert isinstance(network.id, int)
+        assert network.name == name
+        assert network.description == description
+        network_id = network.id
+        network.remove()
+        try:
+            handler.api.get_network(network_id)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
+    test.run(handle_connect)
+
+
 def test_create_network(test):
 
     def handle_connect(handler):
