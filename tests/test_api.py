@@ -621,7 +621,7 @@ def test_get_network(test):
 
     def handle_connect(handler):
         name = test.generate_id('g-n')
-        description = 'description'
+        description = '%s-description' % name
         network = handler.api.create_network(name, description)
         network = handler.api.get_network(network.id)
         assert isinstance(network.id, int)
@@ -642,7 +642,7 @@ def test_create_network(test):
 
     def handle_connect(handler):
         name = test.generate_id('c-n')
-        description = 'description'
+        description = '%s-description' % name
         network = handler.api.create_network(name, description)
         assert isinstance(network.id, int)
         assert network.name == name
