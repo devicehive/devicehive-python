@@ -51,6 +51,17 @@ class Network(object):
         auth_api_request.set('network', network, True)
         auth_api_request.execute('Network save failure.')
 
+    def remove(self):
+        self._ensure_exists()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('DELETE')
+        auth_api_request.url('network/{id}', id=self._id)
+        auth_api_request.action('network/delete')
+        auth_api_request.execute('Network remove failure.')
+        self._id = None
+        self.name = None
+        self.description = None
+
 
 class NetworkError(ApiRequestError):
     """Network error."""
