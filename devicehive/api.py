@@ -312,6 +312,11 @@ class Api(object):
         device.get(device_id)
         return device
 
+    def get_network(self, network_id):
+        network = Network(self)
+        network.get(network_id)
+        return network
+
     def create_network(self, name, description):
         network = {Network.NAME_KEY: name, Network.DESCRIPTION_KEY: description}
         auth_api_request = AuthApiRequest(self)
