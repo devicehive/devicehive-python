@@ -31,6 +31,14 @@ class Network(object):
     def id(self):
         return self._id
 
+    def get(self, network_id):
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.url('network/{id}', id=network_id)
+        auth_api_request.action('network/get')
+        auth_api_request.response_key('network')
+        network = auth_api_request.execute('Network get failure.')
+        self._init(network)
+
 
 class NetworkError(ApiRequestError):
     """Network error."""
