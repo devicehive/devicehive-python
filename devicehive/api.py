@@ -312,6 +312,21 @@ class Api(object):
         device.get(device_id)
         return device
 
+    def list_networks(self, name=None, name_pattern=None, sort_field=None,
+                      sort_order=None, take=None, skip=None):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('network')
+        auth_api_request.action('network/list')
+        auth_api_request.param('name', name)
+        auth_api_request.param('namePattern', name_pattern)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('networks')
+        networks = auth_api_request.execute('List networks failure.')
+        return [Network(self, network) for network in networks]
+
     def get_network(self, network_id):
         network = Network(self)
         network.get(network_id)
