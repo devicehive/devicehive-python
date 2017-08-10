@@ -62,6 +62,12 @@ class Network(object):
         self.name = None
         self.description = None
 
+    def list_devices(self, name=None, name_pattern=None, sort_field=None,
+                     sort_order=None, take=None, skip=None):
+        self._ensure_exists()
+        return self._api.list_devices(name, name_pattern, self._id, self.name,
+                                      sort_field, sort_order, take, skip)
+
 
 class NetworkError(ApiRequestError):
     """Network error."""
