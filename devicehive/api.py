@@ -5,6 +5,7 @@ from devicehive.api_request import AuthSubscriptionApiRequest
 from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.device import Device
 from devicehive.device import DeviceError
+from devicehive.network import Network
 
 
 class Api(object):
@@ -310,3 +311,16 @@ class Api(object):
         device.save()
         device.get(device_id)
         return device
+
+    def create_network(self, name, description):
+        network = {Network.NAME_KEY: name, Network.DESCRIPTION_KEY: description}
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('POST')
+        auth_api_request.url('network')
+        auth_api_request.action('network/insert')
+        auth_api_request.set('network', network, True)
+        auth_api_request.response_key('network')
+        network = auth_api_request.execute('Network create failure.')
+        network[Network.NAME_KEY] = name
+        network[Network.DESCRIPTION_KEY] = description
+        return Network(self, network)
