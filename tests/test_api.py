@@ -571,3 +571,48 @@ def test_put_device(test):
         device.remove()
 
     test.run(handle_connect)
+
+
+def test_list_networks(test):
+
+    def handle_connect(handler):
+        test_id = test.generate_id('l-n')
+        options = [{'name': '%s-name-1' % test_id,
+                    'description': '%s-description-1' % test_id},
+                   {'name': '%s-name-2' % test_id,
+                    'description': '%s-description-2' % test_id}]
+        test_networks = [handler.api.create_network(option['name'],
+                                                    option['description'])
+                         for option in options]
+        networks = handler.api.list_networks()
+        assert len(networks) >= len(options)
+        name = options[0]['name']
+        network, = handler.api.list_networks(name=name)
+        assert network.name == name
+        name_pattern = test.generate_id('l-n-n-e')
+        assert not handler.api.list_networks(name_pattern=name_pattern)
+        name_pattern = test_id + '%'
+        networks = handler.api.list_networks(name_pattern=name_pattern)
+        assert len(networks) == len(options)
+        # TODO: add websocket transport after server response will be fixed.
+        if test.http_transport:
+            network_0, network_1 = handler.api.list_networks(
+                name_pattern=name_pattern, sort_field='name', sort_order='ASC')
+            assert network_0.name == options[0]['name']
+            assert network_1.name == options[1]['name']
+            network_0, network_1 = handler.api.list_networks(
+                name_pattern=name_pattern, sort_field='name', sort_order='DESC')
+            assert network_0.name == options[1]['name']
+            assert network_1.name == options[0]['name']
+            network, = handler.api.list_networks(name_pattern=name_pattern,
+                                                sort_field='name',
+                                                sort_order='ASC', take=1)
+            assert network.name == options[0]['name']
+            network, = handler.api.list_networks(name_pattern=name_pattern,
+                                                 sort_field='name',
+                                                 sort_order='ASC', take=1,
+                                                 skip=1)
+            assert network.name == options[1]['name']
+        [test_network.remove() for test_network in test_networks]
+
+    test.run(handle_connect)
