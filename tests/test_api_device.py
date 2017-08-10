@@ -34,15 +34,13 @@ def test_remove(test):
     def handle_connect(handler):
         device_id = test.generate_id('d-r')
         device = handler.api.put_device(device_id)
+        device_1 = handler.api.get_device(device_id)
         device.remove()
         assert not device.id
         assert not device.name
         assert not device.data
         assert not device.network_id
         assert not device.is_blocked
-        device = handler.api.put_device(device_id)
-        device_1 = handler.api.get_device(device_id)
-        device.remove()
         try:
             device.remove()
             assert False
