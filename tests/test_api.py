@@ -516,8 +516,7 @@ def test_list_devices(test):
                                            sort_field='name', sort_order='ASC',
                                            take=1, skip=1)
         assert device.id == options[1]['id']
-        for test_device in test_devices:
-            test_device.remove()
+        [test_device.remove() for test_device in test_devices]
 
     test.run(handle_connect)
 
@@ -614,5 +613,24 @@ def test_list_networks(test):
                                                  skip=1)
             assert network.name == options[1]['name']
         [test_network.remove() for test_network in test_networks]
+
+    test.run(handle_connect)
+
+
+def test_create_network(test):
+
+    def handle_connect(handler):
+        name = test.generate_id('c-n')
+        description = 'description'
+        network = handler.api.create_network(name, description)
+        assert isinstance(network.id, int)
+        assert network.name == name
+        assert network.description == description
+        try:
+            handler.api.create_network(name, description)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+        network.remove()
 
     test.run(handle_connect)
