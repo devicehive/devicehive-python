@@ -99,6 +99,22 @@ class User(object):
         auth_api_request.set('user', user, True)
         auth_api_request.execute('User save failure.')
 
+    def remove(self):
+        self._ensure_exists()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('DELETE')
+        auth_api_request.url('user/{userId}', userId=self._id)
+        auth_api_request.action('user/delete')
+        auth_api_request.execute('User remove failure.')
+        self._id = None
+        self._login = None
+        self._last_login = None
+        self._intro_reviewed = None
+        self._networks = None
+        self.role = None
+        self.status = None
+        self.data = None
+
 
 class UserError(ApiRequestError):
     """User error."""
