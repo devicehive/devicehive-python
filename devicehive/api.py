@@ -346,6 +346,23 @@ class Api(object):
         network[Network.DESCRIPTION_KEY] = description
         return Network(self, network)
 
+    def list_users(self, login=None, login_pattern=None, role=None, status=None,
+                   sort_field=None, sort_order=None, take=None, skip=None):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('user')
+        auth_api_request.action('user/list')
+        auth_api_request.param('login', login)
+        auth_api_request.param('loginPattern', login_pattern)
+        auth_api_request.param('role', role)
+        auth_api_request.param('status', status)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('users')
+        users = auth_api_request.execute('List users failure.')
+        return [User(self, user) for user in users]
+
     def get_current_user(self):
         user = User(self)
         user.get_current()
@@ -371,7 +388,6 @@ class Api(object):
         auth_api_request.response_key('user')
         user = auth_api_request.execute('User create failure.')
         user[User.LOGIN_KEY] = login
-        user[User.NETWORKS_KEY] = []
         user[User.ROLE_KEY] = role
         user[User.STATUS_KEY] = status
         user[User.DATA_KEY] = data
