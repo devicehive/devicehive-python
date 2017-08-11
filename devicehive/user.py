@@ -1,5 +1,6 @@
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import ApiRequestError
+from devicehive.network import Network
 
 
 class User(object):
@@ -26,11 +27,10 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
-        self._networks = []
+        self._networks = None
         self.role = None
         self.status = None
         self.data = None
-        self.password = None
 
         if user:
             self._init(user)
@@ -40,15 +40,11 @@ class User(object):
         self._login = user[self.LOGIN_KEY]
         self._last_login = user[self.LAST_LOGIN_KEY]
         self._intro_reviewed = user[self.INTRO_REVIEWED_KEY]
-        networks = user.get(self.NETWORKS_KEY)
-        if networks:
-            self._networks = networks
+        self._networks = [Network(self._api, network)
+                          for network in user[self.NETWORKS_KEY]]
         self.role = user[self.ROLE_KEY]
         self.status = user[self.STATUS_KEY]
         self.data = user[self.DATA_KEY]
-        password = user.get(self.PASSWORD_KEY)
-        if password:
-            self.password = password
 
     def _ensure_exists(self):
         if self._id:
@@ -75,6 +71,14 @@ class User(object):
     def networks(self):
         return self._networks
 
+    def get_current(self):
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.url('user/current')
+        auth_api_request.action('user/getCurrent')
+        auth_api_request.response_key('current')
+        user = auth_api_request.execute('Current user get failure.')
+        self._init(user)
+
     def get(self, user_id):
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('user/{userId}', userId=user_id)
@@ -82,6 +86,9 @@ class User(object):
         auth_api_request.response_key('user')
         user = auth_api_request.execute('User get failure.')
         self._init(user)
+
+    def save(self):
+        pass
 
 
 class UserError(ApiRequestError):
