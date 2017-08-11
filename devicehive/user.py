@@ -93,6 +93,17 @@ class User(object):
         auth_api_request.set('user', user, True)
         auth_api_request.execute('User save failure.')
 
+    def update_password(self, old_password, password):
+        self._ensure_exists()
+        user = {self.OLD_PASSWORD_KEY: old_password,
+                self.PASSWORD_KEY: password}
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('user/{userId}', userId=self._id)
+        auth_api_request.action('user/update')
+        auth_api_request.set('user', user, True)
+        auth_api_request.execute('User password update failure.')
+
     def remove(self):
         self._ensure_exists()
         auth_api_request = AuthApiRequest(self._api)
@@ -109,6 +120,7 @@ class User(object):
         self.data = None
 
     def list_networks(self):
+        self._ensure_exists()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('user/{userId}', userId=self._id)
         auth_api_request.action('user/get')
