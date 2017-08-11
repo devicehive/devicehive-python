@@ -346,6 +346,11 @@ class Api(object):
         network[Network.DESCRIPTION_KEY] = description
         return Network(self, network)
 
+    def get_user(self, user_id):
+        user = User(self)
+        user.get(user_id)
+        return user
+
     def create_user(self, login, password, role, data):
         status = User.ACTIVE_STATUS
         user = {User.LOGIN_KEY: login,

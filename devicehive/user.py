@@ -9,6 +9,7 @@ class User(object):
     LOGIN_KEY = 'login'
     LAST_LOGIN_KEY = 'lastLogin'
     INTRO_REVIEWED_KEY = 'introReviewed'
+    NETWORKS_KEY = 'networks'
     ROLE_KEY = 'role'
     STATUS_KEY = 'status'
     DATA_KEY = 'data'
@@ -25,6 +26,7 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
+        self._networks = []
         self.role = None
         self.status = None
         self.data = None
@@ -38,8 +40,11 @@ class User(object):
         self._login = user[self.LOGIN_KEY]
         self._last_login = user[self.LAST_LOGIN_KEY]
         self._intro_reviewed = user[self.INTRO_REVIEWED_KEY]
-        self.status = user[self.STATUS_KEY]
+        networks = user.get(self.NETWORKS_KEY)
+        if networks:
+            self._networks = networks
         self.role = user[self.ROLE_KEY]
+        self.status = user[self.STATUS_KEY]
         self.data = user[self.DATA_KEY]
         password = user.get(self.PASSWORD_KEY)
         if password:
@@ -65,6 +70,18 @@ class User(object):
     @property
     def intro_reviewed(self):
         return self._intro_reviewed
+
+    @property
+    def networks(self):
+        return self._networks
+
+    def get(self, user_id):
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.url('user/{userId}', userId=user_id)
+        auth_api_request.action('user/get')
+        auth_api_request.response_key('user')
+        user = auth_api_request.execute('User get failure.')
+        self._init(user)
 
 
 class UserError(ApiRequestError):
