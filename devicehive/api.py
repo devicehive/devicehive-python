@@ -346,6 +346,11 @@ class Api(object):
         network[Network.DESCRIPTION_KEY] = description
         return Network(self, network)
 
+    def get_current_user(self):
+        user = User(self)
+        user.get_current()
+        return user
+
     def get_user(self, user_id):
         user = User(self)
         user.get(user_id)
@@ -366,8 +371,8 @@ class Api(object):
         auth_api_request.response_key('user')
         user = auth_api_request.execute('User create failure.')
         user[User.LOGIN_KEY] = login
+        user[User.NETWORKS_KEY] = []
         user[User.ROLE_KEY] = role
         user[User.STATUS_KEY] = status
         user[User.DATA_KEY] = data
-        user[User.PASSWORD_KEY] = password
         return User(self, user)
