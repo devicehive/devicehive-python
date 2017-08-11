@@ -6,6 +6,7 @@ from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.device import Device
 from devicehive.device import DeviceError
 from devicehive.network import Network
+from devicehive.user import User
 
 
 class Api(object):
@@ -344,3 +345,24 @@ class Api(object):
         network[Network.NAME_KEY] = name
         network[Network.DESCRIPTION_KEY] = description
         return Network(self, network)
+
+    def create_user(self, login, password, role, data):
+        status = User.ACTIVE_STATUS
+        user = {User.LOGIN_KEY: login,
+                User.ROLE_KEY: role,
+                User.STATUS_KEY: status,
+                User.DATA_KEY: data,
+                User.PASSWORD_KEY: password}
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('POST')
+        auth_api_request.url('user')
+        auth_api_request.action('user/insert')
+        auth_api_request.set('user', user, True)
+        auth_api_request.response_key('user')
+        user = auth_api_request.execute('User create failure.')
+        user[User.LOGIN_KEY] = login
+        user[User.ROLE_KEY] = role
+        user[User.STATUS_KEY] = status
+        user[User.DATA_KEY] = data
+        user[User.PASSWORD_KEY] = password
+        return User(self, user)
