@@ -88,7 +88,16 @@ class User(object):
         self._init(user)
 
     def save(self):
-        pass
+        self._ensure_exists()
+        user = {self.ROLE_KEY: self.role,
+                self.STATUS_KEY: self.status,
+                self.DATA_KEY: self.data}
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('user/{userId}', userId=self._id)
+        auth_api_request.action('user/update')
+        auth_api_request.set('user', user, True)
+        auth_api_request.execute('User save failure.')
 
 
 class UserError(ApiRequestError):
