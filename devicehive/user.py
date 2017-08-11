@@ -10,11 +10,12 @@ class User(object):
     LOGIN_KEY = 'login'
     LAST_LOGIN_KEY = 'lastLogin'
     INTRO_REVIEWED_KEY = 'introReviewed'
-    NETWORKS_KEY = 'networks'
     ROLE_KEY = 'role'
     STATUS_KEY = 'status'
     DATA_KEY = 'data'
+    OLD_PASSWORD_KEY = 'oldPassword'
     PASSWORD_KEY = 'password'
+    NETWORKS_KEY = 'networks'
     ADMINISTRATOR_ROLE = 0
     CLIENT_ROLE = 1
     ACTIVE_STATUS = 0
@@ -27,7 +28,6 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
-        self._networks = None
         self.role = None
         self.status = None
         self.data = None
@@ -40,8 +40,6 @@ class User(object):
         self._login = user[self.LOGIN_KEY]
         self._last_login = user[self.LAST_LOGIN_KEY]
         self._intro_reviewed = user[self.INTRO_REVIEWED_KEY]
-        self._networks = [Network(self._api, network)
-                          for network in user[self.NETWORKS_KEY]]
         self.role = user[self.ROLE_KEY]
         self.status = user[self.STATUS_KEY]
         self.data = user[self.DATA_KEY]
@@ -66,10 +64,6 @@ class User(object):
     @property
     def intro_reviewed(self):
         return self._intro_reviewed
-
-    @property
-    def networks(self):
-        return self._networks
 
     def get_current(self):
         auth_api_request = AuthApiRequest(self._api)
@@ -110,10 +104,18 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
-        self._networks = None
         self.role = None
         self.status = None
         self.data = None
+
+    def list_networks(self):
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.url('user/{userId}', userId=self._id)
+        auth_api_request.action('user/get')
+        auth_api_request.response_key('user')
+        user = auth_api_request.execute('List networks failure.')
+        return [Network(self._api, network)
+                for network in user[User.NETWORKS_KEY]]
 
 
 class UserError(ApiRequestError):
