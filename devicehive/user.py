@@ -129,6 +129,15 @@ class User(object):
         return [Network(self._api, network)
                 for network in user[User.NETWORKS_KEY]]
 
+    def assign_network(self, network_id):
+        self._ensure_exists()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('user/{userId}/network/{networkId}',
+                             userId=self._id, networkId=network_id)
+        auth_api_request.action('user/assignNetwork')
+        auth_api_request.execute('Assign network failure.')
+
 
 class UserError(ApiRequestError):
     """User error."""
