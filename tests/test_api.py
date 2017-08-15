@@ -1,6 +1,8 @@
 from six import string_types
 from devicehive import ApiResponseError
 from devicehive import DeviceError
+from devicehive.user import User
+from devicehive import UserError
 
 
 def test_get_info(test):
@@ -653,5 +655,30 @@ def test_create_network(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 403
         network.remove()
+
+    test.run(handle_connect)
+
+
+def test_create_user(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('c-u')
+        password = test.generate_id('c-u')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        assert isinstance(user.id, int)
+        assert user.login == login
+        assert not user.last_login
+        assert not user.intro_reviewed
+        assert user.role == role
+        assert user.status == User.ACTIVE_STATUS
+        assert user.data == data
+        try:
+            handler.api.create_user(login, password, role, data)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 403
+        user.remove()
 
     test.run(handle_connect)
