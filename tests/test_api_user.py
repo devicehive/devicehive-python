@@ -132,14 +132,14 @@ def test_list_networks(test):
 def test_assign_network(test):
 
     def handle_connect(handler):
-        login = test.generate_id('l-n')
-        password = test.generate_id('l-n')
+        login = test.generate_id('u-a-n')
+        password = test.generate_id('u-a-n')
         role = User.ADMINISTRATOR_ROLE
         data = {'k': 'v'}
         user = handler.api.create_user(login, password, role, data)
         networks = user.list_networks()
         assert networks == []
-        network_name = test.generate_id('n-r')
+        network_name = test.generate_id('u-a-n')
         network_description = '%s-description' % network_name
         network = handler.api.create_network(network_name, network_description)
         user.assign_network(network.id)
@@ -158,6 +158,42 @@ def test_assign_network(test):
             assert False
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
+        network.remove()
+
+    test.run(handle_connect)
+
+
+def test_unassign_network(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('u-u-n')
+        password = test.generate_id('u-u-n')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        networks = user.list_networks()
+        assert networks == []
+        network_name = test.generate_id('u-u-n')
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        user.assign_network(network.id)
+        user.unassign_network(network.id)
+        networks = user.list_networks()
+        assert networks == []
+        user_1 = handler.api.get_user(user.id)
+        user.remove()
+        try:
+            user.unassign_network(network.id)
+            assert False
+        except UserError:
+            pass
+        try:
+            user_1.unassign_network(network.id)
+            assert False
+        except ApiResponseError as api_response_error:
+            # TODO: uncomment after server response will be fixed.
+            # assert api_response_error.code == 404
+            pass
         network.remove()
 
     test.run(handle_connect)
