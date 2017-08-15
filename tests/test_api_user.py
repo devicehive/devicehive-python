@@ -6,8 +6,8 @@ from devicehive import ApiResponseError
 def test_save(test):
 
     def handle_connect(handler):
-        login = test.generate_id('c-u')
-        password = test.generate_id('c-u')
+        login = test.generate_id('u-s')
+        password = test.generate_id('u-s')
         role = User.ADMINISTRATOR_ROLE
         data = {'k': 'v'}
         user = handler.api.create_user(login, password, role, data)
@@ -32,11 +32,39 @@ def test_save(test):
     test.run(handle_connect)
 
 
+def test_update_password(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('u-u-p')
+        password = test.generate_id('u-u-p')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        password_1 = test.generate_id('u-u-p')
+        user.update_password(password_1)
+        user_1 = handler.api.get_user(user.id)
+        user.remove()
+        try:
+            user.update_password(password_1)
+            assert False
+        except UserError:
+            pass
+        try:
+            user_1.update_password(password_1)
+            assert False
+        except ApiResponseError as api_response_error:
+            # TODO: uncomment after server response will be fixed.
+            # assert api_response_error.code == 404
+            pass
+
+    test.run(handle_connect)
+
+
 def test_remove(test):
 
     def handle_connect(handler):
-        login = test.generate_id('c-u')
-        password = test.generate_id('c-u')
+        login = test.generate_id('u-r')
+        password = test.generate_id('u-r')
         role = User.ADMINISTRATOR_ROLE
         data = {'k': 'v'}
         user = handler.api.create_user(login, password, role, data)
