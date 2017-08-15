@@ -659,6 +659,42 @@ def test_create_network(test):
     test.run(handle_connect)
 
 
+def test_get_current_user(test):
+
+    def handle_connect(handler):
+        user = handler.api.get_current_user()
+        assert isinstance(user.id, int)
+
+    test.run(handle_connect)
+
+
+def test_get_user(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('g-u')
+        password = test.generate_id('g-u')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        user = handler.api.get_user(user.id)
+        assert isinstance(user.id, int)
+        assert user.login == login
+        assert not user.last_login
+        assert not user.intro_reviewed
+        assert user.role == role
+        assert user.status == User.ACTIVE_STATUS
+        assert user.data == data
+        user_id = user.id
+        user.remove()
+        try:
+            handler.api.get_user(user_id)
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
+    test.run(handle_connect)
+
+
 def test_create_user(test):
 
     def handle_connect(handler):
