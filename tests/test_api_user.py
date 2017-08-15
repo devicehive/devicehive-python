@@ -91,3 +91,39 @@ def test_remove(test):
             pass
 
     test.run(handle_connect)
+
+
+def test_list_networks(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('l-n')
+        password = test.generate_id('l-n')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        networks = user.list_networks()
+        assert networks == []
+        network_name = test.generate_id('n-r')
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        user.assign_network(network.id)
+        network, = user.list_networks()
+        assert network.name == network_name
+        assert network.description == network_description
+        user_1 = handler.api.get_user(user.id)
+        user.remove()
+        network.remove()
+        try:
+            user.list_networks()
+            assert False
+        except UserError:
+            pass
+        try:
+            user_1.list_networks()
+            assert False
+        except ApiResponseError as api_response_error:
+            # TODO: uncomment after server response will be fixed.
+            # assert api_response_error.code == 404
+            pass
+
+    test.run(handle_connect)
