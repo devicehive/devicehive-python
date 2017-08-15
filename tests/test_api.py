@@ -604,8 +604,8 @@ def test_list_networks(test):
             assert network_0.name == options[1]['name']
             assert network_1.name == options[0]['name']
             network, = handler.api.list_networks(name_pattern=name_pattern,
-                                                sort_field='name',
-                                                sort_order='ASC', take=1)
+                                                 sort_field='name',
+                                                 sort_order='ASC', take=1)
             assert network.name == options[0]['name']
             network, = handler.api.list_networks(name_pattern=name_pattern,
                                                  sort_field='name',
