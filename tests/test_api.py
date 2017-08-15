@@ -659,6 +659,60 @@ def test_create_network(test):
     test.run(handle_connect)
 
 
+def test_list_users(test):
+
+    def handle_connect(handler):
+        test_id = test.generate_id('l-u')
+        role = User.ADMINISTRATOR_ROLE
+        options = [{'login': '%s-login-1' % test_id,
+                    'password': '%s-password-1' % test_id,
+                    'role': role, 'data': {'1': '1'}},
+                   {'login': '%s-login-2' % test_id,
+                    'password': '%s-password-1' % test_id,
+                    'role': role, 'data': {'2': '2'}}]
+        test_users = [handler.api.create_user(option['login'],
+                                              option['password'],
+                                              option['role'],
+                                              option['data'])
+                      for option in options]
+        users = handler.api.list_users()
+        assert len(users) >= len(options)
+        login = options[0]['login']
+        user, = handler.api.list_users(login=login)
+        assert user.login == login
+        login_pattern = test.generate_id('l-u-n-e')
+        assert not handler.api.list_users(login_pattern=login_pattern)
+        login_pattern = test_id + '%'
+        users = handler.api.list_users(login_pattern=login_pattern)
+        assert len(users) == len(options)
+        users = handler.api.list_users(role=role)
+        assert len(users) >= len(options)
+        status = User.ACTIVE_STATUS
+        users = handler.api.list_users(status=status)
+        assert len(users) >= len(options)
+        user_0, user_1 = handler.api.list_users(login_pattern=login_pattern,
+                                                sort_field='login',
+                                                sort_order='ASC')
+        assert user_0.login == options[0]['login']
+        assert user_1.login == options[1]['login']
+        user_0, user_1 = handler.api.list_users(login_pattern=login_pattern,
+                                                sort_field='login',
+                                                sort_order='DESC')
+        assert user_0.login == options[1]['login']
+        assert user_1.login == options[0]['login']
+        user, = handler.api.list_users(login_pattern=login_pattern,
+                                       sort_field='login', sort_order='ASC',
+                                       take=1)
+        assert user.login == options[0]['login']
+        user, = handler.api.list_users(login_pattern=login_pattern,
+                                       sort_field='login', sort_order='ASC',
+                                       take=1, skip=1)
+        assert user.login == options[1]['login']
+        [test_user.remove() for test_user in test_users]
+
+    test.run(handle_connect)
+
+
 def test_get_current_user(test):
 
     def handle_connect(handler):
