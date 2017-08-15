@@ -13,7 +13,6 @@ class User(object):
     ROLE_KEY = 'role'
     STATUS_KEY = 'status'
     DATA_KEY = 'data'
-    OLD_PASSWORD_KEY = 'oldPassword'
     PASSWORD_KEY = 'password'
     NETWORKS_KEY = 'networks'
     ADMINISTRATOR_ROLE = 0
@@ -93,10 +92,9 @@ class User(object):
         auth_api_request.set('user', user, True)
         auth_api_request.execute('User save failure.')
 
-    def update_password(self, old_password, password):
+    def update_password(self, password):
         self._ensure_exists()
-        user = {self.OLD_PASSWORD_KEY: old_password,
-                self.PASSWORD_KEY: password}
+        user = {self.PASSWORD_KEY: password}
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
         auth_api_request.url('user/{userId}', userId=self._id)
