@@ -2,7 +2,6 @@ from six import string_types
 from devicehive import ApiResponseError
 from devicehive import DeviceError
 from devicehive.user import User
-from devicehive import UserError
 
 
 def test_get_info(test):
