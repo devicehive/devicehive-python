@@ -5,3 +5,4 @@ from .api_request import ApiRequestError
 from .api_response import ApiResponseError
 from .device import DeviceError
 from .network import NetworkError
+from .user import UserError
