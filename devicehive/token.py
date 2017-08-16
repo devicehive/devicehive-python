@@ -1,4 +1,5 @@
 from devicehive.api_request import ApiRequest
+from devicehive.api_request import ApiRequestError
 
 
 class Token(object):
@@ -49,6 +50,13 @@ class Token(object):
     def auth(self):
         if self._refresh_token:
             self.refresh()
-        else:
-            self._login()
-        self._auth()
+            self._auth()
+            return
+        if self._access_token:
+            self._auth()
+            return
+        self._login()
+
+
+class TokenError(ApiRequestError):
+    """Token error."""
