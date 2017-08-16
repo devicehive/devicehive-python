@@ -54,6 +54,15 @@ def test_create_token(test):
     test.run(handle_connect)
 
 
+def test_refresh_token(test):
+
+    def handle_connect(handler):
+        access_token = handler.api.refresh_token()
+        assert isinstance(access_token, string_types)
+
+    test.run(handle_connect)
+
+
 def test_subscribe_insert_commands(test):
 
     def init_devices(handler):
