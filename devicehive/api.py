@@ -137,6 +137,13 @@ class Api(object):
         configuration = auth_api_request.execute('Set property failure.')
         return {'entity_version': configuration['entityVersion']}
 
+    def delete_property(self, name):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('DELETE')
+        auth_api_request.url('configuration/{name}', name=name)
+        auth_api_request.action('configuration/delete')
+        auth_api_request.execute('Delete property failure.')
+
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):
         payload = {'userId': user_id}
