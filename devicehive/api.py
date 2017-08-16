@@ -117,6 +117,16 @@ class Api(object):
         api_request.response_key('clusterInfo')
         return api_request.execute('Cluster info get failure.')
 
+    def get_property(self, name):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('configuration/{name}', name=name)
+        auth_api_request.action('configuration/get')
+        auth_api_request.response_key('configuration')
+        configuration = auth_api_request.execute('Get property failure.')
+        return {'entity_version': configuration['entityVersion'],
+                'name': configuration['name'],
+                'value': configuration['value']}
+
     def set_property(self, name, value):
         auth_api_request = AuthApiRequest(self)
         auth_api_request.method('PUT')
