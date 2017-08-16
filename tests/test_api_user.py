@@ -53,9 +53,7 @@ def test_update_password(test):
             user_1.update_password(password_1)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -86,9 +84,7 @@ def test_remove(test):
             user_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -122,9 +118,7 @@ def test_list_networks(test):
             user_1.list_networks()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -191,9 +185,9 @@ def test_unassign_network(test):
             user_1.unassign_network(network.id)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code == 404
-            pass
+            # TODO: add http support after server response will be fixed.
+            if test.http_transport:
+                assert api_response_error.code == 404
         network.remove()
 
     test.run(handle_connect)
