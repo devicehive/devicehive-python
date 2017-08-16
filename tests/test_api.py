@@ -30,6 +30,30 @@ def test_get_cluster_info(test):
     test.run(handle_connect)
 
 
+def test_create_token(test):
+
+    def handle_connect(handler):
+        login = test.generate_id('c-t')
+        password = test.generate_id('c-t')
+        role = User.ADMINISTRATOR_ROLE
+        data = {'k': 'v'}
+        user = handler.api.create_user(login, password, role, data)
+        tokens = handler.api.create_token(user.id)
+        assert isinstance(tokens['access_token'], string_types)
+        assert isinstance(tokens['refresh_token'], string_types)
+        user_id = user.id
+        user.remove()
+        try:
+            handler.api.create_token(user_id)
+            assert False
+        except ApiResponseError as api_response_error:
+            # TODO: uncomment after server response will be fixed.
+            # assert api_response_error.code == 403
+            pass
+
+    test.run(handle_connect)
+
+
 def test_subscribe_insert_commands(test):
 
     def init_devices(handler):
