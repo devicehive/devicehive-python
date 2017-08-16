@@ -117,6 +117,16 @@ class Api(object):
         api_request.response_key('clusterInfo')
         return api_request.execute('Cluster info get failure.')
 
+    def set_property(self, name, value):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('PUT')
+        auth_api_request.url('configuration/{name}', name=name)
+        auth_api_request.action('configuration/put')
+        auth_api_request.set('value', value)
+        auth_api_request.response_key('configuration')
+        configuration = auth_api_request.execute('Set property failure.')
+        return {'entity_version': configuration['entityVersion']}
+
     def create_token(self, user_id, expiration=None, actions=None,
                      network_ids=None, device_ids=None):
         payload = {'userId': user_id}
