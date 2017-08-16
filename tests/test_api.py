@@ -47,9 +47,9 @@ def test_create_token(test):
             handler.api.create_token(user_id)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code == 403
-            pass
+            # TODO: add http support after server response will be fixed.
+            if test.websocket_transport:
+                assert api_response_error.code == 404
 
     test.run(handle_connect)
 
