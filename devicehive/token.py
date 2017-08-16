@@ -15,11 +15,6 @@ class Token(object):
         self._refresh_token = auth.get('refresh_token')
         self._access_token = auth.get('access_token')
 
-    def _login(self):
-        # TODO: implement token/login request.
-        # Set self._refresh_token and self._access_token after success login.
-        pass
-
     def _auth(self):
         api_request = ApiRequest(self._api)
         if not api_request.websocket_transport:
@@ -27,6 +22,17 @@ class Token(object):
         api_request.action('authenticate')
         api_request.set('token', self._access_token)
         api_request.execute('Authentication failure.')
+
+    def _tokens(self):
+        api_request = ApiRequest(self._api)
+        api_request.method('POST')
+        api_request.url('token')
+        api_request.action('token')
+        api_request.set('login', self._login)
+        api_request.set('password', self._password)
+        tokens = api_request.execute('Login failure.')
+        self._refresh_token = tokens['refreshToken']
+        self._access_token = tokens['accessToken']
 
     @property
     def access_token(self):
@@ -55,7 +61,14 @@ class Token(object):
         if self._access_token:
             self._auth()
             return
-        self._login()
+        if self._login and self._password:
+            self._tokens()
+            self._auth()
+            return
+        if self._login:
+            raise TokenError('Password required.')
+        if self._password:
+            raise TokenError('Login required.')
 
 
 class TokenError(ApiRequestError):
