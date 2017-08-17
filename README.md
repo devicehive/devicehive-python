@@ -165,3 +165,28 @@ class SimpleHandler(Handler):
         cluster_info = self.api.get_cluster_info()
         print(cluster_info)
 ```
+
+### Token
+
+`self.api.create_token(user_id, expiration, actions, network_ids, device_ids)`
+returns `dict` with the next fields:
+* `access_token`
+* `refresh_token`
+
+only `user_id` arg is required.
+
+`self.api.refresh_token()` refreshes the access token and returns it.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        tokens = self.api.create_token(1)
+        print(tokens)
+        access_token = self.api.refresh_token()
+        print(access_token)
+```
