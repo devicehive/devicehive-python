@@ -166,6 +166,33 @@ class SimpleHandler(Handler):
         print(cluster_info)
 ```
 
+### Property
+
+`self.api.get_property(name)` returns `dict` with the next fields:
+* `entity_version`
+* `name`
+* `value`
+
+`self.api.set_property(name, value)` returns entity version.
+
+`self.api.delete_property(name)` does not return anything.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        name = 'user.login.lastTimeoutSent'
+        prop = self.api.get_property(name)
+        print(prop)
+        entity_version = self.api.get_property(name, 'value')
+        print(entity_version)
+        self.api.delete_property(name)
+```
+
 ### Token
 
 `self.api.create_token(user_id, expiration, actions, network_ids, device_ids)`
