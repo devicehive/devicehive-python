@@ -313,17 +313,42 @@ Properties:
 Methods:
 * `save()` Does not return anything.
 * `remove()` Does not return anything.
-* `subscribe_insert_commands(names, timestamp)` All args are optional.
-* `unsubscribe_insert_commands()`
-* `subscribe_update_commands(names, timestamp)` All args are optional.
-* `unsubscribe_update_commands()`
+* `subscribe_insert_commands(names, timestamp)` Does not return anything. All
+args are optional.
+* `unsubscribe_insert_commands()` Does not return anything.
+* `subscribe_update_commands(names, timestamp)` Does not return anything.
+All args are optional.
+* `unsubscribe_update_commands()` Does not return anything.
 * `list_commands(start, end, command, status, sort_field, sort_order, take,
-                 skip)` All args are optional.
+                 skip)` Returns list of `Command` objects. All args are
+                 optional.
 * `send_command(command_name, parameters, lifetime, timestamp, status, result)`
-Only `command_name` is required.
-* `subscribe_notifications(names, timestamp)` All args are optional.
-* `unsubscribe_notifications()`
+Returns `Command` object. Only `command_name` is required.
+* `subscribe_notifications(names, timestamp)` Does not return anything. All args
+are optional.
+* `unsubscribe_notifications()` Does not return anything.
 * `list_notifications(start, end, notification, sort_field, sort_order, take,
-                      skip)` All args are optional.
-* `send_notification(notification_name, parameters, timestamp)`
-Only `notification_name` is required.
+                      skip)` Returns list of `Notification` objects. All args
+                      are optional.
+* `send_notification(notification_name, parameters, timestamp)` Returns
+`Notification` object. Only `notification_name` is required.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        device_id = 'example-device'
+        device = self.api.put_device(device_id)
+        device.name = 'new-device-name'
+        device.data = {'key': 'value'}
+        device.save()
+        devices = self.api.list_devices()
+        for device in devices:
+            print('Device: %s, name: %s, data: %s' % (device.id, device.name,
+                                                      device.data))
+            device.remove()
+```
