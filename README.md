@@ -166,7 +166,7 @@ class SimpleHandler(Handler):
         print(cluster_info)
 ```
 
-### Property
+### Properties
 
 `self.api.get_property(name)` returns `dict` with the next fields:
 * `entity_version`
@@ -193,7 +193,7 @@ class SimpleHandler(Handler):
         self.api.delete_property(name)
 ```
 
-### Token
+### Tokens
 
 `self.api.create_token(user_id, expiration, actions, network_ids, device_ids)`
 returns `dict` with the next fields:
@@ -286,3 +286,44 @@ class SimpleHandler(Handler):
         print('Notification: %s.' % notification.notification)
         self.api.unsubscribe_notifications(['example-device'])
 ```
+
+### Devices
+
+`self.api.list_devices(name, name_pattern, network_id, network_name, sort_field,
+                       sort_order, take, skip)` returns list of `Device`
+objects. 
+
+All args are optional.
+
+`self.api.get_device(device_id)` returns `Device` object.
+
+`self.api.put_device(device_id, name, data, network_id, is_blocked)`
+
+Only `device_id` arg is required.
+
+`Device` object:
+
+Properties:
+* `id` (read only)
+* `name`
+* `data`
+* `network_id`
+* `is_blocked`
+
+Methods:
+* `save()` Does not return anything.
+* `remove()` Does not return anything.
+* `subscribe_insert_commands(names, timestamp)` All args are optional.
+* `unsubscribe_insert_commands()`
+* `subscribe_update_commands(names, timestamp)` All args are optional.
+* `unsubscribe_update_commands()`
+* `list_commands(start, end, command, status, sort_field, sort_order, take,
+                 skip)` All args are optional.
+* `send_command(command_name, parameters, lifetime, timestamp, status, result)`
+Only `command_name` is required.
+* `subscribe_notifications(names, timestamp)` All args are optional.
+* `unsubscribe_notifications()`
+* `list_notifications(start, end, notification, sort_field, sort_order, take,
+                      skip)` All args are optional.
+* `send_notification(notification_name, parameters, timestamp)`
+Only `notification_name` is required.
