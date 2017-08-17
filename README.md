@@ -217,3 +217,44 @@ class SimpleHandler(Handler):
         access_token = self.api.refresh_token()
         print(access_token)
 ```
+
+### Commands subscription and unsubscription
+
+`self.api.subscribe_insert_commands(device_ids, names, timestamp)`
+does not return anything.
+
+`self.api.subscribe_update_commands(device_ids, names, timestamp)`
+does not return anything.
+
+Only `device_ids` arg is required.
+
+`self.api.unsubscribe_insert_commands(device_ids)` does not return anything.
+`self.api.unsubscribe_update_commands(device_ids)` does not return anything.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        device_id = 'example-device'
+        device = self.api.put_device(device_id)
+        command_name = 'example-command'
+        self.api.subscribe_insert_commands([device_id], [command_name])
+        self.api.subscribe_update_commands([device_id], [command_name])
+        command = device.send_command(command_name)
+        command.status = 'new-status'
+        command.save()
+
+    def handle_command_insert(self, command):
+        print('Command insert: %s, status: %s.' % (command.command,
+                                                   command.status))
+
+    def handle_command_update(self, command):
+        print('Command update: %s, status: %s.' % (command.command,
+                                                   command.status))
+        self.api.unsubscribe_insert_commands(['example-device'])
+        self.api.unsubscribe_update_commands(['example-device'])
+```
