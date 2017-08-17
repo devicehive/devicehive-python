@@ -258,3 +258,31 @@ class SimpleHandler(Handler):
         self.api.unsubscribe_insert_commands(['example-device'])
         self.api.unsubscribe_update_commands(['example-device'])
 ```
+
+### Notifications subscription and unsubscription
+
+`self.api.subscribe_notifications(device_ids, names, timestamp)` does not return
+anything.
+
+Only `device_ids` arg is required.
+
+`self.api.unsubscribe_notifications(device_ids)` does not return anything.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        device_id = 'example-device'
+        device = self.api.put_device(device_id)
+        notification_name = 'example-notification'
+        self.api.subscribe_notifications([device_id], [notification_name])
+        device.send_notification(notification_name)
+
+    def handle_notification(self, notification):
+        print('Notification: %s.' % notification.notification)
+        self.api.unsubscribe_notifications(['example-device'])
+```
