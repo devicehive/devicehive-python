@@ -134,3 +134,34 @@ dh.connect(url, access_token='SOME_ACCESS_TOKEN')
 url = 'ws://playground.dev.devicehive.com/api/websocket'
 dh.connect(url, login='SOME_LOGIN', password='SOME_PASSWORD')
 ```
+
+## API
+
+All api calls may be done via `api` object. This object available inside
+custom handler with `self.api`.
+
+### Info
+
+`self.api.get_info()` returns `dict` with the next fields:
+* `api_version`
+* `server_timestamp`
+* `rest_server_url`
+* `websocket_server_url`
+
+`self.api.get_cluster_info()` returns `dict` with the next fields:
+* `bootstrap.servers`
+* `zookeeper.connect`
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        info = self.api.get_info()
+        print(info)
+        cluster_info = self.api.get_cluster_info()
+        print(cluster_info)
+```
