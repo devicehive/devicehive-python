@@ -301,7 +301,7 @@ All args are optional.
 
 Only `device_id` arg is required.
 
-`Device` object:
+#### Device object
 
 Properties:
 * `id` (read only)
@@ -332,6 +332,31 @@ are optional.
                       are optional.
 * `send_notification(notification_name, parameters, timestamp)` Returns
 `Notification` object. Only `notification_name` is required.
+
+#### Command object
+
+Properties:
+* `id` (read only)
+* `user_id` (read only)
+* `command` (read only)
+* `parameters` (read only)
+* `lifetime` (read only)
+* `timestamp` (read only)
+* `last_updated` (read only)
+* `status`
+* `result`
+
+Methods:
+* `save()` Does not return anything.
+
+#### Notification object
+
+Properties:
+* `device_id` (read only)
+* `id` (read only)
+* `notification` (read only)
+* `parameters` (read only)
+* `timestamp` (read only)
 
 Example:
 ```python
