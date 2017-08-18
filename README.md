@@ -394,7 +394,7 @@ Methods:
 * `save()` Does not return anything.
 * `remove()` Does not return anything.
 * `list_devices(name, name_pattern, sort_field, sort_order, take, skip)`
-Returns list of `Device` objects.
+Returns list of `Device` objects. All args are optional.
 
 Example:
 ```python
@@ -408,4 +408,52 @@ class SimpleHandler(Handler):
         network_description = 'example-description'
         network = self.api.create_network(network_name, network_description)
         print(network.name)
+```
+
+### Users
+
+`self.api.list_users(login, login_pattern, role, status, sort_field, sort_order,
+                     take, skip)` returns list of `User` objects. All args are
+                     optional.
+
+`self.api.get_current_user()` returns `User` object.
+
+`self.api.get_user(user_id)` returns `User` object.
+
+`self.api.create_user(self, login, password, role, data)` returns `User` object.
+
+#### User object
+
+Properties:
+* `id` (read only)
+* `login` (read only)
+* `last_login` (read only)
+* `intro_reviewed` (read only)
+* `role`
+* `status`
+* `data`
+
+Methods:
+* `save()` Does not return anything.
+* `update_password(password)` Does not return anything.
+* `remove()` Does not return anything.
+* `list_networks()` Returns list of `Network` objects.
+* `assign_network(network_id)` Does not return anything.
+* `unassign_network(network_id)` Does not return anything.
+
+Example:
+```python
+from devicehive import Handler
+from devicehive.user import User
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        login = 'example-login'
+        password = 'example-password'
+        role = User.CLIENT_ROLE
+        data = {'key': 'value'}
+        user = self.api.create_user(login, password, role, data)
+        print(user.login)
 ```
