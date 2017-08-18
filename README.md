@@ -262,9 +262,7 @@ class SimpleHandler(Handler):
 ### Notifications subscription and unsubscription
 
 `self.api.subscribe_notifications(device_ids, names, timestamp)` does not return
-anything.
-
-Only `device_ids` arg is required.
+anything. Only `device_ids` arg is required.
 
 `self.api.unsubscribe_notifications(device_ids)` does not return anything.
 
@@ -291,9 +289,7 @@ class SimpleHandler(Handler):
 
 `self.api.list_devices(name, name_pattern, network_id, network_name, sort_field,
                        sort_order, take, skip)` returns list of `Device`
-objects. 
-
-All args are optional.
+objects. All args are optional.
 
 `self.api.get_device(device_id)` returns `Device` object.
 
@@ -376,4 +372,40 @@ class SimpleHandler(Handler):
             print('Device: %s, name: %s, data: %s' % (device.id, device.name,
                                                       device.data))
             device.remove()
+```
+
+### Networks
+
+`self.api.list_networks(name, name_pattern, sort_field, sort_order, take, skip)`
+returns list of `Network` objects. All args are optional.
+
+`self.api.get_network(network_id)` returns `Network` object.
+
+`self.api.create_network(name, description)` returns `Network` object.
+
+#### Network object
+
+Properties:
+* `id` (read only)
+* `name`
+* `description`
+
+Methods:
+* `save()` Does not return anything.
+* `remove()` Does not return anything.
+* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)`
+Returns list of `Device` objects.
+
+Example:
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        network_name = 'example-name'
+        network_description = 'example-description'
+        network = self.api.create_network(network_name, network_description)
+        print(network.name)
 ```
