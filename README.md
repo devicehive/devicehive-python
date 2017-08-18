@@ -457,3 +457,93 @@ class SimpleHandler(Handler):
         user = self.api.create_user(login, password, role, data)
         print(user.login)
 ```
+
+## Extended example:
+
+Here we will create one endpoint which sends notifications and other endpoint 
+which receives these notifications.
+
+On the first we will create `receiver.py`:
+
+```python
+from devicehive import Handler
+from devicehive import DeviceHive
+
+
+class ReceiverHandler(Handler):
+
+    def __init__(self, api, device_id='simple-example-device',
+                 accept_command_name='accept_notifications'):
+        Handler.__init__(self, api)
+        self._device_id = device_id
+        self._accept_command_name = accept_command_name
+        self._device = None
+
+    def handle_connect(self):
+        self._device = self.api.get_device(self._device_id)
+        self._device.subscribe_insert_commands([self._accept_command_name])
+        self._device.subscribe_notifications()
+
+    def handle_command_insert(self, command):
+        print('Accept command "%s"' % self._accept_command_name)
+        command.status = 'accepted'
+        command.save()
+
+    def handle_notification(self, notification):
+        print('Notification "%s" received' % notification.notification)
+
+
+url = 'ws://playground.dev.devicehive.com/api/websocket'
+refresh_token = 'SOME_REFRESH_TOKEN'
+dh = DeviceHive(ReceiverHandler)
+dh.connect(url, refresh_token=refresh_token)
+dh.join()
+dh.print_exception()
+```
+
+On the next step we will create `sender.py`
+
+```python
+from devicehive import Handler
+from devicehive import DeviceHive
+
+
+class SenderHandler(Handler):
+
+    def __init__(self, api, device_id='simple-example-device',
+                 accept_command_name='accept_notifications',
+                 num_notifications=10):
+        Handler.__init__(self, api)
+        self._device_id = device_id
+        self._accept_command_name = accept_command_name
+        self._num_notifications = num_notifications
+        self._device = None
+
+    def _send_notifications(self):
+        for num_notification in range(self._num_notifications):
+            notification = '%s-notification' % num_notification
+            self._device.send_notification(notification)
+            print('Sending notification "%s"' % notification)
+
+    def handle_connect(self):
+        self._device = self.api.put_device(self._device_id)
+        self._device.send_command(self._accept_command_name)
+        print('Sending command "%s"' % self._accept_command_name)
+        self._device.subscribe_update_commands([self._accept_command_name])
+
+    def handle_command_update(self, command):
+        if command.status == 'accepted':
+            print('Command "%s" accepted' % self._accept_command_name)
+            self._send_notifications()
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+dh = DeviceHive(SenderHandler)
+dh.connect(url, refresh_token=refresh_token)
+dh.join()
+dh.print_exception()
+```
+
+Run `python receiver.py` in the first terminal. And `python sender.py` in the
+second. The order of run is important. `receiver.py` must be started first.
