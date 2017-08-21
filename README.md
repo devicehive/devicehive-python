@@ -480,7 +480,7 @@ class ReceiverHandler(Handler):
         self._device = None
 
     def handle_connect(self):
-        self._device = self.api.get_device(self._device_id)
+        self._device = self.api.put_device(self._device_id)
         self._device.subscribe_insert_commands([self._accept_command_name])
         self._device.subscribe_notifications()
 
@@ -526,7 +526,7 @@ class SenderHandler(Handler):
             print('Sending notification "%s"' % notification)
 
     def handle_connect(self):
-        self._device = self.api.put_device(self._device_id)
+        self._device = self.api.get_device(self._device_id)
         self._device.send_command(self._accept_command_name)
         print('Sending command "%s"' % self._accept_command_name)
         self._device.subscribe_update_commands([self._accept_command_name])
