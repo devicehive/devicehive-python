@@ -650,8 +650,6 @@ def test_send_notification(test):
             device_1.send_notification(notification_name)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
