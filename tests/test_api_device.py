@@ -50,9 +50,7 @@ def test_remove(test):
             device_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
