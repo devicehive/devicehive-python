@@ -614,9 +614,7 @@ def test_list_notifications(test):
             device_1.list_commands()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
