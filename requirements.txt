@@ -1,10 +1,2 @@
-setuptools>=2.2
-pip>=1.5.4
-nose>=1.3.3
-wsgiref>=0.1.2
-pyserial>=2.7
-zope.interface>=4.1.1
-Twisted>=14.0.0
-pyOpenSSL>=0.14
-service-identity>=14.0.0
-mock
+websocket-client>=0.44.0
+requests>=2.18.1
