@@ -15,6 +15,7 @@ class Api(object):
     def __init__(self, transport, auth):
         self._transport = transport
         self._token = Token(self, auth)
+        self._connected = True
         self._subscriptions = {}
         self._removed_subscription_ids = {}
         self.server_timestamp = None
@@ -52,6 +53,10 @@ class Api(object):
     @property
     def token(self):
         return self._token
+
+    @property
+    def connected(self):
+        return self._connected
 
     def ensure_subscription_not_exist(self, action, device_ids):
         for device_id in device_ids:
@@ -419,3 +424,9 @@ class Api(object):
         user[User.STATUS_KEY] = status
         user[User.DATA_KEY] = data
         return User(self, user)
+
+    def disconnect(self):
+        self._connected = False
+        if not self._transport.connected:
+            return
+        self._transport.disconnect()
