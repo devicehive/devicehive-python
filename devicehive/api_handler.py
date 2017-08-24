@@ -22,6 +22,10 @@ class ApiHandler(Handler):
                                       **handler_kwargs)
         self._handle_connect = False
 
+    @property
+    def handler(self):
+        return self._handler
+
     def handle_connect(self):
         self._api.token.auth()
         self._api.server_timestamp = self._api.get_info()['server_timestamp']
@@ -47,5 +51,4 @@ class ApiHandler(Handler):
             return self._handler.handle_notification(notification)
 
     def handle_disconnect(self):
-        # TODO: handle disconnect here.
         pass
