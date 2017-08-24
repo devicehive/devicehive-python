@@ -46,9 +46,6 @@ class DeviceHive(object):
         return self._transport.exception_info
 
     def print_exception(self):
-        transport_exception_info = self._transport.exception_info
-        if not transport_exception_info:
+        if not self._transport.exception_info:
             return
-        traceback.print_exception(transport_exception_info[0],
-                                  transport_exception_info[1],
-                                  transport_exception_info[2])
+        traceback.print_exception(*self._transport.exception_info)
