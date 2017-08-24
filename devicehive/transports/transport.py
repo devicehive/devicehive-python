@@ -82,6 +82,10 @@ class Transport(object):
         return self._error
 
     @property
+    def handler(self):
+        return self._handler
+
+    @property
     def connected(self):
         return self._connected
 
