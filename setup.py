@@ -17,4 +17,5 @@ setup(name='devicehive',
       keywords='iot cloud m2m gateway embedded devicehive',
       packages=['devicehive', 'devicehive.data_formats', 'devicehive.handlers',
                 'devicehive.transports'],
-      install_requires=['websocket-client>=0.44.0', 'requests>=2.18.1'])
+      install_requires=['websocket-client>=0.44.0', 'requests>=2.18.1',
+                        'six>=1.10.0'])
