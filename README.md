@@ -31,9 +31,12 @@ from devicehive import Handler
 class SimpleHandler(Handler):
     
     def handle_connect(self):
-        self.api.subscribe_insert_commands()
-        self.api.subscribe_update_commands()
-        self.api.subscribe_notifications()
+        device_ids = ['example-device-1', 'example-device-2']
+        for device_id in device_ids:
+            self.api.put_device(device_id)
+        self.api.subscribe_insert_commands(device_ids)
+        self.api.subscribe_update_commands(device_ids)
+        self.api.subscribe_notifications(device_ids)
 
     def handle_command_insert(self, command):
         print(command.command)
@@ -58,6 +61,9 @@ from devicehive import DeviceHive
 class SimpleHandler(Handler):
 
     def handle_connect(self):
+        device_ids = ['example-device-1', 'example-device-2']
+        for device_id in device_ids:
+            self.api.put_device(device_id)
         self.api.subscribe_insert_commands()
         self.api.subscribe_update_commands()
         self.api.subscribe_notifications()
@@ -76,7 +82,6 @@ url = 'http://playground.dev.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(SimpleHandler)
 dh.connect(url, refresh_token=refresh_token)
-dh.join()
 ```
 
 ### Custom handler args
@@ -143,12 +148,14 @@ custom handler with `self.api`.
 ### Info
 
 `self.api.get_info()` returns `dict` with the next fields:
+
 * `api_version`
 * `server_timestamp`
 * `rest_server_url`
 * `websocket_server_url`
 
 `self.api.get_cluster_info()` returns `dict` with the next fields:
+
 * `bootstrap.servers`
 * `zookeeper.connect`
 
@@ -169,6 +176,7 @@ class SimpleHandler(Handler):
 ### Properties
 
 `self.api.get_property(name)` returns `dict` with the next fields:
+
 * `entity_version`
 * `name`
 * `value`
@@ -197,6 +205,7 @@ class SimpleHandler(Handler):
 
 `self.api.create_token(user_id, expiration, actions, network_ids, device_ids)`
 returns `dict` with the next fields:
+
 * `access_token`
 * `refresh_token`
 
@@ -300,6 +309,7 @@ Only `device_id` arg is required.
 #### Device object
 
 Properties:
+
 * `id` (read only)
 * `name`
 * `data`
@@ -307,31 +317,24 @@ Properties:
 * `is_blocked`
 
 Methods:
+
 * `save()` Does not return anything.
 * `remove()` Does not return anything.
-* `subscribe_insert_commands(names, timestamp)` Does not return anything. All
-args are optional.
+* `subscribe_insert_commands(names, timestamp)` Does not return anything. All args are optional.
 * `unsubscribe_insert_commands()` Does not return anything.
-* `subscribe_update_commands(names, timestamp)` Does not return anything.
-All args are optional.
+* `subscribe_update_commands(names, timestamp)` Does not return anything. All args are optional.
 * `unsubscribe_update_commands()` Does not return anything.
-* `list_commands(start, end, command, status, sort_field, sort_order, take,
-                 skip)` Returns list of `Command` objects. All args are
-                 optional.
-* `send_command(command_name, parameters, lifetime, timestamp, status, result)`
-Returns `Command` object. Only `command_name` is required.
-* `subscribe_notifications(names, timestamp)` Does not return anything. All args
-are optional.
+* `list_commands(start, end, command, status, sort_field, sort_order, take, skip)` Returns list of `Command` objects. All args are optional.
+* `send_command(command_name, parameters, lifetime, timestamp, status, result)` Returns `Command` object. Only `command_name` is required.
+* `subscribe_notifications(names, timestamp)` Does not return anything. All args are optional.
 * `unsubscribe_notifications()` Does not return anything.
-* `list_notifications(start, end, notification, sort_field, sort_order, take,
-                      skip)` Returns list of `Notification` objects. All args
-                      are optional.
-* `send_notification(notification_name, parameters, timestamp)` Returns
-`Notification` object. Only `notification_name` is required.
+* `list_notifications(start, end, notification, sort_field, sort_order, take, skip)` Returns list of `Notification` objects. All args are optional.
+* `send_notification(notification_name, parameters, timestamp)` Returns `Notification` object. Only `notification_name` is required.
 
 #### Command object
 
 Properties:
+
 * `id` (read only)
 * `user_id` (read only)
 * `command` (read only)
@@ -343,11 +346,13 @@ Properties:
 * `result`
 
 Methods:
+
 * `save()` Does not return anything.
 
 #### Notification object
 
 Properties:
+
 * `device_id` (read only)
 * `id` (read only)
 * `notification` (read only)
@@ -386,15 +391,16 @@ returns list of `Network` objects. All args are optional.
 #### Network object
 
 Properties:
+
 * `id` (read only)
 * `name`
 * `description`
 
 Methods:
+
 * `save()` Does not return anything.
 * `remove()` Does not return anything.
-* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)`
-Returns list of `Device` objects. All args are optional.
+* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` Returns list of `Device` objects. All args are optional.
 
 Example:
 ```python
@@ -425,6 +431,7 @@ class SimpleHandler(Handler):
 #### User object
 
 Properties:
+
 * `id` (read only)
 * `login` (read only)
 * `last_login` (read only)
@@ -434,6 +441,7 @@ Properties:
 * `data`
 
 Methods:
+
 * `save()` Does not return anything.
 * `update_password(password)` Does not return anything.
 * `remove()` Does not return anything.
@@ -497,8 +505,6 @@ url = 'ws://playground.dev.devicehive.com/api/websocket'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(ReceiverHandler)
 dh.connect(url, refresh_token=refresh_token)
-dh.join()
-dh.print_exception()
 ```
 
 On the next step we will create `sender.py`
@@ -541,8 +547,6 @@ url = 'http://playground.dev.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(SenderHandler)
 dh.connect(url, refresh_token=refresh_token)
-dh.join()
-dh.print_exception()
 ```
 
 Run `python receiver.py` in the first terminal. And `python sender.py` in the
