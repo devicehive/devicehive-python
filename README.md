@@ -18,6 +18,7 @@ class SimpleHandler(Handler):
     def handle_connect(self):
         info = self.api.get_info()
         print(info)
+        self.api.disconnect()
 ```
 
 `handle_connect` is the only one required method. If you want to handle server 
@@ -103,6 +104,7 @@ class SimpleHandler(Handler):
     def handle_connect(self):
         info = self.api.get_info()
         print(info)
+        self.api.disconnect()
 
 dh = DeviceHive(SimpleHandler, 'some_arg', some_kwarg='some_kwarg')
 ```
@@ -171,6 +173,7 @@ class SimpleHandler(Handler):
         print(info)
         cluster_info = self.api.get_cluster_info()
         print(cluster_info)
+        self.api.disconnect()
 ```
 
 ### Properties
@@ -199,6 +202,7 @@ class SimpleHandler(Handler):
         entity_version = self.api.get_property(name, 'value')
         print(entity_version)
         self.api.delete_property(name)
+        self.api.disconnect()
 ```
 
 ### Tokens
@@ -225,6 +229,7 @@ class SimpleHandler(Handler):
         print(tokens)
         access_token = self.api.refresh_token()
         print(access_token)
+        self.api.disconnect()
 ```
 
 ### Commands subscription and unsubscription
@@ -377,6 +382,7 @@ class SimpleHandler(Handler):
             print('Device: %s, name: %s, data: %s' % (device.id, device.name,
                                                       device.data))
             device.remove()
+        self.api.disconnect()
 ```
 
 ### Networks
@@ -414,6 +420,7 @@ class SimpleHandler(Handler):
         network_description = 'example-description'
         network = self.api.create_network(network_name, network_description)
         print(network.name)
+        self.api.disconnect()
 ```
 
 ### Users
@@ -464,6 +471,7 @@ class SimpleHandler(Handler):
         data = {'key': 'value'}
         user = self.api.create_user(login, password, role, data)
         print(user.login)
+        self.api.disconnect()
 ```
 
 ## Extended example:
@@ -530,6 +538,7 @@ class SenderHandler(Handler):
             notification = '%s-notification' % num_notification
             self._device.send_notification(notification)
             print('Sending notification "%s"' % notification)
+        self.api.disconnect()
 
     def handle_connect(self):
         self._device = self.api.get_device(self._device_id)
