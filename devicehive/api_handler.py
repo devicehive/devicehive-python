@@ -32,6 +32,8 @@ class ApiHandler(Handler):
         if not self._handle_connect:
             self._handle_connect = True
             self._handler.handle_connect()
+            return
+        self._api.resubscribe()
 
     def handle_event(self, event):
         api_event = ApiEvent(event)

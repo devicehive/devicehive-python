@@ -1,6 +1,7 @@
 from devicehive.data_formats.json_data_format import JsonDataFormat
 from devicehive.api_handler import ApiHandler
-import traceback
+import time
+import six
 
 
 class DeviceHive(object):
@@ -35,17 +36,29 @@ class DeviceHive(object):
                 'password': options.pop('password', None),
                 'refresh_token': options.pop('refresh_token', None),
                 'access_token': options.pop('access_token', None)}
+        connect_timeout = options.pop('connect_timeout', 30)
+        max_num_connect = options.pop('max_num_connect', 10)
+        connect_interval = options.pop('connect_interval', 1)
         self._api_handler_options['auth'] = auth
         self._init_transport()
-        self._transport.connect(transport_url, **options)
-
-    def join(self, timeout=None):
-        self._transport.join(timeout)
-
-    def exception_info(self):
-        return self._transport.exception_info
-
-    def print_exception(self):
-        if not self._transport.exception_info:
-            return
-        traceback.print_exception(*self._transport.exception_info)
+        connect_time = time.time()
+        num_connect = 0
+        while True:
+            if self._transport.connected:
+                self._transport.disconnect()
+            self._transport.connect(transport_url, **options)
+            self._transport.join()
+            exception_info = self._transport.exception_info
+            if exception_info and not isinstance(exception_info[1],
+                                                 self._transport.error):
+                six.reraise(*exception_info)
+            if not self._transport.handler.handler.api.connected:
+                return
+            if time.time() - connect_time < connect_timeout:
+                num_connect += 1
+                if num_connect > max_num_connect:
+                    six.reraise(*exception_info)
+                time.sleep(connect_interval)
+                continue
+            connect_time = time.time()
+            num_connect = 0
