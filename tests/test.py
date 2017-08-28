@@ -2,7 +2,6 @@ from devicehive import Handler
 from devicehive import DeviceHive
 import time
 import pytest
-import six
 
 
 class TestHandler(Handler):
@@ -39,9 +38,7 @@ class TestHandler(Handler):
         self._handle_notification(self, notification)
 
     def disconnect(self):
-        if not self.api.transport.connected:
-            return
-        self.api.transport.disconnect()
+        self.api.disconnect()
 
 
 class Test(object):
@@ -81,7 +78,7 @@ class Test(object):
         pytest.skip('Implemented only for websocket transport.')
 
     def run(self, handle_connect, handle_command_insert=None,
-            handle_command_update=None, handle_notification=None, timeout=5):
+            handle_command_update=None, handle_notification=None):
         handler_kwargs = {'handle_connect': handle_connect,
                           'handle_command_insert': handle_command_insert,
                           'handle_command_update': handle_command_update,
@@ -89,8 +86,3 @@ class Test(object):
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
         device_hive.connect(self._transport_url,
                             refresh_token=self._refresh_token)
-        device_hive.join(timeout)
-        exception_info = device_hive.exception_info()
-        if not exception_info:
-            return
-        six.reraise(*exception_info)

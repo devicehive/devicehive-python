@@ -15,6 +15,7 @@ class Api(object):
     def __init__(self, transport, auth):
         self._transport = transport
         self._token = Token(self, auth)
+        self._connected = True
         self._subscriptions = {}
         self._removed_subscription_ids = {}
         self.server_timestamp = None
@@ -52,6 +53,10 @@ class Api(object):
     @property
     def token(self):
         return self._token
+
+    @property
+    def connected(self):
+        return self._connected
 
     def ensure_subscription_not_exist(self, action, device_ids):
         for device_id in device_ids:
@@ -98,6 +103,37 @@ class Api(object):
         if not subscription_ids:
             return False
         return subscription_id in subscription_ids
+
+    def resubscribe(self):
+        subscription_calls = {}
+        for action in self._subscriptions:
+            subscription_calls[action] = []
+            for subscription in self._subscriptions[action]:
+                found = False
+                for subscription_call in subscription_calls[action]:
+                    if subscription_call['names'] == subscription['names']:
+                        found = True
+                        device_id = subscription['device_id']
+                        subscription_call['device_ids'].append(device_id)
+                        break
+                if not found:
+                    device_id = subscription['device_id']
+                    subscription_call = {'device_ids': [device_id],
+                                         'names': subscription['names']}
+                    subscription_calls[action].append(subscription_call)
+        self._subscriptions = {}
+        action = 'command/insert'
+        if action in subscription_calls:
+            for subscription_call in subscription_calls[action]:
+                self.subscribe_insert_commands(**subscription_call)
+        action = 'command/update'
+        if action in subscription_calls:
+            for subscription_call in subscription_calls[action]:
+                self.subscribe_update_commands(**subscription_call)
+        action = 'notification/insert'
+        if action in subscription_calls:
+            for subscription_call in subscription_calls[action]:
+                self.subscribe_notifications(**subscription_call)
 
     def get_info(self):
         api_request = ApiRequest(self)
@@ -419,3 +455,9 @@ class Api(object):
         user[User.STATUS_KEY] = status
         user[User.DATA_KEY] = data
         return User(self, user)
+
+    def disconnect(self):
+        self._connected = False
+        if not self._transport.connected:
+            return
+        self._transport.disconnect()

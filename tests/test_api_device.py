@@ -105,16 +105,6 @@ def test_subscribe_insert_commands(test):
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
         device.subscribe_insert_commands()
-        device.remove()
-
-    def handle_command_insert(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_insert, timeout=5)
-
-    def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
-        device.subscribe_insert_commands()
         try:
             device.subscribe_insert_commands()
             assert False
@@ -141,22 +131,9 @@ def test_subscribe_insert_commands(test):
 
 def test_unsubscribe_insert_commands(test):
 
-    device_id = test.generate_id('d-u-i-c')
-
     def handle_connect(handler):
-        command_name = test.generate_id('d-u-i-c')
+        device_id = test.generate_id('d-u-i-c')
         device = handler.api.put_device(device_id)
-        device.subscribe_insert_commands()
-        device.send_command(command_name)
-        device.unsubscribe_insert_commands()
-
-    def handle_command_insert(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_insert, timeout=5)
-
-    def handle_connect(handler):
-        device = handler.api.get_device(device_id)
         device.subscribe_insert_commands()
         device.unsubscribe_insert_commands()
         try:
@@ -234,17 +211,6 @@ def test_subscribe_update_commands(test):
     def handle_connect(handler):
         device, commands, command_ids = init_device(handler)
         device.subscribe_update_commands()
-        device.remove()
-
-    def handle_command_update(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_update=handle_command_update,
-             timeout=5)
-
-    def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
-        device.subscribe_update_commands()
         try:
             device.subscribe_update_commands()
             assert False
@@ -271,25 +237,9 @@ def test_subscribe_update_commands(test):
 
 def test_unsubscribe_update_commands(test):
 
-    device_id = test.generate_id('d-u-u-c')
-
     def handle_connect(handler):
-        command_name = test.generate_id('d-u-u-c')
+        device_id = test.generate_id('d-u-u-c')
         device = handler.api.put_device(device_id)
-        device.subscribe_update_commands()
-        command = device.send_command(command_name)
-        command.status = 'status'
-        command.save()
-        device.unsubscribe_update_commands()
-
-    def handle_command_update(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_update=handle_command_update,
-             timeout=5)
-
-    def handle_connect(handler):
-        device = handler.api.get_device(device_id)
         device.subscribe_update_commands()
         device.unsubscribe_update_commands()
         try:
@@ -475,16 +425,6 @@ def test_subscribe_notifications(test):
     def handle_connect(handler):
         device, notifications, notification_ids = init_device(handler)
         device.subscribe_notifications()
-        device.remove()
-
-    def handle_notification(*_):
-        assert False
-
-    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
-
-    def handle_connect(handler):
-        device, notifications, notification_ids = init_device(handler)
-        device.subscribe_notifications()
         try:
             device.subscribe_notifications()
             assert False
@@ -511,22 +451,9 @@ def test_subscribe_notifications(test):
 
 def test_unsubscribe_notifications(test):
 
-    device_id = test.generate_id('d-u-n')
-
     def handle_connect(handler):
-        notification_name = test.generate_id('d-u-n')
+        device_id = test.generate_id('d-u-n')
         device = handler.api.put_device(device_id)
-        device.subscribe_notifications()
-        device.send_notification(notification_name)
-        device.unsubscribe_notifications()
-
-    def handle_notification(*_):
-        assert False
-
-    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
-
-    def handle_connect(handler):
-        device = handler.api.get_device(device_id)
         device.subscribe_notifications()
         device.unsubscribe_notifications()
         try:

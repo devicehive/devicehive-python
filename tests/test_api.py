@@ -119,16 +119,6 @@ def test_subscribe_insert_commands(test):
     def handle_connect(handler):
         devices, device_ids, command_ids, command_names = init_devices(handler)
         handler.api.subscribe_insert_commands(device_ids)
-        [device.remove() for device in devices]
-
-    def handle_command_insert(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_insert, timeout=5)
-
-    def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_insert_commands(device_ids)
         try:
             handler.api.subscribe_insert_commands(device_ids)
             assert False
@@ -149,40 +139,12 @@ def test_subscribe_insert_commands(test):
 
 def test_unsubscribe_insert_commands(test):
 
-    test_id = test.generate_id('u-i-c')
-    device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
-
     def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            command_name = '%s-name' % device_id
-            device.send_command(command_name)
-        handler.api.subscribe_insert_commands(device_ids)
-        handler.api.unsubscribe_insert_commands(device_ids)
-
-    def handle_command_insert(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_insert, timeout=5)
-
-    def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.get_device(device_id)
-            command_name = '%s-name' % device_id
-            device.send_command(command_name)
-        handler.api.subscribe_insert_commands(device_ids[:1])
-        handler.api.subscribe_insert_commands(device_ids[1:])
-        handler.api.unsubscribe_insert_commands(device_ids[:-1])
-
-    def handle_command_insert(_, command):
-        assert command.device_id == device_ids[-1]
-
-    test.run(handle_connect, handle_command_insert, timeout=5)
-
-    def handle_connect(handler):
+        test_id = test.generate_id('u-i-c')
+        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
         devices = []
         for device_id in device_ids:
-            device = handler.api.get_device(device_id)
+            device = handler.api.put_device(device_id)
             devices.append(device)
             command_name = '%s-name' % device_id
             device.send_command(command_name)
@@ -262,17 +224,6 @@ def test_subscribe_update_commands(test):
     def handle_connect(handler):
         devices, device_ids, command_ids, command_names = init_devices(handler)
         handler.api.subscribe_update_commands(device_ids)
-        [device.remove() for device in devices]
-
-    def handle_command_update(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_update=handle_command_update,
-             timeout=5)
-
-    def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_update_commands(device_ids)
         try:
             handler.api.subscribe_update_commands(device_ids)
             assert False
@@ -293,46 +244,12 @@ def test_subscribe_update_commands(test):
 
 def test_unsubscribe_update_commands(test):
 
-    test_id = test.generate_id('u-u-c')
-    device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
-
     def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            command_name = '%s-name' % device_id
-            command = device.send_command(command_name)
-            command.status = 'status'
-            command.save()
-        handler.api.subscribe_update_commands(device_ids)
-        handler.api.unsubscribe_update_commands(device_ids)
-
-    def handle_command_update(*_):
-        assert False
-
-    test.run(handle_connect, handle_command_update=handle_command_update,
-             timeout=5)
-
-    def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.get_device(device_id)
-            command_name = '%s-name' % device_id
-            command = device.send_command(command_name)
-            command.status = 'status'
-            command.save()
-        handler.api.subscribe_update_commands(device_ids[:1])
-        handler.api.subscribe_update_commands(device_ids[1:])
-        handler.api.unsubscribe_update_commands(device_ids[:-1])
-
-    def handle_command_update(_, command):
-        assert command.device_id == device_ids[-1]
-
-    test.run(handle_connect, handle_command_update=handle_command_update,
-             timeout=5)
-
-    def handle_connect(handler):
+        test_id = test.generate_id('u-u-c')
+        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
         devices = []
         for device_id in device_ids:
-            device = handler.api.get_device(device_id)
+            device = handler.api.put_device(device_id)
             devices.append(device)
             command_name = '%s-name' % device_id
             command = device.send_command(command_name)
@@ -425,19 +342,6 @@ def test_subscribe_notifications(test):
          notification_ids,
          notification_names) = init_devices(handler)
         handler.api.subscribe_notifications(device_ids)
-        [device.remove() for device in devices]
-
-    def handle_notification(*_):
-        assert False
-
-    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
-
-    def handle_connect(handler):
-        (devices,
-         device_ids,
-         notification_ids,
-         notification_names) = init_devices(handler)
-        handler.api.subscribe_notifications(device_ids)
         try:
             handler.api.subscribe_notifications(device_ids)
             assert False
@@ -458,40 +362,12 @@ def test_subscribe_notifications(test):
 
 def test_unsubscribe_notifications(test):
 
-    test_id = test.generate_id('u-n')
-    device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
-
     def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            notification_name = '%s-name' % device_id
-            device.send_notification(notification_name)
-        handler.api.subscribe_notifications(device_ids)
-        handler.api.unsubscribe_notifications(device_ids)
-
-    def handle_notification(*_):
-        assert False
-
-    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
-
-    def handle_connect(handler):
-        for device_id in device_ids:
-            device = handler.api.get_device(device_id)
-            notification_name = '%s-name' % device_id
-            device.send_notification(notification_name)
-        handler.api.subscribe_notifications(device_ids[:1])
-        handler.api.subscribe_notifications(device_ids[1:])
-        handler.api.unsubscribe_notifications(device_ids[:-1])
-
-    def handle_notification(_, notification):
-        assert notification.device_id == device_ids[-1]
-
-    test.run(handle_connect, handle_notification=handle_notification, timeout=5)
-
-    def handle_connect(handler):
+        test_id = test.generate_id('u-n')
+        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
         devices = []
         for device_id in device_ids:
-            device = handler.api.get_device(device_id)
+            device = handler.api.put_device(device_id)
             devices.append(device)
             notification_name = '%s-name' % device_id
             device.send_notification(notification_name)
