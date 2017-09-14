@@ -10,7 +10,7 @@ class HttpTransport(Transport):
     """Http transport class."""
 
     def __init__(self, data_format_class, data_format_options, handler_class,
-                 handler_options, receive_wait_time=0.01):
+                 handler_options):
         Transport.__init__(self, 'http', HttpTransportError, data_format_class,
                            data_format_options, handler_class, handler_options)
         self._url = None
@@ -18,9 +18,9 @@ class HttpTransport(Transport):
         self._events_queue = []
         self._subscription_ids = []
         self._success_codes = [200, 201, 204]
-        self._receive_wait_time = receive_wait_time
 
     def _connect(self, url, **options):
+        self._events_queue_timeout = options.pop('events_queue_timeout', 0.01)
         self._url = url
         self._options = options
         if not self._url.endswith('/'):
@@ -31,7 +31,7 @@ class HttpTransport(Transport):
     def _receive(self):
         while self._connected and not self._exception_info:
             if not self._events_queue:
-                time.sleep(self._receive_wait_time)
+                time.sleep(self._events_queue_timeout)
                 continue
             for event in self._events_queue.pop(0):
                 self._handle_event(event)
