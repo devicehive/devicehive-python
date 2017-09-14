@@ -3,6 +3,7 @@ from devicehive.transports.transport import TransportError
 import requests
 import threading
 import sys
+import time
 
 
 class HttpTransport(Transport):
@@ -17,6 +18,7 @@ class HttpTransport(Transport):
         self._events_queue = []
         self._subscription_ids = []
         self._success_codes = [200, 201, 204]
+        self._receive_wait_time = 0.01
 
     def _connect(self, url, **options):
         self._url = url
@@ -29,11 +31,13 @@ class HttpTransport(Transport):
     def _receive(self):
         while self._connected and not self._exception_info:
             if not self._events_queue:
+                time.sleep(self._receive_wait_time)
                 continue
             for event in self._events_queue.pop(0):
                 self._handle_event(event)
                 if not self._connected:
                     return
+
 
     def _disconnect(self):
         self._events_queue = []
