@@ -38,7 +38,6 @@ class HttpTransport(Transport):
                 if not self._connected:
                     return
 
-
     def _disconnect(self):
         self._events_queue = []
         self._subscription_ids = []
