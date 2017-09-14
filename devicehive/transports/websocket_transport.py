@@ -10,7 +10,7 @@ class WebsocketTransport(Transport):
     """Websocket transport class."""
 
     def __init__(self, data_format_class, data_format_options, handler_class,
-                 handler_options):
+                 handler_options, receive_wait_time=None):
         Transport.__init__(self, 'websocket', WebsocketTransportError,
                            data_format_class, data_format_options,
                            handler_class, handler_options)
