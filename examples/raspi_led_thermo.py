@@ -65,7 +65,7 @@ class SampleHandler(Handler):
     INTERVAL_SECONDS = 5
 
     def __init__(self, api, device_id=DEVICE_ID):
-        Handler.__init__(self, api)
+        super(SampleHandler, self).__init__(api)
         self._device_id = device_id
         self._device = None
         self._sensor = TempSensor()

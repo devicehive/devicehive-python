@@ -16,7 +16,7 @@ class ApiHandler(Handler):
 
     def __init__(self, transport, auth, handler_class, handler_args,
                  handler_kwargs):
-        Handler.__init__(self, transport)
+        super(ApiHandler, self).__init__(transport)
         self._api = Api(self._transport, auth)
         self._handler = handler_class(self._api, *handler_args,
                                       **handler_kwargs)

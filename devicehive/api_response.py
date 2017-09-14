@@ -54,7 +54,7 @@ class ApiResponseError(TransportError):
         message = '%s Transport: %s. Code: %s. Error: %s' % (message,
                                                              transport_name,
                                                              code, error)
-        Exception.__init__(self, message)
+        super(ApiResponseError, self).__init__(message)
         self._transport_name = transport_name
         self._code = code
         self._error = error
