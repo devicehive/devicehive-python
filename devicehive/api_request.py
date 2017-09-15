@@ -97,13 +97,13 @@ class AuthApiRequest(ApiRequest):
     def execute(self, error_message):
         self.header(*self._api.token.auth_header)
         try:
-            return ApiRequest.execute(self, error_message)
+            return super(AuthApiRequest, self).execute(error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
         self._api.token.auth()
         self.header(*self._api.token.auth_header)
-        return ApiRequest.execute(self, error_message)
+        return super(AuthApiRequest, self).execute(error_message)
 
 
 class SubscriptionApiRequest(object):
@@ -170,7 +170,7 @@ class AuthSubscriptionApiRequest(SubscriptionApiRequest):
     """Auth subscription api request class."""
 
     def __init__(self, api):
-        SubscriptionApiRequest.__init__(self)
+        super(AuthSubscriptionApiRequest, self).__init__()
         auth_header_name, auth_header_value = api.token.auth_header
         self._params['headers'][auth_header_name] = auth_header_value
         self._params['response_error_handler'] = self.response_error_handler

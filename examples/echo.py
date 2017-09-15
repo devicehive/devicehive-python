@@ -5,7 +5,7 @@ from devicehive import DeviceHive
 class EchoHandler(Handler):
 
     def __init__(self, api, device_id='example-echo-device'):
-        Handler.__init__(self, api)
+        super(EchoHandler, self).__init__(api)
         self._device_id = device_id
         self._device = None
 
