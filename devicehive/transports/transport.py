@@ -105,6 +105,9 @@ class Transport(object):
         self._ensure_connected()
         self._connected = False
 
+    def join(self, timeout=None):
+        self._connection_thread.join(timeout)
+
     def is_alive(self):
         return self._connection_thread.is_alive()
 
