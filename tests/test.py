@@ -9,7 +9,7 @@ class TestHandler(Handler):
 
     def __init__(self, api, handle_connect, handle_command_insert,
                  handle_command_update, handle_notification):
-        Handler.__init__(self, api)
+        super(TestHandler, self).__init__(api)
         self._handle_connect = handle_connect
         self._handle_command_insert = handle_command_insert
         self._handle_command_update = handle_command_update
