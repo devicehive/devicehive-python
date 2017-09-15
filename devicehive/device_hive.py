@@ -39,7 +39,7 @@ class DeviceHive(object):
         connect_timeout = options.pop('connect_timeout', 30)
         max_num_connect = options.pop('max_num_connect', 10)
         connect_interval = options.pop('connect_interval', 1)
-        transport_timeout = options.pop('transport_timeout', 0.01)
+        transport_alive_timeout = options.pop('transport_alive_timeout', 0.01)
         self._api_handler_options['auth'] = auth
         self._init_transport()
         connect_time = time.time()
@@ -49,7 +49,7 @@ class DeviceHive(object):
                 self._transport.disconnect()
             self._transport.connect(transport_url, **options)
             while self._transport.is_alive():
-                time.sleep(transport_timeout)
+                time.sleep(transport_alive_timeout)
             exception_info = self._transport.exception_info
             if exception_info and not isinstance(exception_info[1],
                                                  self._transport.error):
