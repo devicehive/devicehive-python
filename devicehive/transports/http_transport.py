@@ -15,14 +15,15 @@ class HttpTransport(Transport):
                            data_format_options, handler_class, handler_options)
         self._url = None
         self._options = None
+        self._events_queue_timeout = None
         self._events_queue = []
         self._subscription_ids = []
         self._success_codes = [200, 201, 204]
 
     def _connect(self, url, **options):
-        self._events_queue_timeout = options.pop('events_queue_timeout', 0.01)
         self._url = url
         self._options = options
+        self._events_queue_timeout = options.pop('events_queue_timeout', 0.01)
         if not self._url.endswith('/'):
             self._url += '/'
         self._connected = True
