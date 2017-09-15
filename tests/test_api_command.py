@@ -18,8 +18,11 @@ def test_save(test):
             command.save()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)

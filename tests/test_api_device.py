@@ -50,7 +50,12 @@ def test_remove(test):
             device_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -315,7 +320,12 @@ def test_list_commands(test):
             device_1.list_commands()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -366,9 +376,12 @@ def test_send_command(test):
             device_1.send_command(command_name)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -537,7 +550,12 @@ def test_list_notifications(test):
             device_1.list_commands()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -573,6 +591,11 @@ def test_send_notification(test):
             device_1.send_notification(notification_name)
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+            # TODO: remove ws check after server response codes for ws for user
+            # token will be fixed
+            if test.admin_refresh_token or test.websocket_transport:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
