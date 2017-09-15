@@ -11,10 +11,10 @@ class HttpTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        super(HttpTransport, self).__init__(
-            'http', HttpTransportError, data_format_class, data_format_options,
-            handler_class, handler_options
-        )
+        super(HttpTransport, self).__init__('http', HttpTransportError,
+                                            data_format_class,
+                                            data_format_options, handler_class,
+                                            handler_options)
         self._url = None
         self._options = None
         self._events_queue_timeout = None
