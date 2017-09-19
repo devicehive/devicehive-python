@@ -108,6 +108,9 @@ class Transport(object):
     def join(self, timeout=None):
         self._connection_thread.join(timeout)
 
+    def is_alive(self):
+        return self._connection_thread.is_alive()
+
     def send_request(self, request_id, action, request, **params):
         raise NotImplementedError
 
