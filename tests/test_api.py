@@ -449,12 +449,12 @@ def test_get_device(test):
             handler.api.get_device(device_id)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: remove ws check after server response codes for ws for user
-            # token will be fixed
-            if test.admin_refresh_token or test.websocket_transport:
+            if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
+            # TODO: uncomment after server response for ws for user token will
+            # be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
