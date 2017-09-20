@@ -87,10 +87,14 @@ class ApiRequest(object):
     def execute(self, error_message):
         uuid = self._uuid()
         request = self._request.copy()
-        logger.debug('Request "%s" on "%s" %s', uuid, self._action, request)
+        logger.debug('Request id: %s. Action: %s. Request: %s.', uuid,
+                     self._action, request)
         response = self._api.transport.request(uuid, self._action, request,
                                                **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
+        logger.debug('Response id: %s. Action: %s. Success: %s. Response: %s.',
+                     api_response.id, api_response.action, api_response.success,
+                     api_response.response)
         if api_response.success:
             return api_response.response
         raise ApiResponseError(error_message, self._api.transport.name,
