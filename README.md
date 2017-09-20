@@ -117,7 +117,7 @@ If you want to use `Websocket` protocol you need only to specify the url:
 url = 'ws://playground.dev.devicehive.com/api/websocket'
 ```
 
-### Authentication.
+### Authentication
 
 There are three ways of initial authentication:
 
@@ -474,7 +474,7 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-## Extended example:
+## Extended example
 
 Here we will create one endpoint which sends notifications and other endpoint 
 which receives these notifications.
