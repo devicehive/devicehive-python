@@ -124,7 +124,6 @@ def test_subscribe_insert_commands(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -229,7 +228,6 @@ def test_subscribe_update_commands(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -347,7 +345,6 @@ def test_subscribe_notifications(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:

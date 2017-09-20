@@ -122,7 +122,6 @@ def test_subscribe_insert_commands(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -154,12 +153,6 @@ def test_unsubscribe_insert_commands(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add after server response will be fixed.
-        # try:
-        #     device_1.unsubscribe_insert_commands()
-        #     assert False
-        # except ApiResponseError as api_response_error:
-        #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -228,7 +221,6 @@ def test_subscribe_update_commands(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -260,12 +252,6 @@ def test_unsubscribe_update_commands(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add after server response will be fixed.
-        # try:
-        #     device_1.unsubscribe_update_commands()
-        #     assert False
-        # except ApiResponseError as api_response_error:
-        #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -450,7 +436,6 @@ def test_subscribe_notifications(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -482,12 +467,6 @@ def test_unsubscribe_notifications(test):
             assert False
         except DeviceError:
             pass
-        # TODO: add after server response will be fixed.
-        # try:
-        #     device_1.unsubscribe_notifications()
-        #     assert False
-        # except ApiResponseError as api_response_error:
-        #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
