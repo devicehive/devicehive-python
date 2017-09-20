@@ -28,6 +28,7 @@ def test_save(test):
             # assert api_response_error.code == 404
             pass
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -53,4 +54,5 @@ def test_remove(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)

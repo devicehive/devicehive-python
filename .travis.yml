@@ -10,6 +10,8 @@ install:
     - pip install -r test_requirements.txt
 before_install:
     - export DEVICE_HIVE_TRANSPORT_URLS='http://playground.dev.devicehive.com/api/rest,ws://playground.dev.devicehive.com/api/websocket'
-    - openssl aes-256-cbc -K $encrypted_1ea9ebbf5537_key -iv $encrypted_1ea9ebbf5537_iv -in refresh_token.txt.enc -out refresh_token.txt -d
-    - export DEVICE_HIVE_REFRESH_TOKEN=$(cat refresh_token.txt)
-script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --refresh-token=$DEVICE_HIVE_REFRESH_TOKEN
+    - openssl aes-256-cbc -K $encrypted_1ea9ebbf5537_key -iv $encrypted_1ea9ebbf5537_iv -in admin_refresh_token.txt.enc -out admin_refresh_token.txt -d
+    - export DEVICE_HIVE_ADMIN_REFRESH_TOKEN=$(cat admin_refresh_token.txt)
+    - openssl aes-256-cbc -K $encrypted_94dc46d8330a_key -iv $encrypted_94dc46d8330a_iv -in user_refresh_token.txt.enc -out user_refresh_token.txt -d
+    - export DEVICE_HIVE_USER_REFRESH_TOKEN=$(cat user_refresh_token.txt)
+script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --admin-refresh-token=$DEVICE_HIVE_ADMIN_REFRESH_TOKEN --user-refresh-token=$DEVICE_HIVE_USER_REFRESH_TOKEN
