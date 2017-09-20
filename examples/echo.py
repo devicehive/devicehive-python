@@ -1,5 +1,26 @@
 from devicehive import Handler
 from devicehive import DeviceHive
+import logging.config
+
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'devicehive.api_request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    }
+}
+
+logging.config.dictConfig(LOGGING)
 
 
 class EchoHandler(Handler):

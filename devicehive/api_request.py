@@ -2,6 +2,10 @@ from devicehive.api_response import ApiResponse
 from devicehive.api_response import ApiResponseError
 from devicehive.transports.transport import TransportError
 import uuid
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiRequest(object):
@@ -81,10 +85,16 @@ class ApiRequest(object):
         self._params['response_key'] = key
 
     def execute(self, error_message):
-        response = self._api.transport.request(self._uuid(), self._action,
-                                               self._request.copy(),
+        uuid = self._uuid()
+        request = self._request.copy()
+        logger.debug('Request id: %s. Action: %s. Request: %s.', uuid,
+                     self._action, request)
+        response = self._api.transport.request(uuid, self._action, request,
                                                **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
+        logger.debug('Response id: %s. Action: %s. Success: %s. Response: %s.',
+                     api_response.id, api_response.action, api_response.success,
+                     api_response.response)
         if api_response.success:
             return api_response.response
         raise ApiResponseError(error_message, self._api.transport.name,
