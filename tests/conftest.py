@@ -22,5 +22,5 @@ def pytest_generate_tests(metafunc):
             if not refresh_token:
                 continue
             tests.append(Test(transport_url, refresh_token, token_type))
-            ids.append(transport_url)
+            ids.append('%s:%s' % (token_type, transport_url))
     metafunc.parametrize('test', tests, ids=ids)
