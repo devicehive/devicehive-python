@@ -18,8 +18,11 @@ def test_save(test):
             command.save()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment after server response will be fixed.
-            # assert api_response_error.code() == 404
-            pass
+            if test.admin_refresh_token:
+                assert api_response_error.code == 404
+            # TODO: uncomment after server response for ws for user token will
+            # be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)

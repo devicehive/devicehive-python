@@ -44,16 +44,19 @@ class TestHandler(Handler):
 class Test(object):
     """Test class."""
 
-    def __init__(self, transport_url, refresh_token):
+    def __init__(self, transport_url, refresh_token, token_type):
         self._transport_url = transport_url
         self._refresh_token = refresh_token
+        self._token_type = token_type
         self._transport_name = DeviceHive.transport_name(self._transport_url)
 
     def generate_id(self, key=None):
         time_key = repr(time.time())
         if not key:
-            return '%s-%s' % (self._transport_name, time_key)
-        return '%s-%s-%s' % (self._transport_name, key, time_key)
+            return '%s-%s-%s' % (self._transport_name, self._token_type,
+                                 time_key)
+        return '%s-%s-%s-%s' % (self._transport_name, key, self._token_type,
+                                time_key)
 
     @property
     def transport_name(self):
@@ -66,6 +69,24 @@ class Test(object):
     @property
     def websocket_transport(self):
         return self._transport_name == 'websocket'
+
+    @property
+    def user_refresh_token(self):
+        return self._token_type == 'user'
+
+    @property
+    def admin_refresh_token(self):
+        return self._token_type == 'admin'
+
+    def only_user_implementation(self):
+        if self.user_refresh_token:
+            return
+        pytest.skip('Implemented only for user refresh token.')
+
+    def only_admin_implementation(self):
+        if self.admin_refresh_token:
+            return
+        pytest.skip('Implemented only for admin refresh token.')
 
     def only_http_implementation(self):
         if self.http_transport:

@@ -47,10 +47,9 @@ def test_create_token(test):
             handler.api.create_token(user_id)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: add http support after server response will be fixed.
-            if test.websocket_transport:
-                assert api_response_error.code == 404
+            assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -125,7 +124,6 @@ def test_subscribe_insert_commands(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -230,7 +228,6 @@ def test_subscribe_update_commands(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -348,7 +345,6 @@ def test_subscribe_notifications(test):
         except DeviceError:
             pass
         [device.remove() for device in devices]
-        # TODO: add http support after server response will be fixed.
         if test.http_transport:
             return
         try:
@@ -450,7 +446,12 @@ def test_get_device(test):
             handler.api.get_device(device_id)
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+            if test.admin_refresh_token:
+                assert api_response_error.code == 404
+            # TODO: uncomment after server response for ws for user token will
+            # be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -501,27 +502,26 @@ def test_list_networks(test):
         name_pattern = test_id + '%'
         networks = handler.api.list_networks(name_pattern=name_pattern)
         assert len(networks) == len(options)
-        # TODO: add websocket transport after server response will be fixed.
-        if test.http_transport:
-            network_0, network_1 = handler.api.list_networks(
-                name_pattern=name_pattern, sort_field='name', sort_order='ASC')
-            assert network_0.name == options[0]['name']
-            assert network_1.name == options[1]['name']
-            network_0, network_1 = handler.api.list_networks(
-                name_pattern=name_pattern, sort_field='name', sort_order='DESC')
-            assert network_0.name == options[1]['name']
-            assert network_1.name == options[0]['name']
-            network, = handler.api.list_networks(name_pattern=name_pattern,
-                                                 sort_field='name',
-                                                 sort_order='ASC', take=1)
-            assert network.name == options[0]['name']
-            network, = handler.api.list_networks(name_pattern=name_pattern,
-                                                 sort_field='name',
-                                                 sort_order='ASC', take=1,
-                                                 skip=1)
-            assert network.name == options[1]['name']
+        network_0, network_1 = handler.api.list_networks(
+            name_pattern=name_pattern, sort_field='name', sort_order='ASC')
+        assert network_0.name == options[0]['name']
+        assert network_1.name == options[1]['name']
+        network_0, network_1 = handler.api.list_networks(
+            name_pattern=name_pattern, sort_field='name', sort_order='DESC')
+        assert network_0.name == options[1]['name']
+        assert network_1.name == options[0]['name']
+        network, = handler.api.list_networks(name_pattern=name_pattern,
+                                             sort_field='name',
+                                             sort_order='ASC', take=1)
+        assert network.name == options[0]['name']
+        network, = handler.api.list_networks(name_pattern=name_pattern,
+                                             sort_field='name',
+                                             sort_order='ASC', take=1,
+                                             skip=1)
+        assert network.name == options[1]['name']
         [test_network.remove() for test_network in test_networks]
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -543,6 +543,7 @@ def test_get_network(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -562,6 +563,7 @@ def test_create_network(test):
             assert api_response_error.code == 403
         network.remove()
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -616,6 +618,7 @@ def test_list_users(test):
         assert user.login == options[1]['login']
         [test_user.remove() for test_user in test_users]
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -652,6 +655,7 @@ def test_get_user(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -677,4 +681,5 @@ def test_create_user(test):
             assert api_response_error.code == 403
         user.remove()
 
+    test.only_admin_implementation()
     test.run(handle_connect)
