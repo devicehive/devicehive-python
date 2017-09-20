@@ -11,9 +11,11 @@ class WebsocketTransport(Transport):
 
     def __init__(self, data_format_class, data_format_options, handler_class,
                  handler_options):
-        Transport.__init__(self, 'websocket', WebsocketTransportError,
-                           data_format_class, data_format_options,
-                           handler_class, handler_options)
+        super(WebsocketTransport, self).__init__('websocket',
+                                                 WebsocketTransportError,
+                                                 data_format_class,
+                                                 data_format_options,
+                                                 handler_class, handler_options)
         self._websocket = websocket.WebSocket()
         self._pong_received = False
         self._event_queue = []

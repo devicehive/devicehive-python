@@ -1,11 +1,32 @@
 from devicehive import Handler
 from devicehive import DeviceHive
+import logging.config
+
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'devicehive.api_request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    }
+}
+
+logging.config.dictConfig(LOGGING)
 
 
 class EchoHandler(Handler):
 
     def __init__(self, api, device_id='example-echo-device'):
-        Handler.__init__(self, api)
+        super(EchoHandler, self).__init__(api)
         self._device_id = device_id
         self._device = None
 

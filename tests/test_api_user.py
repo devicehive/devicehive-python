@@ -29,6 +29,7 @@ def test_save(test):
         except UserError:
             pass
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -55,6 +56,7 @@ def test_update_password(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -86,6 +88,7 @@ def test_remove(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -120,6 +123,7 @@ def test_list_networks(test):
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -154,6 +158,7 @@ def test_assign_network(test):
             assert api_response_error.code == 404
         network.remove()
 
+    test.only_admin_implementation()
     test.run(handle_connect)
 
 
@@ -185,9 +190,8 @@ def test_unassign_network(test):
             user_1.unassign_network(network.id)
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: add http support after server response will be fixed.
-            if test.http_transport:
-                assert api_response_error.code == 404
+            assert api_response_error.code == 404
         network.remove()
 
+    test.only_admin_implementation()
     test.run(handle_connect)

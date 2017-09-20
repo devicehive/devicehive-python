@@ -2,6 +2,10 @@ from devicehive.api_response import ApiResponse
 from devicehive.api_response import ApiResponseError
 from devicehive.transports.transport import TransportError
 import uuid
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiRequest(object):
@@ -81,10 +85,16 @@ class ApiRequest(object):
         self._params['response_key'] = key
 
     def execute(self, error_message):
-        response = self._api.transport.request(self._uuid(), self._action,
-                                               self._request.copy(),
+        uuid = self._uuid()
+        request = self._request.copy()
+        logger.debug('Request id: %s. Action: %s. Request: %s.', uuid,
+                     self._action, request)
+        response = self._api.transport.request(uuid, self._action, request,
                                                **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
+        logger.debug('Response id: %s. Action: %s. Success: %s. Response: %s.',
+                     api_response.id, api_response.action, api_response.success,
+                     api_response.response)
         if api_response.success:
             return api_response.response
         raise ApiResponseError(error_message, self._api.transport.name,
@@ -97,13 +107,13 @@ class AuthApiRequest(ApiRequest):
     def execute(self, error_message):
         self.header(*self._api.token.auth_header)
         try:
-            return ApiRequest.execute(self, error_message)
+            return super(AuthApiRequest, self).execute(error_message)
         except ApiResponseError as api_response_error:
             if api_response_error.code != 401:
                 raise
         self._api.token.auth()
         self.header(*self._api.token.auth_header)
-        return ApiRequest.execute(self, error_message)
+        return super(AuthApiRequest, self).execute(error_message)
 
 
 class SubscriptionApiRequest(object):
@@ -170,7 +180,7 @@ class AuthSubscriptionApiRequest(SubscriptionApiRequest):
     """Auth subscription api request class."""
 
     def __init__(self, api):
-        SubscriptionApiRequest.__init__(self)
+        super(AuthSubscriptionApiRequest, self).__init__()
         auth_header_name, auth_header_value = api.token.auth_header
         self._params['headers'][auth_header_name] = auth_header_value
         self._params['response_error_handler'] = self.response_error_handler
