@@ -6,6 +6,10 @@ from devicehive.user import User
 
 def test_get_info(test):
 
+    device_hive_api = test.device_hive_api()
+    api_info = device_hive_api.get_info()
+    assert isinstance(api_info, dict)
+
     def handle_connect(handler):
         info = handler.api.get_info()
         assert isinstance(info['api_version'], string_types)
@@ -21,6 +25,10 @@ def test_get_info(test):
 
 
 def test_get_cluster_info(test):
+
+    device_hive_api = test.device_hive_api()
+    api_cluster_info = device_hive_api.get_cluster_info()
+    assert isinstance(api_cluster_info, dict)
 
     def handle_connect(handler):
         cluster_info = handler.api.get_cluster_info()
