@@ -40,3 +40,12 @@ class DeviceHiveApi(object):
 
     def get_cluster_info(self):
         return self._call('get_cluster_info')
+
+    def get_property(self, name):
+        return self._call('get_property', name)
+
+    def set_property(self, name, value):
+        return self._call('set_property', name, value)
+
+    def delete_property(self, name):
+        return self._call('delete_property', name)
