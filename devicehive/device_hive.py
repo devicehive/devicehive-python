@@ -29,6 +29,10 @@ class DeviceHive(object):
         if transport_url[0:2] == 'ws':
             return 'websocket'
 
+    @property
+    def transport(self):
+        return self._transport
+
     def connect(self, transport_url, **options):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
