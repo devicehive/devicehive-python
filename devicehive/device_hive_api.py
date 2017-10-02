@@ -27,6 +27,7 @@ class DeviceHiveApi(object):
 
     def __init__(self, transport_url, **options):
         self._transport_url = transport_url
+        options['api_init'] = False
         self._options = options
 
     def _call(self, call, *call_args, **call_kwargs):
