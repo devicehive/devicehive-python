@@ -22,6 +22,10 @@ class DeviceHive(object):
         self._transport = transport_class(JsonDataFormat, {}, ApiHandler,
                                           self._api_handler_options)
 
+    def _ensure_transport_disconnect(self):
+        if self._transport.connected:
+            self._transport.disconnect()
+
     @staticmethod
     def transport_name(transport_url):
         if transport_url[0:4] == 'http':
@@ -36,6 +40,7 @@ class DeviceHive(object):
     def connect(self, transport_url, **options):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
+        transport_keep_alive = options.pop('transport_keep_alive', True)
         transport_alive_timeout = options.pop('transport_alive_timeout', 0.01)
         connect_timeout = options.pop('connect_timeout', 30)
         max_num_connect = options.pop('max_num_connect', 10)
@@ -48,11 +53,14 @@ class DeviceHive(object):
         self._api_handler_options['auth'] = auth
         self._api_handler_options['api_init'] = api_init
         self._init_transport()
+        if not transport_keep_alive:
+            self._ensure_transport_disconnect()
+            self._transport.connect(transport_url, **options)
+            return
         connect_time = time.time()
         num_connect = 0
         while True:
-            if self._transport.connected:
-                self._transport.disconnect()
+            self._ensure_transport_disconnect()
             self._transport.connect(transport_url, **options)
             while self._transport.is_alive():
                 time.sleep(transport_alive_timeout)
