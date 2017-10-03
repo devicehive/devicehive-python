@@ -448,10 +448,8 @@ def test_get_device(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
