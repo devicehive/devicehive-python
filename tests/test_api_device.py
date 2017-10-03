@@ -366,6 +366,7 @@ def test_send_command(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
+            # TODO: finish after fix.
             # else:
             #     assert api_response_error.code == 403
 
