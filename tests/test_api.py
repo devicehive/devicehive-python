@@ -6,24 +6,28 @@ from devicehive.user import User
 
 def test_get_info(test):
 
-    device_hive_api = test.device_hive_api()
-    info = device_hive_api.get_info()
-    assert isinstance(info['api_version'], string_types)
-    assert isinstance(info['server_timestamp'], string_types)
-    if info.get('rest_server_url'):
-        assert info['websocket_server_url'] is None
-        assert isinstance(info['rest_server_url'], string_types)
-        return
-    assert isinstance(info['websocket_server_url'], string_types)
-    assert info['rest_server_url'] is None
+    def handle_connect(handler):
+        info = handler.api.get_info()
+        assert isinstance(info['api_version'], string_types)
+        assert isinstance(info['server_timestamp'], string_types)
+        if info.get('rest_server_url'):
+            assert info['websocket_server_url'] is None
+            assert isinstance(info['rest_server_url'], string_types)
+            return
+        assert isinstance(info['websocket_server_url'], string_types)
+        assert info['rest_server_url'] is None
+
+    test.run(handle_connect)
 
 
 def test_get_cluster_info(test):
 
-    device_hive_api = test.device_hive_api()
-    cluster_info = device_hive_api.get_cluster_info()
-    assert isinstance(cluster_info['bootstrap.servers'], string_types)
-    assert isinstance(cluster_info['zookeeper.connect'], string_types)
+    def handle_connect(handler):
+        cluster_info = handler.api.get_cluster_info()
+        assert isinstance(cluster_info['bootstrap.servers'], string_types)
+        assert isinstance(cluster_info['zookeeper.connect'], string_types)
+
+    test.run(handle_connect)
 
 
 def test_create_token(test):
