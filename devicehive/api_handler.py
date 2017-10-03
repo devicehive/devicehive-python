@@ -15,11 +15,12 @@ class ApiHandler(Handler):
     EVENT_NOTIFICATION_KEY = 'notification'
 
     def __init__(self, transport, auth, handler_class, handler_args,
-                 handler_kwargs):
+                 handler_kwargs, api_init):
         super(ApiHandler, self).__init__(transport)
         self._api = Api(self._transport, auth)
         self._handler = handler_class(self._api, *handler_args,
                                       **handler_kwargs)
+        self._api_init = api_init
         self._handle_connect = False
 
     @property
@@ -28,7 +29,9 @@ class ApiHandler(Handler):
 
     def handle_connect(self):
         self._api.token.auth()
-        self._api.server_timestamp = self._api.get_info()['server_timestamp']
+        if self._api_init:
+            server_timestamp = self._api.get_info()['server_timestamp']
+            self._api.server_timestamp = server_timestamp
         if not self._handle_connect:
             self._handle_connect = True
             self._handler.handle_connect()

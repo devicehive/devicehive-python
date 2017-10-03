@@ -75,8 +75,7 @@ class Device(object):
 
     def save(self):
         self._ensure_exists()
-        device = {self.ID_KEY: self._id,
-                  self.NAME_KEY: self.name,
+        device = {self.NAME_KEY: self.name,
                   self.DATA_KEY: self.data,
                   self.NETWORK_ID_KEY: self.network_id,
                   self.IS_BLOCKED_KEY: self.is_blocked}

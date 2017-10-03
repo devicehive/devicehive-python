@@ -51,7 +51,7 @@ class Test(object):
         self._transport_name = DeviceHive.transport_name(self._transport_url)
 
     def generate_id(self, key=None):
-        time_key = repr(time.time())
+        time_key = repr(time.time()).replace('.', '')
         if not key:
             return '%s-%s-%s' % (self._transport_name, self._token_type,
                                  time_key)

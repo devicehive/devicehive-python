@@ -29,18 +29,24 @@ class DeviceHive(object):
         if transport_url[0:2] == 'ws':
             return 'websocket'
 
+    @property
+    def transport(self):
+        return self._transport
+
     def connect(self, transport_url, **options):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
+        transport_alive_timeout = options.pop('transport_alive_timeout', 0.01)
+        connect_timeout = options.pop('connect_timeout', 30)
+        max_num_connect = options.pop('max_num_connect', 10)
+        connect_interval = options.pop('connect_interval', 1)
         auth = {'login': options.pop('login', None),
                 'password': options.pop('password', None),
                 'refresh_token': options.pop('refresh_token', None),
                 'access_token': options.pop('access_token', None)}
-        connect_timeout = options.pop('connect_timeout', 30)
-        max_num_connect = options.pop('max_num_connect', 10)
-        connect_interval = options.pop('connect_interval', 1)
-        transport_alive_timeout = options.pop('transport_alive_timeout', 0.01)
+        api_init = options.pop('api_init', True)
         self._api_handler_options['auth'] = auth
+        self._api_handler_options['api_init'] = api_init
         self._init_transport()
         connect_time = time.time()
         num_connect = 0

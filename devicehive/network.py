@@ -33,7 +33,7 @@ class Network(object):
 
     def get(self, network_id):
         auth_api_request = AuthApiRequest(self._api)
-        auth_api_request.url('network/{id}', id=network_id)
+        auth_api_request.url('network/{networkId}', networkId=network_id)
         auth_api_request.action('network/get')
         auth_api_request.response_key('network')
         network = auth_api_request.execute('Network get failure.')
@@ -46,7 +46,7 @@ class Network(object):
                    self.DESCRIPTION_KEY: self.description}
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
-        auth_api_request.url('network/{id}', id=self._id)
+        auth_api_request.url('network/{networkId}', networkId=self._id)
         auth_api_request.action('network/update')
         auth_api_request.set('network', network, True)
         auth_api_request.execute('Network save failure.')
@@ -55,7 +55,7 @@ class Network(object):
         self._ensure_exists()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('DELETE')
-        auth_api_request.url('network/{id}', id=self._id)
+        auth_api_request.url('network/{networkId}', networkId=self._id)
         auth_api_request.action('network/delete')
         auth_api_request.execute('Network remove failure.')
         self._id = None

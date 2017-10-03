@@ -130,7 +130,7 @@ def test_subscribe_insert_commands(test):
             handler.api.subscribe_insert_commands(device_ids)
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -234,7 +234,7 @@ def test_subscribe_update_commands(test):
             handler.api.subscribe_update_commands(device_ids)
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -351,7 +351,7 @@ def test_subscribe_notifications(test):
             handler.api.subscribe_notifications(device_ids)
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -448,10 +448,8 @@ def test_get_device(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 

@@ -2,11 +2,12 @@ from tests.test import Test
 
 
 def pytest_addoption(parser):
-    parser.addoption('--transport-urls', action='store', help='Transport urls')
+    parser.addoption('--transport-urls', action='store',
+                     help='Comma separated transport urls')
     parser.addoption('--admin-refresh-token', action='store',
-                     help='Admin refresh tokens')
+                     help='Admin refresh token')
     parser.addoption('--user-refresh-token', action='store',
-                     help='User refresh tokens')
+                     help='User refresh token')
 
 
 def pytest_generate_tests(metafunc):

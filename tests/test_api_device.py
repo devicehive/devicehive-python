@@ -52,10 +52,8 @@ def test_remove(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -128,7 +126,10 @@ def test_subscribe_insert_commands(test):
             device_1.subscribe_insert_commands()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            if test.admin_refresh_token:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -227,7 +228,10 @@ def test_subscribe_update_commands(test):
             device_1.subscribe_update_commands()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            if test.admin_refresh_token:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -308,10 +312,8 @@ def test_list_commands(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -364,8 +366,7 @@ def test_send_command(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
+            # TODO: finish after fix.
             # else:
             #     assert api_response_error.code == 403
 
@@ -442,7 +443,10 @@ def test_subscribe_notifications(test):
             device_1.subscribe_notifications()
             assert False
         except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
+            if test.admin_refresh_token:
+                assert api_response_error.code == 404
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -531,10 +535,8 @@ def test_list_notifications(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -572,9 +574,7 @@ def test_send_notification(test):
         except ApiResponseError as api_response_error:
             if test.admin_refresh_token:
                 assert api_response_error.code == 404
-            # TODO: uncomment after server response for ws for user token will
-            # be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
