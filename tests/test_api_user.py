@@ -4,33 +4,30 @@ from devicehive import ApiResponseError
 
 
 def test_save(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('u-s')
-        password = test.generate_id('u-s')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        role = User.CLIENT_ROLE
-        status = User.DISABLED_STATUS
-        data = {'k-1': 'v-1'}
-        user.role = role
-        user.status = status
-        user.data = data
-        user.save()
-        user = handler.api.get_user(user.id)
-        assert user.role == role
-        assert user.status == status
-        assert user.data == data
-        user.remove()
-        try:
-            user.save()
-            assert False
-        except UserError:
-            pass
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('u-s')
+    password = test.generate_id('u-s')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    role = User.CLIENT_ROLE
+    status = User.DISABLED_STATUS
+    data = {'k-1': 'v-1'}
+    user.role = role
+    user.status = status
+    user.data = data
+    user.save()
+    user = device_hive_api.get_user(user.id)
+    assert user.role == role
+    assert user.status == status
+    assert user.data == data
+    user.remove()
+    try:
+        user.save()
+        assert False
+    except UserError:
+        pass
 
 
 def test_update_password(test):
