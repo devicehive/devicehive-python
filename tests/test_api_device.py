@@ -314,57 +314,55 @@ def test_list_commands(test):
 
 def test_send_command(test):
 
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s-c')
-        command_name = test.generate_id('d-s-c')
-        device = handler.api.put_device(device_id)
-        command = device.send_command(command_name)
-        assert command.device_id == device_id
-        assert isinstance(command.id, int)
-        assert isinstance(command.user_id, int)
-        assert command.command == command_name
-        assert not command.parameters
-        assert not command.lifetime
-        assert command.timestamp
-        assert command.last_updated
-        assert not command.status
-        assert not command.result
-        command_name = test.generate_id('d-s-c')
-        parameters = {'parameters_key': 'parameters_value'}
-        lifetime = 10
-        status = 'status'
-        result = {'result_key': 'result_value'}
-        command = device.send_command(command_name, parameters=parameters,
-                                      lifetime=lifetime, status=status,
-                                      result=result)
-        assert command.device_id == device_id
-        assert isinstance(command.id, int)
-        assert isinstance(command.user_id, int)
-        assert command.command == command_name
-        assert command.parameters == parameters
-        assert command.lifetime == lifetime
-        assert command.timestamp
-        assert command.last_updated
-        assert command.status == status
-        assert command.result == result
-        device_1 = handler.api.get_device(device_id)
-        device.remove()
-        try:
-            device.send_command(command_name)
-            assert False
-        except DeviceError:
-            pass
-        try:
-            device_1.send_command(command_name)
-            assert False
-        except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
-                assert api_response_error.code == 404
-            # TODO: finish after fix.
-            # else:
-            #     assert api_response_error.code == 403
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('d-s-c')
+    command_name = test.generate_id('d-s-c')
+    device = device_hive_api.put_device(device_id)
+    command = device.send_command(command_name)
+    assert command.device_id == device_id
+    assert isinstance(command.id, int)
+    assert isinstance(command.user_id, int)
+    assert command.command == command_name
+    assert not command.parameters
+    assert not command.lifetime
+    assert command.timestamp
+    assert command.last_updated
+    assert not command.status
+    assert not command.result
+    command_name = test.generate_id('d-s-c')
+    parameters = {'parameters_key': 'parameters_value'}
+    lifetime = 10
+    status = 'status'
+    result = {'result_key': 'result_value'}
+    command = device.send_command(command_name, parameters=parameters,
+                                  lifetime=lifetime, status=status,
+                                  result=result)
+    assert command.device_id == device_id
+    assert isinstance(command.id, int)
+    assert isinstance(command.user_id, int)
+    assert command.command == command_name
+    assert command.parameters == parameters
+    assert command.lifetime == lifetime
+    assert command.timestamp
+    assert command.last_updated
+    assert command.status == status
+    assert command.result == result
+    device_1 = device_hive_api.get_device(device_id)
+    device.remove()
+    try:
+        device.send_command(command_name)
+        assert False
+    except DeviceError:
+        pass
+    try:
+        device_1.send_command(command_name)
+        assert False
+    except ApiResponseError as api_response_error:
+        if test.admin_refresh_token:
+            assert api_response_error.code == 404
+        # TODO: finish after fix.
+        # else:
+        #     assert api_response_error.code == 403
 
 
 def test_subscribe_notifications(test):
