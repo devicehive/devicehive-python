@@ -2,9 +2,174 @@
 
 # Devicehive
 
-## Creating a client
+The simplest way to create the client is to use `DeviceHiveApi` class. 
+If you need to handle server events such as `handle_command_insert`, 
+`handle_command_update` or `handle_notification` you'll have to extend `Handler`
+class and use `DeviceHive` class for it.
 
-Creating a client with a new version of library is very simple.
+## Creating a client using DeviceHiveApi class
+
+First of all you need to create `DeviceHiveApi` object. Then you can use this
+object for for API calls.
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+```
+
+### Websocket protocol
+
+If you want to use `Websocket` protocol you need only to specify the url:
+
+```python
+url = 'ws://playground.dev.devicehive.com/api/websocket'
+```
+
+### Authentication
+
+There are three ways of initial authentication:
+
+* Using refresh token
+* Using access token
+* Using login and password
+
+Examples:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'ws://playground.dev.devicehive.com/api/websocket'
+device_hive_api = DeviceHiveApi(url, refresh_token='SOME_REFRESH_TOKEN')
+```
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'ws://playground.dev.devicehive.com/api/websocket'
+device_hive_api = DeviceHiveApi(url, access_token='SOME_ACCESS_TOKEN')
+```
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'ws://playground.dev.devicehive.com/api/websocket'
+device_hive_api = DeviceHiveApi(url, login='SOME_LOGIN', password='SOME_PASSWORD')
+```
+
+### Info
+
+`get_info()` method returns `dict` with the next fields:
+
+* `api_version`
+* `server_timestamp`
+* `rest_server_url`
+* `websocket_server_url`
+
+`get_cluster_info()` method returns `dict` with the next fields:
+
+* `bootstrap.servers`
+* `zookeeper.connect`
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+info = device_hive_api.get_info()
+print(info)
+cluster_info = device_hive_api.get_cluster_info()
+print(cluster_info)
+device_hive_api.disconnect()
+```
+
+### Properties
+
+`get_property(name)` method returns `dict` with the next fields:
+
+* `entity_version`
+* `name`
+* `value`
+
+`set_property(name, value)` method returns entity version.
+
+`delete_property(name)` method does not return anything.
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+name = 'user.login.lastTimeoutSent'
+entity_version = device_hive_api.set_property(name, 'value')
+print(entity_version)
+prop = device_hive_api.get_property(name)
+print(prop)
+device_hive_api.delete_property(name)
+device_hive_api.disconnect()
+```
+
+### Tokens
+
+`create_token(user_id, expiration, actions, network_ids, device_ids)` method
+returns `dict` with the next fields:
+
+* `access_token`
+* `refresh_token`
+
+only `user_id` arg is required.
+
+`refresh_token()` method refreshes the access token and returns it.
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+tokens = device_hive_api.create_token(1)
+print(tokens)
+access_token = device_hive_api.refresh_token()
+print(access_token)
+device_hive_api.disconnect()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Creating a client using DeviceHive class
+
 First of all you need to create custom `Handler` class.
 
 Example of creating custom `Handler` class:
@@ -22,7 +187,7 @@ class SimpleHandler(Handler):
 ```
 
 `handle_connect` is the only one required method. If you want to handle server 
-events you heed to implement `handle_command_insert`, `handle_command_update` 
+events you'll heed to implement `handle_command_insert`, `handle_command_update`
 and `handle_notification` methods. Here is the example:
 
 ```python
