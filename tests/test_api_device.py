@@ -4,29 +4,27 @@ from devicehive import ApiResponseError
 
 def test_save(test):
 
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s')
-        device = handler.api.put_device(device_id)
-        name = '%s-name' % device_id
-        data = {'data_key': 'data_value'}
-        device.name = name
-        device.data = data
-        device.is_blocked = True
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('d-s')
+    device = device_hive_api.put_device(device_id)
+    name = '%s-name' % device_id
+    data = {'data_key': 'data_value'}
+    device.name = name
+    device.data = data
+    device.is_blocked = True
+    device.save()
+    device = device_hive_api.get_device(device_id)
+    assert device.id == device_id
+    assert device.name == name
+    assert device.data == data
+    assert isinstance(device.network_id, int)
+    assert device.is_blocked
+    device.remove()
+    try:
         device.save()
-        device = handler.api.get_device(device_id)
-        assert device.id == device_id
-        assert device.name == name
-        assert device.data == data
-        assert isinstance(device.network_id, int)
-        assert device.is_blocked
-        device.remove()
-        try:
-            device.save()
-            assert False
-        except DeviceError:
-            pass
-
-    test.run(handle_connect)
+        assert False
+    except DeviceError:
+        pass
 
 
 def test_remove(test):
