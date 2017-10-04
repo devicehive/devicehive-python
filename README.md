@@ -332,7 +332,9 @@ class SimpleHandler(Handler):
 
 `handle_connect` is the only one required method. If you want to handle server 
 events you'll heed to implement `handle_command_insert`, `handle_command_update`
-and `handle_notification` methods. Here is the example:
+and `handle_notification` methods.
+
+Example:
 
 ```python
 from devicehive import Handler
@@ -465,6 +467,7 @@ custom handler with `self.api` property.
 See the description of `DeviceHiveApi` [info](#info) methods for more details.
 
 Example:
+
 ```python
 from devicehive import Handler
 
@@ -479,25 +482,18 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
+### API Properties
 
+`self.api.get_property(name)` method returns `dict`. `get_property(name)` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
+`self.api.set_property(name, value)` method returns entity version. `set_property(name, value)` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
+`self.api.delete_property(name)` method does not return anything. `delete_property(name)` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-
-
-### Properties
-
-`self.api.get_property(name)` returns `dict` with the next fields:
-
-* `entity_version`
-* `name`
-* `value`
-
-`self.api.set_property(name, value)` returns entity version.
-
-`self.api.delete_property(name)` does not return anything.
+See the description of `DeviceHiveApi` [properties](#properties) methods for more details.
 
 Example:
+
 ```python
 from devicehive import Handler
 
