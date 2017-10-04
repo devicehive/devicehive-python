@@ -55,35 +55,32 @@ def test_update_password(test):
 
 
 def test_remove(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('u-r')
-        password = test.generate_id('u-r')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        user_1 = handler.api.get_user(user.id)
-        user.remove()
-        assert not user.id
-        assert not user.login
-        assert not user.last_login
-        assert not user.intro_reviewed
-        assert not user.role
-        assert not user.status
-        assert not user.data
-        try:
-            user.remove()
-            assert False
-        except UserError:
-            pass
-        try:
-            user_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('u-r')
+    password = test.generate_id('u-r')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    assert not user.id
+    assert not user.login
+    assert not user.last_login
+    assert not user.intro_reviewed
+    assert not user.role
+    assert not user.status
+    assert not user.data
+    try:
+        user.remove()
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.remove()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
 
 
 def test_list_networks(test):
