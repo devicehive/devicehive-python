@@ -92,7 +92,6 @@ info = device_hive_api.get_info()
 print(info)
 cluster_info = device_hive_api.get_cluster_info()
 print(cluster_info)
-device_hive_api.disconnect()
 ```
 
 ### Properties
@@ -122,7 +121,6 @@ print(entity_version)
 prop = device_hive_api.get_property(name)
 print(prop)
 device_hive_api.delete_property(name)
-device_hive_api.disconnect()
 ```
 
 ### Tokens
@@ -150,7 +148,6 @@ tokens = device_hive_api.create_token(1)
 print(tokens)
 access_token = device_hive_api.refresh_token()
 print(access_token)
-device_hive_api.disconnect()
 ```
 
 ### Devices
@@ -209,6 +206,27 @@ Properties:
 * `parameters` (read only)
 * `timestamp` (read only)
 
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+device_id = 'example-device'
+device = device_hive_api.put_device(device_id)
+device.name = 'new-device-name'
+device.data = {'key': 'value'}
+device.save()
+devices = device_hive_api.list_devices()
+for device in devices:
+    print('Device: %s, name: %s, data: %s' % (device.id, device.name,
+                                              device.data))
+    device.remove()
+```
+
 ### Networks
 
 `list_networks(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Network` objects. All args are optional.
@@ -216,6 +234,19 @@ Properties:
 `get_network(network_id)` method returns `Network` object.
 
 `create_network(name, description)` method returns `Network` object.
+
+#### Network object
+
+Properties:
+
+* `id` (read only)
+* `name`
+* `description`
+
+Methods:
+
+* `save()` method does not return anything.
+* `remove()` method does not return anything.
 
 Example:
 
@@ -230,26 +261,56 @@ network_name = 'example-name'
 network_description = 'example-description'
 network = device_hive_api.create_network(network_name, network_description)
 print(network.name)
-device_hive_api.disconnect()
 ```
 
-#### Network object
+### Users
+
+`list_users(login, login_pattern, role, status, sort_field, sort_order, take, skip)` method returns list of `User` objects. All args are optional.
+
+`get_current_user()` method returns `User` object.
+
+`get_user(user_id)` method returns `User` object.
+
+`create_user(self, login, password, role, data)` method returns `User` object.
+
+#### User object
 
 Properties:
 
 * `id` (read only)
-* `name`
-* `description`
+* `login` (read only)
+* `last_login` (read only)
+* `intro_reviewed` (read only)
+* `role`
+* `status`
+* `data`
 
 Methods:
 
 * `save()` method does not return anything.
+* `update_password(password)` method does not return anything.
 * `remove()` method does not return anything.
-* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Device` objects. All args are optional.
+* `list_networks()` method Returns list of `Network` objects.
+* `assign_network(network_id)` method does not return anything.
+* `unassign_network(network_id)` method does not return anything.
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+from devicehive.user import User
 
 
-
-
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+login = 'example-login'
+password = 'example-password'
+role = User.CLIENT_ROLE
+data = {'key': 'value'}
+user = device_hive_api.create_user(login, password, role, data)
+print(user.login)
+```
 
 
 
