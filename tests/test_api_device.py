@@ -29,31 +29,29 @@ def test_save(test):
 
 def test_remove(test):
 
-    def handle_connect(handler):
-        device_id = test.generate_id('d-r')
-        device = handler.api.put_device(device_id)
-        device_1 = handler.api.get_device(device_id)
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('d-r')
+    device = device_hive_api.put_device(device_id)
+    device_1 = device_hive_api.get_device(device_id)
+    device.remove()
+    assert not device.id
+    assert not device.name
+    assert not device.data
+    assert not device.network_id
+    assert not device.is_blocked
+    try:
         device.remove()
-        assert not device.id
-        assert not device.name
-        assert not device.data
-        assert not device.network_id
-        assert not device.is_blocked
-        try:
-            device.remove()
-            assert False
-        except DeviceError:
-            pass
-        try:
-            device_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
-                assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
-
-    test.run(handle_connect)
+        assert False
+    except DeviceError:
+        pass
+    try:
+        device_1.remove()
+        assert False
+    except ApiResponseError as api_response_error:
+        if test.admin_refresh_token:
+            assert api_response_error.code == 404
+        else:
+            assert api_response_error.code == 403
 
 
 def test_subscribe_insert_commands(test):
