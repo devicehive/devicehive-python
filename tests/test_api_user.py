@@ -116,38 +116,35 @@ def test_list_networks(test):
 
 
 def test_assign_network(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('u-a-n')
-        password = test.generate_id('u-a-n')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        networks = user.list_networks()
-        assert networks == []
-        network_name = test.generate_id('u-a-n')
-        network_description = '%s-description' % network_name
-        network = handler.api.create_network(network_name, network_description)
-        user.assign_network(network.id)
-        network, = user.list_networks()
-        assert network.name == network_name
-        assert network.description == network_description
-        user_1 = handler.api.get_user(user.id)
-        user.remove()
-        try:
-            user.assign_network(network.id)
-            assert False
-        except UserError:
-            pass
-        try:
-            user_1.assign_network(network.id)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-        network.remove()
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('u-a-n')
+    password = test.generate_id('u-a-n')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    networks = user.list_networks()
+    assert networks == []
+    network_name = test.generate_id('u-a-n')
+    network_description = '%s-description' % network_name
+    network = device_hive_api.create_network(network_name, network_description)
+    user.assign_network(network.id)
+    network, = user.list_networks()
+    assert network.name == network_name
+    assert network.description == network_description
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    try:
+        user.assign_network(network.id)
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.assign_network(network.id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+    network.remove()
 
 
 def test_unassign_network(test):
