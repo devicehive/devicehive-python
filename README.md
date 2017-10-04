@@ -2,7 +2,7 @@
 
 # Devicehive
 
-The simplest way to create the client is to use `DeviceHiveApi` class. 
+The simplest way to create a client is to use `DeviceHiveApi` class. 
 If you need to handle server events such as `handle_command_insert`, 
 `handle_command_update` or `handle_notification` you'll have to extend `Handler`
 class and use `DeviceHive` class for it.
@@ -153,10 +153,83 @@ print(access_token)
 device_hive_api.disconnect()
 ```
 
+### Devices
+
+`list_devices(name, name_pattern, network_id, network_name, sort_field, sort_order, take, skip)` method returns list of `Device`
+objects. All args are optional.
+
+`get_device(device_id)` method returns `Device` object.
+
+`put_device(device_id, name, data, network_id, is_blocked)` method returns `Device` object.
+
+Only `device_id` arg is required.
+
+#### Device object
+
+Properties:
+
+* `id` (read only)
+* `name`
+* `data`
+* `network_id`
+* `is_blocked`
+
+Methods:
+
+* `save()` Does not return anything.
+* `remove()` Does not return anything.
+* `list_commands(start, end, command, status, sort_field, sort_order, take, skip)` Returns list of `Command` objects. All args are optional.
+* `send_command(command_name, parameters, lifetime, timestamp, status, result)` Returns `Command` object. Only `command_name` is required.
+* `list_notifications(start, end, notification, sort_field, sort_order, take, skip)` Returns list of `Notification` objects. All args are optional.
+* `send_notification(notification_name, parameters, timestamp)` Returns `Notification` object. Only `notification_name` is required.
+
+#### Command object
+
+Properties:
+
+* `id` (read only)
+* `user_id` (read only)
+* `command` (read only)
+* `parameters` (read only)
+* `lifetime` (read only)
+* `timestamp` (read only)
+* `last_updated` (read only)
+* `status`
+* `result`
+
+Methods:
+
+* `save()` Does not return anything.
+
+#### Notification object
+
+Properties:
+
+* `device_id` (read only)
+* `id` (read only)
+* `notification` (read only)
+* `parameters` (read only)
+* `timestamp` (read only)
+
+```python
+from devicehive import DeviceHiveApi
 
 
-
-
+url = 'http://playground.dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+device_id = 'example-device'
+device = device_hive_api.put_device(device_id)
+device.name = 'new-device-name'
+device.data = {'key': 'value'}
+device.save()
+devices = device_hive_api.list_devices()
+for device in devices:
+    print('Device: %s, name: %s, data: %s' % (device.id, device.name,
+                                              device.data))
+    device.remove()
+device_hive_api.disconnect()
+```
 
 
 
@@ -530,6 +603,7 @@ Properties:
 * `timestamp` (read only)
 
 Example:
+
 ```python
 from devicehive import Handler
 
