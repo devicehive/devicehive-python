@@ -3,7 +3,6 @@ from devicehive import ApiResponseError
 
 
 def test_save(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('d-s')
     device = device_hive_api.put_device(device_id)
@@ -28,7 +27,6 @@ def test_save(test):
 
 
 def test_remove(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('d-r')
     device = device_hive_api.put_device(device_id)
@@ -257,7 +255,6 @@ def test_unsubscribe_update_commands(test):
 
 
 def test_list_commands(test):
-
     device_hive_api = test.device_hive_api()
     server_timestamp = device_hive_api.get_info()['server_timestamp']
     test_id = test.generate_id('d-l-c')
@@ -313,7 +310,6 @@ def test_list_commands(test):
 
 
 def test_send_command(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('d-s-c')
     command_name = test.generate_id('d-s-c')

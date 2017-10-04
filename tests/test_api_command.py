@@ -2,7 +2,6 @@ from devicehive import ApiResponseError
 
 
 def test_save(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('c-s')
     command_name = test.generate_id('c-s')

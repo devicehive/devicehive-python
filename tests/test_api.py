@@ -5,7 +5,6 @@ from devicehive.user import User
 
 
 def test_get_info(test):
-
     device_hive_api = test.device_hive_api()
     info = device_hive_api.get_info()
     assert isinstance(info['api_version'], string_types)
@@ -19,7 +18,6 @@ def test_get_info(test):
 
 
 def test_get_cluster_info(test):
-
     device_hive_api = test.device_hive_api()
     cluster_info = device_hive_api.get_cluster_info()
     assert isinstance(cluster_info['bootstrap.servers'], string_types)
@@ -27,9 +25,7 @@ def test_get_cluster_info(test):
 
 
 def test_create_token(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     login = test.generate_id('c-t')
     password = test.generate_id('c-t')
@@ -49,7 +45,6 @@ def test_create_token(test):
 
 
 def test_refresh_token(test):
-
     device_hive_api = test.device_hive_api()
     access_token = device_hive_api.refresh_token()
     assert isinstance(access_token, string_types)
@@ -379,7 +374,6 @@ def test_unsubscribe_notifications(test):
 
 
 def test_list_devices(test):
-
     device_hive_api = test.device_hive_api()
     test_id = test.generate_id('l-d')
     options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
@@ -419,7 +413,6 @@ def test_list_devices(test):
 
 
 def test_get_device(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('g-d')
     name = '%s-name' % device_id
@@ -444,7 +437,6 @@ def test_get_device(test):
 
 
 def test_put_device(test):
-
     device_hive_api = test.device_hive_api()
     device_id = test.generate_id('p-d')
     device = device_hive_api.put_device(device_id)
@@ -467,9 +459,7 @@ def test_put_device(test):
 
 
 def test_list_networks(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     test_id = test.generate_id('l-n')
     options = [{'name': '%s-name-1' % test_id,
@@ -510,9 +500,7 @@ def test_list_networks(test):
 
 
 def test_get_network(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     name = test.generate_id('g-n')
     description = '%s-description' % name
@@ -531,9 +519,7 @@ def test_get_network(test):
 
 
 def test_create_network(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     name = test.generate_id('c-n')
     description = '%s-description' % name
@@ -550,9 +536,7 @@ def test_create_network(test):
 
 
 def test_list_users(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     test_id = test.generate_id('l-u')
     role = User.ADMINISTRATOR_ROLE
@@ -603,16 +587,13 @@ def test_list_users(test):
 
 
 def test_get_current_user(test):
-
     device_hive_api = test.device_hive_api()
     user = device_hive_api.get_current_user()
     assert isinstance(user.id, int)
 
 
 def test_get_user(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     login = test.generate_id('g-u')
     password = test.generate_id('g-u')
@@ -637,9 +618,7 @@ def test_get_user(test):
 
 
 def test_create_user(test):
-
     test.only_admin_implementation()
-
     device_hive_api = test.device_hive_api()
     login = test.generate_id('c-u')
     password = test.generate_id('c-u')
