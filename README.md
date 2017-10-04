@@ -462,7 +462,7 @@ custom handler with `self.api` property.
 
 `self.api.get_cluster_info()` method returns `dict`. `get_cluster_info()` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-See the description of `DeviceHiveApi` [info](###Info) methods for more details.
+See the description of `DeviceHiveApi` [info](#info) methods for more details.
 
 Example:
 ```python
