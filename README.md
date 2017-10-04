@@ -458,7 +458,7 @@ device_hive.connect(url, login='SOME_LOGIN', password='SOME_PASSWORD')
 All api calls may be done via `api` object. This object available inside
 custom handler with `self.api` property.
 
-### API Info
+### API info
 
 `self.api.get_info()` method returns `dict`. `get_info` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
@@ -482,7 +482,7 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### API Properties
+### API properties
 
 `self.api.get_property(name)` method returns `dict`. `get_property` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
@@ -490,7 +490,7 @@ class SimpleHandler(Handler):
 
 `self.api.delete_property(name)` method does not return anything. `delete_property` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-See the description of `DeviceHiveApi` [properties](#properties) methods for more details.
+See the description of `DeviceHiveApi` [property](#properties) methods for more details.
 
 Example:
 
@@ -510,13 +510,13 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### API Tokens
+### API tokens
 
 `self.api.create_token(user_id, expiration, actions, network_ids, device_ids)` method returns `dict`. `create_token` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 `self.api.refresh_token()` method refreshes the access token and returns it. `refresh_token` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-See the description of `DeviceHiveApi` [tokens](#tokens) methods for more details.
+See the description of `DeviceHiveApi` [token](#tokens) methods for more details.
 
 Example:
 
@@ -534,7 +534,7 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### API Commands subscription and unsubscription
+### API commands subscription and unsubscription
 
 `self.api.subscribe_insert_commands(device_ids, names, timestamp)` method does not return anything.
 
@@ -573,7 +573,7 @@ class SimpleHandler(Handler):
         self.api.unsubscribe_update_commands(['example-device'])
 ```
 
-### API Notifications subscription and unsubscription
+### API notifications subscription and unsubscription
 
 `self.api.subscribe_notifications(device_ids, names, timestamp)` method does not return anything. Only `device_ids` arg is required.
 
@@ -599,7 +599,7 @@ class SimpleHandler(Handler):
         self.api.unsubscribe_notifications(['example-device'])
 ```
 
-### API Devices
+### API devices
 
 `self.api.list_devices(name, name_pattern, network_id, network_name, sort_field, sort_order, take, skip)` method returns list of `Device` objects. `list_devices` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
@@ -607,11 +607,13 @@ class SimpleHandler(Handler):
 
 `self.api.put_device(device_id, name, data, network_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-#### API Device object
+See the description of `DeviceHiveApi` [device](#devices) methods for more details.
 
-API Device object has the same properties as [device object](#device-object).
+#### API device object
 
-API Device object has all methods from [device object](#device-object) 
+API device object has the same properties as [device object](#device-object).
+
+API device object has all methods from [device object](#device-object) 
 and extends these methods with:
 
 * `subscribe_insert_commands(names, timestamp)` method does not return anything. All args are optional.
@@ -621,15 +623,15 @@ and extends these methods with:
 * `subscribe_notifications(names, timestamp)` method does not return anything. All args are optional.
 * `unsubscribe_notifications()` method does not return anything.
 
-#### API Command object
+#### API command object
 
-APICommand object has the same properties as [command object](#command-object).
+API command object has the same properties as [command object](#command-object).
 
-API Command object has the same methods as [command object](#command-object).
+API command object has the same methods as [command object](#command-object).
 
-#### API Notification object
+#### API notification object
 
-API Command object has the same properties as [notification object](#notification-object)
+API notification object has the same properties as [notification object](#notification-object)
 
 Example:
 
@@ -653,30 +655,27 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### Networks
+### API networks
 
-`self.api.list_networks(name, name_pattern, sort_field, sort_order, take, skip)`
-returns list of `Network` objects. All args are optional.
+`self.api.list_networks(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Network` objects. `list_networks` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_network(network_id)` returns `Network` object.
+`self.api.get_network(network_id)` method returns `Network` object. `get_network` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.create_network(name, description)` returns `Network` object.
+`self.api.create_network(name, description)` method returns `Network` object. `create_network` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-#### Network object
+See the description of `DeviceHiveApi` [network](#networks) methods for more details.
 
-Properties:
+#### API network object
 
-* `id` (read only)
-* `name`
-* `description`
+API network object has the same properties as [network object](#network-object).
 
-Methods:
+API network object has all methods from [network object](#network-object) 
+and extends these methods with:
 
-* `save()` Does not return anything.
-* `remove()` Does not return anything.
-* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` Returns list of `Device` objects. All args are optional.
+* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Device` objects. All args are optional.
 
 Example:
+
 ```python
 from devicehive import Handler
 
