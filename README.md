@@ -133,7 +133,7 @@ returns `dict` with the next fields:
 * `access_token`
 * `refresh_token`
 
-only `user_id` arg is required.
+only `user_id` is required.
 
 `refresh_token()` method refreshes the access token and returns it.
 
@@ -160,9 +160,7 @@ objects. All args are optional.
 
 `get_device(device_id)` method returns `Device` object.
 
-`put_device(device_id, name, data, network_id, is_blocked)` method returns `Device` object.
-
-Only `device_id` arg is required.
+`put_device(device_id, name, data, network_id, is_blocked)` method returns `Device` object. Only `device_id` is required.
 
 #### Device object
 
@@ -176,12 +174,12 @@ Properties:
 
 Methods:
 
-* `save()` Does not return anything.
-* `remove()` Does not return anything.
-* `list_commands(start, end, command, status, sort_field, sort_order, take, skip)` Returns list of `Command` objects. All args are optional.
-* `send_command(command_name, parameters, lifetime, timestamp, status, result)` Returns `Command` object. Only `command_name` is required.
-* `list_notifications(start, end, notification, sort_field, sort_order, take, skip)` Returns list of `Notification` objects. All args are optional.
-* `send_notification(notification_name, parameters, timestamp)` Returns `Notification` object. Only `notification_name` is required.
+* `save()` method does not return anything.
+* `remove()` method does not return anything.
+* `list_commands(start, end, command, status, sort_field, sort_order, take, skip)` method returns list of `Command` objects. All args are optional.
+* `send_command(command_name, parameters, lifetime, timestamp, status, result)` method returns `Command` object. Only `command_name` is required.
+* `list_notifications(start, end, notification, sort_field, sort_order, take, skip)` method returns list of `Notification` objects. All args are optional.
+* `send_notification(notification_name, parameters, timestamp)` method returns `Notification` object. Only `notification_name` is required.
 
 #### Command object
 
@@ -211,6 +209,16 @@ Properties:
 * `parameters` (read only)
 * `timestamp` (read only)
 
+### Networks
+
+`list_networks(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Network` objects. All args are optional.
+
+`get_network(network_id)` method returns `Network` object.
+
+`create_network(name, description)` method returns `Network` object.
+
+Example:
+
 ```python
 from devicehive import DeviceHiveApi
 
@@ -218,18 +226,27 @@ from devicehive import DeviceHiveApi
 url = 'http://playground.dev.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
-device_id = 'example-device'
-device = device_hive_api.put_device(device_id)
-device.name = 'new-device-name'
-device.data = {'key': 'value'}
-device.save()
-devices = device_hive_api.list_devices()
-for device in devices:
-    print('Device: %s, name: %s, data: %s' % (device.id, device.name,
-                                              device.data))
-    device.remove()
+network_name = 'example-name'
+network_description = 'example-description'
+network = device_hive_api.create_network(network_name, network_description)
+print(network.name)
 device_hive_api.disconnect()
 ```
+
+#### Network object
+
+Properties:
+
+* `id` (read only)
+* `name`
+* `description`
+
+Methods:
+
+* `save()` method does not return anything.
+* `remove()` method does not return anything.
+* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Device` objects. All args are optional.
+
 
 
 
