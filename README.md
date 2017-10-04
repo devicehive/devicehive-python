@@ -690,40 +690,26 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### Users
+### API users
 
-`self.api.list_users(login, login_pattern, role, status, sort_field, sort_order,
-                     take, skip)` returns list of `User` objects. All args are
-                     optional.
+`self.api.list_users(login, login_pattern, role, status, sort_field, sort_order, take, skip)` method returns list of `User` objects. `list_users` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_current_user()` returns `User` object.
+`self.api.get_current_user()` method returns `User` object. `get_current_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_user(user_id)` returns `User` object.
+`self.api.get_user(user_id)` method returns `User` object. `get_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.create_user(self, login, password, role, data)` returns `User` object.
+`self.api.create_user(self, login, password, role, data)` method returns `User` object. `create_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-#### User object
+See the description of `DeviceHiveApi` [user](#users) methods for more details.
 
-Properties:
+#### API user object
 
-* `id` (read only)
-* `login` (read only)
-* `last_login` (read only)
-* `intro_reviewed` (read only)
-* `role`
-* `status`
-* `data`
+API user object has the same properties as [user object](#user-object).
 
-Methods:
-
-* `save()` Does not return anything.
-* `update_password(password)` Does not return anything.
-* `remove()` Does not return anything.
-* `list_networks()` Returns list of `Network` objects.
-* `assign_network(network_id)` Does not return anything.
-* `unassign_network(network_id)` Does not return anything.
+API user object has the same methods as [user object](#user-object).
 
 Example:
+
 ```python
 from devicehive import Handler
 from devicehive.user import User
@@ -741,7 +727,7 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-## Extended example
+## API extended example
 
 Here we will create one endpoint which sends notifications and other endpoint 
 which receives these notifications.
