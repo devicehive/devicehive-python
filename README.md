@@ -194,7 +194,7 @@ Properties:
 
 Methods:
 
-* `save()` Does not return anything.
+* `save()` method does not return anything.
 
 #### Notification object
 
@@ -312,13 +312,6 @@ user = device_hive_api.create_user(login, password, role, data)
 print(user.login)
 ```
 
-
-
-
-
-
-
-
 ## Creating a client using DeviceHive class
 
 First of all you need to create custom `Handler` class.
@@ -422,7 +415,7 @@ class SimpleHandler(Handler):
         print(info)
         self.api.disconnect()
 
-dh = DeviceHive(SimpleHandler, 'some_arg', some_kwarg='some_kwarg')
+device_hive = DeviceHive(SimpleHandler, 'some_arg', some_kwarg='some_kwarg')
 ```
 
 ### Websocket protocol
@@ -445,37 +438,31 @@ Examples:
 
 ```python
 url = 'ws://playground.dev.devicehive.com/api/websocket'
-dh.connect(url, refresh_token='SOME_REFRESH_TOKEN')
+device_hive.connect(url, refresh_token='SOME_REFRESH_TOKEN')
 ```
 
 ```python
 url = 'ws://playground.dev.devicehive.com/api/websocket'
-dh.connect(url, access_token='SOME_ACCESS_TOKEN')
+device_hive.connect(url, access_token='SOME_ACCESS_TOKEN')
 ```
 
 ```python
 url = 'ws://playground.dev.devicehive.com/api/websocket'
-dh.connect(url, login='SOME_LOGIN', password='SOME_PASSWORD')
+device_hive.connect(url, login='SOME_LOGIN', password='SOME_PASSWORD')
 ```
 
 ## API
 
 All api calls may be done via `api` object. This object available inside
-custom handler with `self.api`.
+custom handler with `self.api` property.
 
-### Info
+### API Info
 
-`self.api.get_info()` returns `dict` with the next fields:
+`self.api.get_info()` method returns `dict`. `get_info()` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-* `api_version`
-* `server_timestamp`
-* `rest_server_url`
-* `websocket_server_url`
+`self.api.get_cluster_info()` method returns `dict`. `get_cluster_info()` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_cluster_info()` returns `dict` with the next fields:
-
-* `bootstrap.servers`
-* `zookeeper.connect`
+See the description of `DeviceHiveApi` [info](###Info) methods for more details.
 
 Example:
 ```python
@@ -491,6 +478,12 @@ class SimpleHandler(Handler):
         print(cluster_info)
         self.api.disconnect()
 ```
+
+
+
+
+
+
 
 ### Properties
 
