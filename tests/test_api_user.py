@@ -31,30 +31,27 @@ def test_save(test):
 
 
 def test_update_password(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('u-u-p')
-        password = test.generate_id('u-u-p')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        password_1 = test.generate_id('u-u-p')
-        user.update_password(password_1)
-        user_1 = handler.api.get_user(user.id)
-        user.remove()
-        try:
-            user.update_password(password_1)
-            assert False
-        except UserError:
-            pass
-        try:
-            user_1.update_password(password_1)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('u-u-p')
+    password = test.generate_id('u-u-p')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    password_1 = test.generate_id('u-u-p')
+    user.update_password(password_1)
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    try:
+        user.update_password(password_1)
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.update_password(password_1)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
 
 
 def test_remove(test):
