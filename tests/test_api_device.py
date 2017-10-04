@@ -528,39 +528,36 @@ def test_list_notifications(test):
 
 
 def test_send_notification(test):
-
-    def handle_connect(handler):
-        device_id = test.generate_id('d-s-n')
-        notification_name = test.generate_id('d-s-n')
-        device = handler.api.put_device(device_id)
-        notification = device.send_notification(notification_name)
-        assert notification.device_id == device_id
-        assert isinstance(notification.id, int)
-        assert notification.notification == notification_name
-        assert not notification.parameters
-        assert notification.timestamp
-        parameters = {'parameters_key': 'parameters_value'}
-        notification = device.send_notification(notification_name,
-                                                parameters=parameters)
-        assert notification.device_id == device_id
-        assert isinstance(notification.id, int)
-        assert notification.notification == notification_name
-        assert notification.parameters == parameters
-        assert notification.timestamp
-        device_1 = handler.api.get_device(device_id)
-        device.remove()
-        try:
-            device.send_notification(notification_name)
-            assert False
-        except DeviceError:
-            pass
-        try:
-            device_1.send_notification(notification_name)
-            assert False
-        except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
-                assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('d-s-n')
+    notification_name = test.generate_id('d-s-n')
+    device = device_hive_api.put_device(device_id)
+    notification = device.send_notification(notification_name)
+    assert notification.device_id == device_id
+    assert isinstance(notification.id, int)
+    assert notification.notification == notification_name
+    assert not notification.parameters
+    assert notification.timestamp
+    parameters = {'parameters_key': 'parameters_value'}
+    notification = device.send_notification(notification_name,
+                                            parameters=parameters)
+    assert notification.device_id == device_id
+    assert isinstance(notification.id, int)
+    assert notification.notification == notification_name
+    assert notification.parameters == parameters
+    assert notification.timestamp
+    device_1 = device_hive_api.get_device(device_id)
+    device.remove()
+    try:
+        device.send_notification(notification_name)
+        assert False
+    except DeviceError:
+        pass
+    try:
+        device_1.send_notification(notification_name)
+        assert False
+    except ApiResponseError as api_response_error:
+        if test.admin_refresh_token:
+            assert api_response_error.code == 404
+        else:
+            assert api_response_error.code == 403
