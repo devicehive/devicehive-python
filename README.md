@@ -460,9 +460,9 @@ custom handler with `self.api` property.
 
 ### API Info
 
-`self.api.get_info()` method returns `dict`. `get_info()` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.get_info()` method returns `dict`. `get_info` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_cluster_info()` method returns `dict`. `get_cluster_info()` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.get_cluster_info()` method returns `dict`. `get_cluster_info` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [info](#info) methods for more details.
 
@@ -484,11 +484,11 @@ class SimpleHandler(Handler):
 
 ### API Properties
 
-`self.api.get_property(name)` method returns `dict`. `get_property(name)` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.get_property(name)` method returns `dict`. `get_property` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.set_property(name, value)` method returns entity version. `set_property(name, value)` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.set_property(name, value)` method returns entity version. `set_property` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.delete_property(name)` method does not return anything. `delete_property(name)` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.delete_property(name)` method does not return anything. `delete_property` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [properties](#properties) methods for more details.
 
@@ -510,19 +510,16 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### Tokens
+### API Tokens
 
-`self.api.create_token(user_id, expiration, actions, network_ids, device_ids)`
-returns `dict` with the next fields:
+`self.api.create_token(user_id, expiration, actions, network_ids, device_ids)` method returns `dict`. `create_token` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-* `access_token`
-* `refresh_token`
+`self.api.refresh_token()` method refreshes the access token and returns it. `refresh_token` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-only `user_id` arg is required.
-
-`self.api.refresh_token()` refreshes the access token and returns it.
+See the description of `DeviceHiveApi` [tokens](#tokens) methods for more details.
 
 Example:
+
 ```python
 from devicehive import Handler
 
@@ -537,20 +534,18 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### Commands subscription and unsubscription
+### API Commands subscription and unsubscription
 
-`self.api.subscribe_insert_commands(device_ids, names, timestamp)`
-does not return anything.
+`self.api.subscribe_insert_commands(device_ids, names, timestamp)` method does not return anything.
 
-`self.api.subscribe_update_commands(device_ids, names, timestamp)`
-does not return anything.
-
-Only `device_ids` arg is required.
+`self.api.subscribe_update_commands(device_ids, names, timestamp)` method does not return anything. Only `device_ids` arg is required.
 
 `self.api.unsubscribe_insert_commands(device_ids)` does not return anything.
+
 `self.api.unsubscribe_update_commands(device_ids)` does not return anything.
 
 Example:
+
 ```python
 from devicehive import Handler
 
@@ -578,14 +573,14 @@ class SimpleHandler(Handler):
         self.api.unsubscribe_update_commands(['example-device'])
 ```
 
-### Notifications subscription and unsubscription
+### API Notifications subscription and unsubscription
 
-`self.api.subscribe_notifications(device_ids, names, timestamp)` does not return
-anything. Only `device_ids` arg is required.
+`self.api.subscribe_notifications(device_ids, names, timestamp)` method does not return anything. Only `device_ids` arg is required.
 
-`self.api.unsubscribe_notifications(device_ids)` does not return anything.
+`self.api.unsubscribe_notifications(device_ids)` method does not return anything.
 
 Example:
+
 ```python
 from devicehive import Handler
 
@@ -604,70 +599,37 @@ class SimpleHandler(Handler):
         self.api.unsubscribe_notifications(['example-device'])
 ```
 
-### Devices
+### API Devices
 
-`self.api.list_devices(name, name_pattern, network_id, network_name, sort_field,
-                       sort_order, take, skip)` returns list of `Device`
-objects. All args are optional.
+`self.api.list_devices(name, name_pattern, network_id, network_name, sort_field, sort_order, take, skip)` method returns list of `Device` objects. `list_devices` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.get_device(device_id)` returns `Device` object.
+`self.api.get_device(device_id)` method returns `Device` object. `get_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.put_device(device_id, name, data, network_id, is_blocked)`
+`self.api.put_device(device_id, name, data, network_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-Only `device_id` arg is required.
+#### API Device object
 
-#### Device object
+API Device object has the same properties as [device object](#device-object).
 
-Properties:
+API Device object has all methods from [device object](#device-object) 
+and extends these methods with:
 
-* `id` (read only)
-* `name`
-* `data`
-* `network_id`
-* `is_blocked`
+* `subscribe_insert_commands(names, timestamp)` method does not return anything. All args are optional.
+* `unsubscribe_insert_commands()` method does not return anything.
+* `subscribe_update_commands(names, timestamp)` method does not return anything. All args are optional.
+* `unsubscribe_update_commands()` method does not return anything.
+* `subscribe_notifications(names, timestamp)` method does not return anything. All args are optional.
+* `unsubscribe_notifications()` method does not return anything.
 
-Methods:
+#### API Command object
 
-* `save()` Does not return anything.
-* `remove()` Does not return anything.
-* `subscribe_insert_commands(names, timestamp)` Does not return anything. All args are optional.
-* `unsubscribe_insert_commands()` Does not return anything.
-* `subscribe_update_commands(names, timestamp)` Does not return anything. All args are optional.
-* `unsubscribe_update_commands()` Does not return anything.
-* `list_commands(start, end, command, status, sort_field, sort_order, take, skip)` Returns list of `Command` objects. All args are optional.
-* `send_command(command_name, parameters, lifetime, timestamp, status, result)` Returns `Command` object. Only `command_name` is required.
-* `subscribe_notifications(names, timestamp)` Does not return anything. All args are optional.
-* `unsubscribe_notifications()` Does not return anything.
-* `list_notifications(start, end, notification, sort_field, sort_order, take, skip)` Returns list of `Notification` objects. All args are optional.
-* `send_notification(notification_name, parameters, timestamp)` Returns `Notification` object. Only `notification_name` is required.
+APICommand object has the same properties as [command object](#command-object).
 
-#### Command object
+API Command object has the same methods as [command object](#command-object).
 
-Properties:
+#### API Notification object
 
-* `id` (read only)
-* `user_id` (read only)
-* `command` (read only)
-* `parameters` (read only)
-* `lifetime` (read only)
-* `timestamp` (read only)
-* `last_updated` (read only)
-* `status`
-* `result`
-
-Methods:
-
-* `save()` Does not return anything.
-
-#### Notification object
-
-Properties:
-
-* `device_id` (read only)
-* `id` (read only)
-* `notification` (read only)
-* `parameters` (read only)
-* `timestamp` (read only)
+API Command object has the same properties as [notification object](#notification-object)
 
 Example:
 
