@@ -2,8 +2,8 @@
 
 # Devicehive
 
-The simplest way to create a client is to use `DeviceHiveApi` class. 
-If you need to handle server events such as `handle_command_insert`, 
+The simplest way to create a client is to use `DeviceHiveApi` class.
+If you need to handle server events such as `handle_command_insert`,
 `handle_command_update` or `handle_notification` you'll have to extend `Handler`
 class and use `DeviceHive` class for it.
 
