@@ -1,4 +1,5 @@
 from devicehive import Handler
+from devicehive import DeviceHiveApi
 from devicehive import DeviceHive
 import time
 import pytest
@@ -97,6 +98,10 @@ class Test(object):
         if self.websocket_transport:
             return
         pytest.skip('Implemented only for websocket transport.')
+
+    def device_hive_api(self):
+        return DeviceHiveApi(self._transport_url,
+                             refresh_token=self._refresh_token)
 
     def run(self, handle_connect, handle_command_insert=None,
             handle_command_update=None, handle_notification=None):

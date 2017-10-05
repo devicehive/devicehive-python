@@ -5,61 +5,49 @@ from devicehive.user import User
 
 
 def test_get_info(test):
-
-    def handle_connect(handler):
-        info = handler.api.get_info()
-        assert isinstance(info['api_version'], string_types)
-        assert isinstance(info['server_timestamp'], string_types)
-        if info.get('rest_server_url'):
-            assert info['websocket_server_url'] is None
-            assert isinstance(info['rest_server_url'], string_types)
-            return
-        assert isinstance(info['websocket_server_url'], string_types)
-        assert info['rest_server_url'] is None
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    info = device_hive_api.get_info()
+    assert isinstance(info['api_version'], string_types)
+    assert isinstance(info['server_timestamp'], string_types)
+    if info.get('rest_server_url'):
+        assert info['websocket_server_url'] is None
+        assert isinstance(info['rest_server_url'], string_types)
+        return
+    assert isinstance(info['websocket_server_url'], string_types)
+    assert info['rest_server_url'] is None
 
 
 def test_get_cluster_info(test):
-
-    def handle_connect(handler):
-        cluster_info = handler.api.get_cluster_info()
-        assert isinstance(cluster_info['bootstrap.servers'], string_types)
-        assert isinstance(cluster_info['zookeeper.connect'], string_types)
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    cluster_info = device_hive_api.get_cluster_info()
+    assert isinstance(cluster_info['bootstrap.servers'], string_types)
+    assert isinstance(cluster_info['zookeeper.connect'], string_types)
 
 
 def test_create_token(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('c-t')
-        password = test.generate_id('c-t')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        tokens = handler.api.create_token(user.id)
-        assert isinstance(tokens['access_token'], string_types)
-        assert isinstance(tokens['refresh_token'], string_types)
-        user_id = user.id
-        user.remove()
-        try:
-            handler.api.create_token(user_id)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('c-t')
+    password = test.generate_id('c-t')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    tokens = device_hive_api.create_token(user.id)
+    assert isinstance(tokens['access_token'], string_types)
+    assert isinstance(tokens['refresh_token'], string_types)
+    user_id = user.id
+    user.remove()
+    try:
+        device_hive_api.create_token(user_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
 
 
 def test_refresh_token(test):
-
-    def handle_connect(handler):
-        access_token = handler.api.refresh_token()
-        assert isinstance(access_token, string_types)
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    access_token = device_hive_api.refresh_token()
+    assert isinstance(access_token, string_types)
 
 
 def test_subscribe_insert_commands(test):
@@ -386,298 +374,267 @@ def test_unsubscribe_notifications(test):
 
 
 def test_list_devices(test):
-
-    def handle_connect(handler):
-        test_id = test.generate_id('l-d')
-        options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
-                   {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
-        test_devices = [handler.api.put_device(option['id'],
+    device_hive_api = test.device_hive_api()
+    test_id = test.generate_id('l-d')
+    options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
+               {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
+    test_devices = [device_hive_api.put_device(option['id'],
                                                name=option['name'])
-                        for option in options]
-        devices = handler.api.list_devices()
-        assert len(devices) >= len(options)
-        name = options[0]['name']
-        device, = handler.api.list_devices(name=name)
-        assert device.name == name
-        name_pattern = test.generate_id('l-d-n-e')
-        assert not handler.api.list_devices(name_pattern=name_pattern)
-        name_pattern = test_id + '%'
-        devices = handler.api.list_devices(name_pattern=name_pattern)
-        assert len(devices) == len(options)
-        device_0, device_1 = handler.api.list_devices(name_pattern=name_pattern,
+                    for option in options]
+    devices = device_hive_api.list_devices()
+    assert len(devices) >= len(options)
+    name = options[0]['name']
+    device, = device_hive_api.list_devices(name=name)
+    assert device.name == name
+    name_pattern = test.generate_id('l-d-n-e')
+    assert not device_hive_api.list_devices(name_pattern=name_pattern)
+    name_pattern = test_id + '%'
+    devices = device_hive_api.list_devices(name_pattern=name_pattern)
+    assert len(devices) == len(options)
+    device_0, device_1 = device_hive_api.list_devices(name_pattern=name_pattern,
                                                       sort_field='name',
                                                       sort_order='ASC')
-        assert device_0.id == options[0]['id']
-        assert device_1.id == options[1]['id']
-        device_0, device_1 = handler.api.list_devices(name_pattern=name_pattern,
+    assert device_0.id == options[0]['id']
+    assert device_1.id == options[1]['id']
+    device_0, device_1 = device_hive_api.list_devices(name_pattern=name_pattern,
                                                       sort_field='name',
                                                       sort_order='DESC')
-        assert device_0.id == options[1]['id']
-        assert device_1.id == options[0]['id']
-        device, = handler.api.list_devices(name_pattern=name_pattern,
+    assert device_0.id == options[1]['id']
+    assert device_1.id == options[0]['id']
+    device, = device_hive_api.list_devices(name_pattern=name_pattern,
                                            sort_field='name', sort_order='ASC',
                                            take=1)
-        assert device.id == options[0]['id']
-        device, = handler.api.list_devices(name_pattern=name_pattern,
+    assert device.id == options[0]['id']
+    device, = device_hive_api.list_devices(name_pattern=name_pattern,
                                            sort_field='name', sort_order='ASC',
                                            take=1, skip=1)
-        assert device.id == options[1]['id']
-        [test_device.remove() for test_device in test_devices]
-
-    test.run(handle_connect)
+    assert device.id == options[1]['id']
+    [test_device.remove() for test_device in test_devices]
 
 
 def test_get_device(test):
-
-    def handle_connect(handler):
-        device_id = test.generate_id('g-d')
-        name = '%s-name' % device_id
-        data = {'data_key': 'data_value'}
-        handler.api.put_device(device_id, name=name, data=data)
-        device = handler.api.get_device(device_id)
-        assert device.id == device_id
-        assert device.name == name
-        assert device.data == data
-        assert isinstance(device.network_id, int)
-        assert not device.is_blocked
-        device.remove()
-        device_id = test.generate_id('g-d-n-e')
-        try:
-            handler.api.get_device(device_id)
-            assert False
-        except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
-                assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('g-d')
+    name = '%s-name' % device_id
+    data = {'data_key': 'data_value'}
+    device_hive_api.put_device(device_id, name=name, data=data)
+    device = device_hive_api.get_device(device_id)
+    assert device.id == device_id
+    assert device.name == name
+    assert device.data == data
+    assert isinstance(device.network_id, int)
+    assert not device.is_blocked
+    device.remove()
+    device_id = test.generate_id('g-d-n-e')
+    try:
+        device_hive_api.get_device(device_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        if test.admin_refresh_token:
+            assert api_response_error.code == 404
+        else:
+            assert api_response_error.code == 403
 
 
 def test_put_device(test):
-
-    def handle_connect(handler):
-        device_id = test.generate_id('p-d')
-        device = handler.api.put_device(device_id)
-        assert device.id == device_id
-        assert device.name == device_id
-        assert not device.data
-        assert isinstance(device.network_id, int)
-        assert not device.is_blocked
-        device.remove()
-        name = '%s-name' % device_id
-        data = {'data_key': 'data_value'}
-        device = handler.api.put_device(device_id, name=name, data=data,
+    device_hive_api = test.device_hive_api()
+    device_id = test.generate_id('p-d')
+    device = device_hive_api.put_device(device_id)
+    assert device.id == device_id
+    assert device.name == device_id
+    assert not device.data
+    assert isinstance(device.network_id, int)
+    assert not device.is_blocked
+    device.remove()
+    name = '%s-name' % device_id
+    data = {'data_key': 'data_value'}
+    device = device_hive_api.put_device(device_id, name=name, data=data,
                                         is_blocked=True)
-        assert device.id == device_id
-        assert device.name == name
-        assert device.data == data
-        assert isinstance(device.network_id, int)
-        assert device.is_blocked
-        device.remove()
-
-    test.run(handle_connect)
+    assert device.id == device_id
+    assert device.name == name
+    assert device.data == data
+    assert isinstance(device.network_id, int)
+    assert device.is_blocked
+    device.remove()
 
 
 def test_list_networks(test):
-
-    def handle_connect(handler):
-        test_id = test.generate_id('l-n')
-        options = [{'name': '%s-name-1' % test_id,
-                    'description': '%s-description-1' % test_id},
-                   {'name': '%s-name-2' % test_id,
-                    'description': '%s-description-2' % test_id}]
-        test_networks = [handler.api.create_network(option['name'],
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    test_id = test.generate_id('l-n')
+    options = [{'name': '%s-name-1' % test_id,
+                'description': '%s-description-1' % test_id},
+               {'name': '%s-name-2' % test_id,
+                'description': '%s-description-2' % test_id}]
+    test_networks = [device_hive_api.create_network(option['name'],
                                                     option['description'])
-                         for option in options]
-        networks = handler.api.list_networks()
-        assert len(networks) >= len(options)
-        name = options[0]['name']
-        network, = handler.api.list_networks(name=name)
-        assert network.name == name
-        name_pattern = test.generate_id('l-n-n-e')
-        assert not handler.api.list_networks(name_pattern=name_pattern)
-        name_pattern = test_id + '%'
-        networks = handler.api.list_networks(name_pattern=name_pattern)
-        assert len(networks) == len(options)
-        network_0, network_1 = handler.api.list_networks(
+                     for option in options]
+    networks = device_hive_api.list_networks()
+    assert len(networks) >= len(options)
+    name = options[0]['name']
+    network, = device_hive_api.list_networks(name=name)
+    assert network.name == name
+    name_pattern = test.generate_id('l-n-n-e')
+    assert not device_hive_api.list_networks(name_pattern=name_pattern)
+    name_pattern = test_id + '%'
+    networks = device_hive_api.list_networks(name_pattern=name_pattern)
+    assert len(networks) == len(options)
+    network_0, network_1 = device_hive_api.list_networks(
             name_pattern=name_pattern, sort_field='name', sort_order='ASC')
-        assert network_0.name == options[0]['name']
-        assert network_1.name == options[1]['name']
-        network_0, network_1 = handler.api.list_networks(
+    assert network_0.name == options[0]['name']
+    assert network_1.name == options[1]['name']
+    network_0, network_1 = device_hive_api.list_networks(
             name_pattern=name_pattern, sort_field='name', sort_order='DESC')
-        assert network_0.name == options[1]['name']
-        assert network_1.name == options[0]['name']
-        network, = handler.api.list_networks(name_pattern=name_pattern,
+    assert network_0.name == options[1]['name']
+    assert network_1.name == options[0]['name']
+    network, = device_hive_api.list_networks(name_pattern=name_pattern,
                                              sort_field='name',
                                              sort_order='ASC', take=1)
-        assert network.name == options[0]['name']
-        network, = handler.api.list_networks(name_pattern=name_pattern,
+    assert network.name == options[0]['name']
+    network, = device_hive_api.list_networks(name_pattern=name_pattern,
                                              sort_field='name',
                                              sort_order='ASC', take=1,
                                              skip=1)
-        assert network.name == options[1]['name']
-        [test_network.remove() for test_network in test_networks]
-
-    test.only_admin_implementation()
-    test.run(handle_connect)
+    assert network.name == options[1]['name']
+    [test_network.remove() for test_network in test_networks]
 
 
 def test_get_network(test):
-
-    def handle_connect(handler):
-        name = test.generate_id('g-n')
-        description = '%s-description' % name
-        network = handler.api.create_network(name, description)
-        network = handler.api.get_network(network.id)
-        assert isinstance(network.id, int)
-        assert network.name == name
-        assert network.description == description
-        network_id = network.id
-        network.remove()
-        try:
-            handler.api.get_network(network_id)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('g-n')
+    description = '%s-description' % name
+    network = device_hive_api.create_network(name, description)
+    network = device_hive_api.get_network(network.id)
+    assert isinstance(network.id, int)
+    assert network.name == name
+    assert network.description == description
+    network_id = network.id
+    network.remove()
+    try:
+        device_hive_api.get_network(network_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
 
 
 def test_create_network(test):
-
-    def handle_connect(handler):
-        name = test.generate_id('c-n')
-        description = '%s-description' % name
-        network = handler.api.create_network(name, description)
-        assert isinstance(network.id, int)
-        assert network.name == name
-        assert network.description == description
-        try:
-            handler.api.create_network(name, description)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
-        network.remove()
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('c-n')
+    description = '%s-description' % name
+    network = device_hive_api.create_network(name, description)
+    assert isinstance(network.id, int)
+    assert network.name == name
+    assert network.description == description
+    try:
+        device_hive_api.create_network(name, description)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+    network.remove()
 
 
 def test_list_users(test):
-
-    def handle_connect(handler):
-        test_id = test.generate_id('l-u')
-        role = User.ADMINISTRATOR_ROLE
-        options = [{'login': '%s-login-1' % test_id,
-                    'password': '%s-password-1' % test_id,
-                    'role': role, 'data': {'1': '1'}},
-                   {'login': '%s-login-2' % test_id,
-                    'password': '%s-password-1' % test_id,
-                    'role': role, 'data': {'2': '2'}}]
-        test_users = [handler.api.create_user(option['login'],
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    test_id = test.generate_id('l-u')
+    role = User.ADMINISTRATOR_ROLE
+    options = [{'login': '%s-login-1' % test_id,
+                'password': '%s-password-1' % test_id,
+                'role': role, 'data': {'1': '1'}},
+               {'login': '%s-login-2' % test_id,
+                'password': '%s-password-1' % test_id,
+                'role': role, 'data': {'2': '2'}}]
+    test_users = [device_hive_api.create_user(option['login'],
                                               option['password'],
-                                              option['role'],
-                                              option['data'])
-                      for option in options]
-        users = handler.api.list_users()
-        assert len(users) >= len(options)
-        login = options[0]['login']
-        user, = handler.api.list_users(login=login)
-        assert user.login == login
-        login_pattern = test.generate_id('l-u-n-e')
-        assert not handler.api.list_users(login_pattern=login_pattern)
-        login_pattern = test_id + '%'
-        users = handler.api.list_users(login_pattern=login_pattern)
-        assert len(users) == len(options)
-        users = handler.api.list_users(role=role)
-        assert len(users) >= len(options)
-        status = User.ACTIVE_STATUS
-        users = handler.api.list_users(status=status)
-        assert len(users) >= len(options)
-        user_0, user_1 = handler.api.list_users(login_pattern=login_pattern,
+                                              option['role'], option['data'])
+                  for option in options]
+    users = device_hive_api.list_users()
+    assert len(users) >= len(options)
+    login = options[0]['login']
+    user, = device_hive_api.list_users(login=login)
+    assert user.login == login
+    login_pattern = test.generate_id('l-u-n-e')
+    assert not device_hive_api.list_users(login_pattern=login_pattern)
+    login_pattern = test_id + '%'
+    users = device_hive_api.list_users(login_pattern=login_pattern)
+    assert len(users) == len(options)
+    users = device_hive_api.list_users(role=role)
+    assert len(users) >= len(options)
+    status = User.ACTIVE_STATUS
+    users = device_hive_api.list_users(status=status)
+    assert len(users) >= len(options)
+    user_0, user_1 = device_hive_api.list_users(login_pattern=login_pattern,
                                                 sort_field='login',
                                                 sort_order='ASC')
-        assert user_0.login == options[0]['login']
-        assert user_1.login == options[1]['login']
-        user_0, user_1 = handler.api.list_users(login_pattern=login_pattern,
+    assert user_0.login == options[0]['login']
+    assert user_1.login == options[1]['login']
+    user_0, user_1 = device_hive_api.list_users(login_pattern=login_pattern,
                                                 sort_field='login',
                                                 sort_order='DESC')
-        assert user_0.login == options[1]['login']
-        assert user_1.login == options[0]['login']
-        user, = handler.api.list_users(login_pattern=login_pattern,
+    assert user_0.login == options[1]['login']
+    assert user_1.login == options[0]['login']
+    user, = device_hive_api.list_users(login_pattern=login_pattern,
                                        sort_field='login', sort_order='ASC',
                                        take=1)
-        assert user.login == options[0]['login']
-        user, = handler.api.list_users(login_pattern=login_pattern,
+    assert user.login == options[0]['login']
+    user, = device_hive_api.list_users(login_pattern=login_pattern,
                                        sort_field='login', sort_order='ASC',
                                        take=1, skip=1)
-        assert user.login == options[1]['login']
-        [test_user.remove() for test_user in test_users]
-
-    test.only_admin_implementation()
-    test.run(handle_connect)
+    assert user.login == options[1]['login']
+    [test_user.remove() for test_user in test_users]
 
 
 def test_get_current_user(test):
-
-    def handle_connect(handler):
-        user = handler.api.get_current_user()
-        assert isinstance(user.id, int)
-
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    user = device_hive_api.get_current_user()
+    assert isinstance(user.id, int)
 
 
 def test_get_user(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('g-u')
-        password = test.generate_id('g-u')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        user = handler.api.get_user(user.id)
-        assert isinstance(user.id, int)
-        assert user.login == login
-        assert not user.last_login
-        assert not user.intro_reviewed
-        assert user.role == role
-        assert user.status == User.ACTIVE_STATUS
-        assert user.data == data
-        user_id = user.id
-        user.remove()
-        try:
-            handler.api.get_user(user_id)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('g-u')
+    password = test.generate_id('g-u')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    user = device_hive_api.get_user(user.id)
+    assert isinstance(user.id, int)
+    assert user.login == login
+    assert not user.last_login
+    assert not user.intro_reviewed
+    assert user.role == role
+    assert user.status == User.ACTIVE_STATUS
+    assert user.data == data
+    user_id = user.id
+    user.remove()
+    try:
+        device_hive_api.get_user(user_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
 
 
 def test_create_user(test):
-
-    def handle_connect(handler):
-        login = test.generate_id('c-u')
-        password = test.generate_id('c-u')
-        role = User.ADMINISTRATOR_ROLE
-        data = {'k': 'v'}
-        user = handler.api.create_user(login, password, role, data)
-        assert isinstance(user.id, int)
-        assert user.login == login
-        assert not user.last_login
-        assert not user.intro_reviewed
-        assert user.role == role
-        assert user.status == User.ACTIVE_STATUS
-        assert user.data == data
-        try:
-            handler.api.create_user(login, password, role, data)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 403
-        user.remove()
-
     test.only_admin_implementation()
-    test.run(handle_connect)
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('c-u')
+    password = test.generate_id('c-u')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    user = device_hive_api.create_user(login, password, role, data)
+    assert isinstance(user.id, int)
+    assert user.login == login
+    assert not user.last_login
+    assert not user.intro_reviewed
+    assert user.role == role
+    assert user.status == User.ACTIVE_STATUS
+    assert user.data == data
+    try:
+        device_hive_api.create_user(login, password, role, data)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+    user.remove()
