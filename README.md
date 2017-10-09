@@ -813,3 +813,31 @@ dh.connect(url, refresh_token=refresh_token)
 
 Run `python receiver.py` in the first terminal. And `python sender.py` in the
 second. The order of run is important. `receiver.py` must be started first.
+
+## Docker tests
+
+### Build image
+
+```
+docker build -f Dockerfile.tests -t devicehive-tests .
+```
+
+### Run tests
+
+To run the tests you need to set `ADMIN_REFRESH_TOKEN` or `USER_REFRESH_TOKEN` variable:
+
+```
+docker run -it -e ADMIN_REFRESH_TOKEN='SOME_ADMIN_REFRESH_TOKEN' devicehive-tests
+```
+
+To run tests with enabled requests logging you need to change `LOG_LEVEL` variable:
+
+```
+docker run -it -e ADMIN_REFRESH_TOKEN='SOME_ADMIN_REFRESH_TOKEN' -e LOG_LEVEL='DEBUG' devicehive-tests
+```
+
+To run the specific test you need to set `TEST` variable:
+
+```
+docker run -it -e TEST=test_api.py::test_get_info -e ADMIN_REFRESH_TOKEN='SOME_ADMIN_REFRESH_TOKEN' devicehive-tests
+```
