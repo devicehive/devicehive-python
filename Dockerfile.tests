@@ -1,0 +1,19 @@
+FROM python:3.6
+MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
+
+ENV TEST=''
+ENV TRANSPORT_URLS='http://playground.dev.devicehive.com/api/rest,ws://playground.dev.devicehive.com/api/websocket'
+ENV ADMIN_REFRESH_TOKEN=''
+ENV USER_REFRESH_TOKEN=''
+ENV LOG_LEVEL='INFO'
+
+ADD devicehive /opt/devicehive-python/devicehive
+ADD tests /opt/devicehive-python/tests
+ADD setup.py README.md /opt/devicehive-python/
+RUN cd /opt/devicehive-python && pip install . pytest
+
+ENTRYPOINT pytest -xsv /opt/devicehive-python/tests/$TEST\
+                  --transport-urls=$TRANSPORT_URLS\
+                  --admin-refresh-token=$ADMIN_REFRESH_TOKEN\
+                  --user-refresh-token=$USER_REFRESH_TOKEN\
+                  --log-level=$LOG_LEVEL

@@ -85,12 +85,12 @@ class ApiRequest(object):
         self._params['response_key'] = key
 
     def execute(self, error_message):
-        uuid = self._uuid()
+        request_id = self._uuid()
         request = self._request.copy()
-        logger.debug('Request id: %s. Action: %s. Request: %s.', uuid,
-                     self._action, request)
-        response = self._api.transport.request(uuid, self._action, request,
-                                               **self._params)
+        logger.debug('Request id: %s. Action: %s. Request: %s. Params: %s.',
+                     request_id, self._action, request, self._params)
+        response = self._api.transport.request(request_id, self._action,
+                                               request, **self._params)
         api_response = ApiResponse(response, self._params['response_key'])
         logger.debug('Response id: %s. Action: %s. Success: %s. Response: %s.',
                      api_response.id, api_response.action, api_response.success,
