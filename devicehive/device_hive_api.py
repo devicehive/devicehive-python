@@ -70,11 +70,11 @@ class DeviceHiveApi(object):
     def _call(self, call, *args, **kwargs):
         device_hive = DeviceHive(ApiCallHandler, call, *args, **kwargs)
         device_hive.connect(self._transport_url, **self._options)
-        while not device_hive.transport.handler.handler.ready:
+        while not device_hive.handler.ready:
             time.sleep(self._transport_alive_timeout)
             if device_hive.transport.exception_info:
                 six.reraise(*device_hive.transport.exception_info)
-        return device_hive.transport.handler.handler.result
+        return device_hive.handler.result
 
     def get_info(self):
         return self._call('get_info')

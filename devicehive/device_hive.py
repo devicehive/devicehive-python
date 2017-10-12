@@ -37,6 +37,10 @@ class DeviceHive(object):
     def transport(self):
         return self._transport
 
+    @property
+    def handler(self):
+        return self._transport.handler.handler
+
     def connect(self, transport_url, **options):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
@@ -68,7 +72,7 @@ class DeviceHive(object):
             if exception_info and not isinstance(exception_info[1],
                                                  self._transport.error):
                 six.reraise(*exception_info)
-            if not self._transport.handler.handler.api.connected:
+            if not self.handler.api.connected:
                 return
             if time.time() - connect_time < connect_timeout:
                 num_connect += 1
