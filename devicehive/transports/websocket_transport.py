@@ -3,6 +3,7 @@ from devicehive.transports.transport import TransportError
 import websocket
 import socket
 import threading
+import sys
 import time
 
 
@@ -17,8 +18,11 @@ class WebsocketTransport(Transport):
                                                  data_format_options,
                                                  handler_class, handler_options)
         self._websocket = websocket.WebSocket()
+        self._event_queue_sleep = None
+        self._response_sleep = None
         self._pong_received = False
         self._event_queue = []
+        self._responses = {}
         if self._text_data_type:
             self._data_opcode = websocket.ABNF.OPCODE_TEXT
         else:
@@ -33,17 +37,51 @@ class WebsocketTransport(Transport):
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
+        event_queue_sleep = options.pop('event_queue_sleep', 0.01)
+        response_sleep = options.pop('response_sleep', 0.01)
         pong_timeout = options.pop('pong_timeout', None)
         self._websocket.timeout = timeout
+        self._event_queue_sleep = event_queue_sleep
+        self._response_sleep = response_sleep
         self._websocket_call(self._websocket.connect, url, **options)
         self._connected = True
+        event_thread = threading.Thread(target=self._event)
+        event_thread.name = '%s-transport-event' % self._name
+        event_thread.daemon = True
+        event_thread.start()
+        if pong_timeout:
+            ping_thread = threading.Thread(target=self._ping,
+                                           args=(pong_timeout,))
+            ping_thread.name = '%s-transport-ping' % self._name
+            ping_thread.daemon = True
+            ping_thread.start()
         self._handle_connect()
-        if not pong_timeout:
+
+    def _event(self):
+        while self._connected:
+            try:
+                opcode, data = self._websocket_call(self._websocket.recv_data,
+                                                    True)
+                if opcode == websocket.ABNF.OPCODE_TEXT:
+                    self._parse_event(self._decode(data.decode('utf-8')))
+                    continue
+                if opcode == websocket.ABNF.OPCODE_BINARY:
+                    self._parse_event(self._decode(data))
+                    continue
+                if opcode == websocket.ABNF.OPCODE_PONG:
+                    self._pong_received = True
+                    continue
+                if opcode == websocket.ABNF.OPCODE_CLOSE:
+                    return
+            except:
+                self._exception_info = sys.exc_info()
+
+    def _parse_event(self, event):
+        request_id = event.get(self.REQUEST_ID_KEY)
+        if not request_id:
+            self._event_queue.append(event)
             return
-        ping_thread = threading.Thread(target=self._ping, args=(pong_timeout,))
-        ping_thread.name = '%s-transport-ping' % self._name
-        ping_thread.daemon = True
-        ping_thread.start()
+        self._responses[request_id] = event
 
     def _ping(self, pong_timeout):
         while self._connected:
@@ -59,30 +97,21 @@ class WebsocketTransport(Transport):
                 return
 
     def _receive(self):
-        while self._connected:
-            if self._event_queue:
-                event = self._event_queue.pop(0)
+        while self._connected and not self._exception_info:
+            if not self._event_queue:
+                time.sleep(self._event_queue_sleep)
+                continue
+            for event in self._event_queue:
                 self._handle_event(event)
-                continue
-            opcode, data = self._websocket_call(self._websocket.recv_data, True)
-            if opcode == websocket.ABNF.OPCODE_TEXT:
-                event = self._decode(data.decode('utf-8'))
-                self._handle_event(event)
-                continue
-            if opcode == websocket.ABNF.OPCODE_BINARY:
-                event = self._decode(data)
-                self._handle_event(event)
-                continue
-            if opcode == websocket.ABNF.OPCODE_PONG:
-                self._pong_received = True
-                continue
-            if opcode == websocket.ABNF.OPCODE_CLOSE:
-                return
+                if not self._connected:
+                    return
+            self._event_queue = []
 
     def _disconnect(self):
         self._websocket_call(self._websocket.close)
         self._pong_received = False
         self._event_queue = []
+        self._responses = {}
         self._handle_disconnect()
 
     def _send_request(self, request_id, action, request):
@@ -94,10 +123,10 @@ class WebsocketTransport(Transport):
     def _receive_response(self, request_id, timeout):
         start_time = time.time()
         while time.time() - timeout < start_time:
-            response = self._decode(self._websocket_call(self._websocket.recv))
-            if response.get(self.REQUEST_ID_KEY) == request_id:
+            response = self._responses.get(request_id)
+            if response:
                 return response
-            self._event_queue.append(response)
+            time.sleep(self._response_sleep)
         raise self._error('Response timeout.')
 
     def send_request(self, request_id, action, request, **params):
