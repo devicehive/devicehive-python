@@ -62,11 +62,14 @@ class WebsocketTransport(Transport):
             try:
                 opcode, data = self._websocket_call(self._websocket.recv_data,
                                                     True)
-                if opcode == websocket.ABNF.OPCODE_TEXT:
-                    self._parse_event(self._decode(data.decode('utf-8')))
-                    continue
-                if opcode == websocket.ABNF.OPCODE_BINARY:
-                    self._parse_event(self._decode(data))
+                if opcode in (websocket.ABNF.OPCODE_TEXT,
+                              websocket.ABNF.OPCODE_BINARY):
+                    event = self._decode(data)
+                    request_id = event.get(self.REQUEST_ID_KEY)
+                    if not request_id:
+                        self._event_queue.append(event)
+                        continue
+                    self._responses[request_id] = event
                     continue
                 if opcode == websocket.ABNF.OPCODE_PONG:
                     self._pong_received = True
@@ -75,13 +78,6 @@ class WebsocketTransport(Transport):
                     return
             except:
                 self._exception_info = sys.exc_info()
-
-    def _parse_event(self, event):
-        request_id = event.get(self.REQUEST_ID_KEY)
-        if not request_id:
-            self._event_queue.append(event)
-            return
-        self._responses[request_id] = event
 
     def _ping(self, pong_timeout):
         while self._connected:
@@ -125,6 +121,7 @@ class WebsocketTransport(Transport):
         while time.time() - timeout < start_time:
             response = self._responses.get(request_id)
             if response:
+                del self._responses[request_id]
                 return response
             time.sleep(self._response_sleep)
         raise self._error('Response timeout.')
