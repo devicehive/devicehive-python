@@ -18,8 +18,8 @@ class WebsocketTransport(Transport):
                                                  data_format_options,
                                                  handler_class, handler_options)
         self._websocket = websocket.WebSocket()
-        self._event_queue_sleep = None
-        self._response_sleep = None
+        self._event_queue_sleep_time = None
+        self._response_sleep_time = None
         self._pong_received = False
         self._event_queue = []
         self._responses = {}
@@ -37,12 +37,12 @@ class WebsocketTransport(Transport):
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
-        event_queue_sleep = options.pop('event_queue_sleep', 0.001)
-        response_sleep = options.pop('response_sleep', 0.001)
+        event_queue_sleep_time = options.pop('event_queue_sleep_time', 0.001)
+        response_sleep_time = options.pop('response_sleep_time', 0.001)
         pong_timeout = options.pop('pong_timeout', None)
         self._websocket.timeout = timeout
-        self._event_queue_sleep = event_queue_sleep
-        self._response_sleep = response_sleep
+        self._event_queue_sleep_time = event_queue_sleep_time
+        self._response_sleep_time = response_sleep_time
         self._websocket_call(self._websocket.connect, url, **options)
         self._connected = True
         event_thread = threading.Thread(target=self._event)
@@ -97,7 +97,7 @@ class WebsocketTransport(Transport):
     def _receive(self):
         while self._connected and not self._exception_info:
             if not self._event_queue:
-                time.sleep(self._event_queue_sleep)
+                time.sleep(self._event_queue_sleep_time)
                 continue
             for event in self._event_queue:
                 self._handle_event(event)
@@ -125,7 +125,7 @@ class WebsocketTransport(Transport):
             if response:
                 del self._responses[request_id]
                 return response
-            time.sleep(self._response_sleep)
+            time.sleep(self._response_sleep_time)
         raise self._error('Response timeout.')
 
     def send_request(self, request_id, action, request, **params):
