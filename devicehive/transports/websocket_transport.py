@@ -64,6 +64,8 @@ class WebsocketTransport(Transport):
                                                     True)
                 if opcode in (websocket.ABNF.OPCODE_TEXT,
                               websocket.ABNF.OPCODE_BINARY):
+                    if opcode == websocket.ABNF.OPCODE_TEXT:
+                        data = data.decode('utf-8')
                     event = self._decode(data)
                     request_id = event.get(self.REQUEST_ID_KEY)
                     if not request_id:
