@@ -37,8 +37,8 @@ class WebsocketTransport(Transport):
 
     def _connect(self, url, **options):
         timeout = options.pop('timeout', None)
-        event_queue_sleep_time = options.pop('event_queue_sleep_time', 0.001)
-        response_sleep_time = options.pop('response_sleep_time', 0.001)
+        event_queue_sleep_time = options.pop('event_queue_sleep_time', 1e-6)
+        response_sleep_time = options.pop('response_sleep_time', 1e-6)
         pong_timeout = options.pop('pong_timeout', None)
         self._websocket.timeout = timeout
         self._event_queue_sleep_time = event_queue_sleep_time
