@@ -37,8 +37,9 @@ class DeviceHiveApi(object):
 
     def __init__(self, transport_url, **options):
         self._transport_url = transport_url
-        self._transport_alive_timeout = options.pop('transport_alive_timeout',
-                                                    0.01)
+        transport_alive_sleep_time = options.pop('transport_alive_sleep_time',
+                                                 1e-6)
+        self._transport_alive_sleep_time = transport_alive_sleep_time
         options['transport_keep_alive'] = False
         options['api_init'] = False
         self._options = options
@@ -71,7 +72,7 @@ class DeviceHiveApi(object):
         device_hive = DeviceHive(ApiCallHandler, call, *args, **kwargs)
         device_hive.connect(self._transport_url, **self._options)
         while not device_hive.handler.ready:
-            time.sleep(self._transport_alive_timeout)
+            time.sleep(self._transport_alive_sleep_time)
             if device_hive.transport.exception_info:
                 six.reraise(*device_hive.transport.exception_info)
         return device_hive.handler.result
