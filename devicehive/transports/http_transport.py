@@ -26,7 +26,7 @@ class HttpTransport(Transport):
         self._url = url
         self._options = options
         self._events_queue_sleep_time = options.pop('events_queue_sleep_time',
-                                                    0.01)
+                                                    1e-6)
         if not self._url.endswith('/'):
             self._url += '/'
         self._connected = True
