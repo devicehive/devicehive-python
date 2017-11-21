@@ -8,7 +8,7 @@ from devicehive import DeviceHive
 
 SERVER_URL = 'http://playground.devicehive.com/api/rest'
 SERVER_REFRESH_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJwYXlsb2FkIjp7InVzZXJJZCI6MTAsImFjdGlvbnMiOlsiR2V0TmV0d29yayIsIkdldERldmljZSIsIkdldERldmljZVN0YXRlIiwiR2V0RGV2aWNlTm90aWZpY2F0aW9uIiwiR2V0RGV2aWNlQ29tbWFuZCIsIkdldERldmljZUNsYXNzIiwiUmVnaXN0ZXJEZXZpY2UiLCJDcmVhdGVEZXZpY2VOb3RpZmljYXRpb24iLCJDcmVhdGVEZXZpY2VDb21tYW5kIiwiVXBkYXRlRGV2aWNlQ29tbWFuZCIsIkdldEN1cnJlbnRVc2VyIiwiVXBkYXRlQ3VycmVudFVzZXIiLCJNYW5hZ2VUb2tlbiJdLCJuZXR3b3JrSWRzIjpbIjEwIl0sImRldmljZUlkcyI6WyIqIl0sImV4cGlyYXRpb24iOjE1MzU4MDMxNDMzMTQsInRva2VuVHlwZSI6IlJFRlJFU0gifX0.5qgXmEZTvnMlMjByGGhcxpfD0s_TSFM3cAQKoo22Ees' # 'PUT_YOUR_REFRESH_TOKEN_HERE'
-DEVICE_ID = 'raspi_led_thermo_' \
+DEVICE_ID = 'raspi-led-thermo-' \
             + hashlib.md5(SERVER_REFRESH_TOKEN.encode()).hexdigest()[0:8]
 LED_PIN = 17
 
