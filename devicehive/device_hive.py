@@ -45,7 +45,8 @@ class DeviceHive(object):
         self._transport_name = self.transport_name(transport_url)
         assert self._transport_name, 'Unexpected transport url scheme'
         transport_keep_alive = options.pop('transport_keep_alive', True)
-        transport_alive_timeout = options.pop('transport_alive_timeout', 0.01)
+        transport_alive_sleep_time = options.pop('transport_alive_sleep_time',
+                                                 1e-6)
         connect_timeout = options.pop('connect_timeout', 30)
         max_num_connect = options.pop('max_num_connect', 10)
         connect_interval = options.pop('connect_interval', 1)
@@ -67,7 +68,7 @@ class DeviceHive(object):
             self._ensure_transport_disconnect()
             self._transport.connect(transport_url, **options)
             while self._transport.is_alive():
-                time.sleep(transport_alive_timeout)
+                time.sleep(transport_alive_sleep_time)
             exception_info = self._transport.exception_info
             if exception_info and not isinstance(exception_info[1],
                                                  self._transport.error):

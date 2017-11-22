@@ -17,7 +17,7 @@ class HttpTransport(Transport):
                                             handler_options)
         self._url = None
         self._options = None
-        self._events_queue_timeout = None
+        self._events_queue_sleep = None
         self._events_queue = []
         self._subscription_ids = []
         self._success_codes = [200, 201, 204]
@@ -25,7 +25,8 @@ class HttpTransport(Transport):
     def _connect(self, url, **options):
         self._url = url
         self._options = options
-        self._events_queue_timeout = options.pop('events_queue_timeout', 0.01)
+        self._events_queue_sleep_time = options.pop('events_queue_sleep_time',
+                                                    1e-6)
         if not self._url.endswith('/'):
             self._url += '/'
         self._connected = True
@@ -34,7 +35,7 @@ class HttpTransport(Transport):
     def _receive(self):
         while self._connected and not self._exception_info:
             if not self._events_queue:
-                time.sleep(self._events_queue_timeout)
+                time.sleep(self._events_queue_sleep_time)
                 continue
             for event in self._events_queue.pop(0):
                 self._handle_event(event)
