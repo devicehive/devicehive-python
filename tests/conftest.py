@@ -1,5 +1,6 @@
-from tests.test import Test
+import six
 import logging.config
+from tests.test import Test
 
 
 def pytest_addoption(parser):
@@ -41,3 +42,17 @@ def pytest_generate_tests(metafunc):
             tests.append(Test(transport_url, refresh_token, token_type))
             ids.append('%s:%s' % (token_type, transport_url))
     metafunc.parametrize('test', tests, ids=ids)
+
+
+def pytest_exception_interact(node, call, report):
+    test = node.funcargs['test']
+    api = test.device_hive_api()
+    for entity_type, entity_ids in six.iteritems(test.entity_ids):
+        if entity_type is None:
+            continue
+        for entity_id in entity_ids:
+            try:
+                getattr(api, 'get_%s' % entity_type)(entity_id).remove()
+                print('Remove {} "{}"'.format(entity_type, entity_id))
+            except:
+                pass

@@ -4,7 +4,7 @@ from devicehive import ApiResponseError
 
 def test_save(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s')
+    device_id = test.generate_id('d-s', test.DEVICE_ENTITY)
     device = device_hive_api.put_device(device_id)
     name = '%s-name' % device_id
     data = {'data_key': 'data_value'}
@@ -28,7 +28,7 @@ def test_save(test):
 
 def test_remove(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-r')
+    device_id = test.generate_id('d-r', test.DEVICE_ENTITY)
     device = device_hive_api.put_device(device_id)
     device_1 = device_hive_api.get_device(device_id)
     device.remove()
@@ -55,7 +55,7 @@ def test_remove(test):
 def test_subscribe_insert_commands(test):
 
     def init_device(handler):
-        test_id = test.generate_id('d-s-i-c')
+        test_id = test.generate_id('d-s-i-c', test.DEVICE_ENTITY)
         options = [{'command': '%s-name-1' % test_id},
                    {'command': '%s-name-2' % test_id}]
         device = handler.api.put_device(test_id)
@@ -131,7 +131,7 @@ def test_subscribe_insert_commands(test):
 def test_unsubscribe_insert_commands(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-i-c')
+        device_id = test.generate_id('d-u-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         device.subscribe_insert_commands()
         device.unsubscribe_insert_commands()
@@ -155,7 +155,7 @@ def test_unsubscribe_insert_commands(test):
 def test_subscribe_update_commands(test):
 
     def init_device(handler):
-        test_id = test.generate_id('d-s-u-c')
+        test_id = test.generate_id('d-s-u-c', test.DEVICE_ENTITY)
         options = [{'command': '%s-name-1' % test_id},
                    {'command': '%s-name-2' % test_id}]
         device = handler.api.put_device(test_id)
@@ -233,7 +233,7 @@ def test_subscribe_update_commands(test):
 def test_unsubscribe_update_commands(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-u-c')
+        device_id = test.generate_id('d-u-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         device.subscribe_update_commands()
         device.unsubscribe_update_commands()
@@ -257,7 +257,7 @@ def test_unsubscribe_update_commands(test):
 def test_list_commands(test):
     device_hive_api = test.device_hive_api()
     server_timestamp = device_hive_api.get_info()['server_timestamp']
-    test_id = test.generate_id('d-l-c')
+    test_id = test.generate_id('d-l-c', test.DEVICE_ENTITY)
     options = [{'command': '%s-name-1' % test_id, 'lifetime': 100,
                 'status': '1'},
                {'command': '%s-name-2' % test_id, 'lifetime': 100,
@@ -311,7 +311,7 @@ def test_list_commands(test):
 
 def test_send_command(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s-c')
+    device_id = test.generate_id('d-s-c', test.DEVICE_ENTITY)
     command_name = test.generate_id('d-s-c')
     device = device_hive_api.put_device(device_id)
     command = device.send_command(command_name)
@@ -364,7 +364,7 @@ def test_send_command(test):
 def test_subscribe_notifications(test):
 
     def init_device(handler):
-        test_id = test.generate_id('d-s-n')
+        test_id = test.generate_id('d-s-n', test.DEVICE_ENTITY)
         options = [{'notification': '%s-name-1' % test_id},
                    {'notification': '%s-name-2' % test_id}]
         device = handler.api.put_device(test_id)
@@ -442,7 +442,7 @@ def test_subscribe_notifications(test):
 def test_unsubscribe_notifications(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-n')
+        device_id = test.generate_id('d-u-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         device.subscribe_notifications()
         device.unsubscribe_notifications()
@@ -472,7 +472,7 @@ def list_notifications(device, **params):
 def test_list_notifications(test):
     device_hive_api = test.device_hive_api()
     server_timestamp = device_hive_api.get_info()['server_timestamp']
-    test_id = test.generate_id('d-l-n')
+    test_id = test.generate_id('d-l-n', test.DEVICE_ENTITY)
     options = [{'notification': '%s-name-1' % test_id,
                 'parameters': {'parameters_key': '1'}},
                {'notification': '%s-name-2' % test_id,
@@ -529,7 +529,7 @@ def test_list_notifications(test):
 
 def test_send_notification(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s-n')
+    device_id = test.generate_id('d-s-n', test.DEVICE_ENTITY)
     notification_name = test.generate_id('d-s-n')
     device = device_hive_api.put_device(device_id)
     notification = device.send_notification(notification_name)

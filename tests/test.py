@@ -1,3 +1,5 @@
+from six.moves import range as six_range
+from collections import defaultdict
 from devicehive import Handler
 from devicehive import DeviceHiveApi
 from devicehive import DeviceHive
@@ -44,20 +46,42 @@ class TestHandler(Handler):
 
 class Test(object):
     """Test class."""
+    _entity_ids = None
+
+    # entity types
+    USER_ENTITY = 'user'
+    DEVICE_ENTITY = 'device'
+    NETWORK_ENTITY = 'network'
 
     def __init__(self, transport_url, refresh_token, token_type):
         self._transport_url = transport_url
         self._refresh_token = refresh_token
         self._token_type = token_type
         self._transport_name = DeviceHive.transport_name(self._transport_url)
+        self._entity_ids = defaultdict(list)
 
-    def generate_id(self, key=None):
+    def _generate_id(self, key=None):
         time_key = repr(time.time()).replace('.', '')
         if not key:
             return '%s-%s-%s' % (self._transport_name, self._token_type,
                                  time_key)
         return '%s-%s-%s-%s' % (self._transport_name, key, self._token_type,
                                 time_key)
+
+    def generate_id(self, key=None, entity_type=None):
+        entity_id = self._generate_id(key=key)
+        self._entity_ids[entity_type].append(entity_id)
+        return entity_id
+
+    def generate_ids(self, key=None, entity_type=None, count=1):
+        base_entity_id = self._generate_id(key=key)
+        entity_ids = ['%s-%s' % (base_entity_id, i) for i in six_range(count)]
+        self._entity_ids[entity_type].extend(entity_ids)
+        return base_entity_id, entity_ids
+
+    @property
+    def entity_ids(self):
+        return self._entity_ids
 
     @property
     def transport_name(self):

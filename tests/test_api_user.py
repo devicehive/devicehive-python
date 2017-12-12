@@ -6,7 +6,7 @@ from devicehive import ApiResponseError
 def test_save(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-s')
+    login = test.generate_id('u-s', test.USER_ENTITY)
     password = test.generate_id('u-s')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
@@ -33,7 +33,7 @@ def test_save(test):
 def test_update_password(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-u-p')
+    login = test.generate_id('u-u-p', test.USER_ENTITY)
     password = test.generate_id('u-u-p')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
@@ -57,7 +57,7 @@ def test_update_password(test):
 def test_remove(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-r')
+    login = test.generate_id('u-r', test.USER_ENTITY)
     password = test.generate_id('u-r')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
@@ -86,14 +86,14 @@ def test_remove(test):
 def test_list_networks(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-l-n')
+    login = test.generate_id('u-l-n', test.USER_ENTITY)
     password = test.generate_id('u-l-n')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
     user = device_hive_api.create_user(login, password, role, data)
     networks = user.list_networks()
     assert networks == []
-    network_name = test.generate_id('u-l-n')
+    network_name = test.generate_id('u-l-n', test.NETWORK_ENTITY)
     network_description = '%s-description' % network_name
     network = device_hive_api.create_network(network_name, network_description)
     user.assign_network(network.id)
@@ -118,14 +118,14 @@ def test_list_networks(test):
 def test_assign_network(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-a-n')
+    login = test.generate_id('u-a-n', test.USER_ENTITY)
     password = test.generate_id('u-a-n')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
     user = device_hive_api.create_user(login, password, role, data)
     networks = user.list_networks()
     assert networks == []
-    network_name = test.generate_id('u-a-n')
+    network_name = test.generate_id('u-a-n', test.NETWORK_ENTITY)
     network_description = '%s-description' % network_name
     network = device_hive_api.create_network(network_name, network_description)
     user.assign_network(network.id)
@@ -150,14 +150,14 @@ def test_assign_network(test):
 def test_unassign_network(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('u-u-n')
+    login = test.generate_id('u-u-n', test.USER_ENTITY)
     password = test.generate_id('u-u-n')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
     user = device_hive_api.create_user(login, password, role, data)
     networks = user.list_networks()
     assert networks == []
-    network_name = test.generate_id('u-u-n')
+    network_name = test.generate_id('u-u-n', test.NETWORK_ENTITY)
     network_description = '%s-description' % network_name
     network = device_hive_api.create_network(network_name, network_description)
     user.assign_network(network.id)
