@@ -10,8 +10,6 @@ def pytest_addoption(parser):
                      help='Admin refresh token')
     parser.addoption('--user-refresh-token', action='store',
                      help='User refresh token')
-    parser.addoption('--log-level', action='store', default='INFO',
-                     help='Log level')
 
 
 def pytest_generate_tests(metafunc):
@@ -20,19 +18,16 @@ def pytest_generate_tests(metafunc):
     transport_urls = metafunc.config.option.transport_urls.split(',')
     refresh_tokens = {'admin': metafunc.config.option.admin_refresh_token,
                       'user': metafunc.config.option.user_refresh_token}
-    log_level = metafunc.config.option.log_level
-    handlers = {'console': {'level': log_level,
-                            'formatter': 'console',
-                            'class': 'logging.StreamHandler'}}
-    formatters = {'console': {'format': '%(asctime)s %(message)s',
-                              'datefmt': '%Y-%m-%d %H:%M:%S'}}
-    loggers = {'devicehive.api_request': {'handlers': ['console'],
-                                          'level': log_level,
-                                          'propagate': False}}
-    logging.config.dictConfig({'version': 1,
-                               'handlers': handlers,
-                               'formatters': formatters,
-                               'loggers': loggers})
+    log_level = metafunc.config.option.log_level or 'INFO'
+
+    logger = logging.getLogger('devicehive')
+    logger.setLevel(log_level)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(message)s',
+                                  '%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     tests = []
     ids = []
     for transport_url in transport_urls:
@@ -45,6 +40,9 @@ def pytest_generate_tests(metafunc):
 
 
 def pytest_exception_interact(node, call, report):
+    if not hasattr(node, 'funcargs'):
+        return
+
     test = node.funcargs['test']
     api = test.device_hive_api()
     for entity_type, entity_ids in six.iteritems(test.entity_ids):
