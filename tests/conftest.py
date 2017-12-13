@@ -23,7 +23,7 @@ def pytest_generate_tests(metafunc):
     logger = logging.getLogger('devicehive')
     logger.setLevel(log_level)
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(message)s',
+    formatter = logging.Formatter('[%(asctime)s] %(message)s',
                                   '%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
