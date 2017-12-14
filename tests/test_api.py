@@ -27,7 +27,7 @@ def test_get_cluster_info(test):
 def test_create_token(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('c-t')
+    login = test.generate_id('c-t', test.USER_ENTITY)
     password = test.generate_id('c-t')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
@@ -53,13 +53,11 @@ def test_refresh_token(test):
 def test_subscribe_insert_commands(test):
 
     def init_devices(handler):
-        test_id = test.generate_id('s-i-c')
-        options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
-        devices, device_ids, command_ids, command_names = [], [], [], []
-        for option in options:
-            device = handler.api.put_device(option['id'])
+        devices, command_ids, command_names = [], [], []
+        _, device_ids = test.generate_ids('s-i-c', test.DEVICE_ENTITY, 2)
+        for device_id in device_ids:
+            device = handler.api.put_device(device_id)
             devices.append(device)
-            device_ids.append(device.id)
             command_name = '%s-name' % device.id
             command = device.send_command(command_name)
             command_ids.append(command.id)
@@ -126,8 +124,7 @@ def test_subscribe_insert_commands(test):
 def test_unsubscribe_insert_commands(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('u-i-c')
-        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
+        _, device_ids = test.generate_ids('u-i-c', test.DEVICE_ENTITY, 3)
         devices = []
         for device_id in device_ids:
             device = handler.api.put_device(device_id)
@@ -155,13 +152,11 @@ def test_unsubscribe_insert_commands(test):
 def test_subscribe_update_commands(test):
 
     def init_devices(handler):
-        test_id = test.generate_id('s-u-c')
-        options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
-        devices, device_ids, command_ids, command_names = [], [], [], []
-        for option in options:
-            device = handler.api.put_device(option['id'])
+        devices, command_ids, command_names = [], [], []
+        _, device_ids = test.generate_ids('s-u-c', test.DEVICE_ENTITY, 2)
+        for device_id in device_ids:
+            device = handler.api.put_device(device_id)
             devices.append(device)
-            device_ids.append(device.id)
             command_name = '%s-name' % device.id
             command = device.send_command(command_name)
             command.status = 'status'
@@ -230,8 +225,7 @@ def test_subscribe_update_commands(test):
 def test_unsubscribe_update_commands(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('u-u-c')
-        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
+        _, device_ids = test.generate_ids('u-u-c', test.DEVICE_ENTITY, 3)
         devices = []
         for device_id in device_ids:
             device = handler.api.put_device(device_id)
@@ -261,14 +255,12 @@ def test_unsubscribe_update_commands(test):
 def test_subscribe_notifications(test):
 
     def init_devices(handler):
-        test_id = test.generate_id('s-n')
-        options = [{'id': '%s-1' % test_id}, {'id': '%s-2' % test_id}]
-        devices, device_ids, notification_ids = [], [], []
+        _, device_ids = test.generate_ids('s-n', test.DEVICE_ENTITY, 2)
+        devices, notification_ids = [], []
         notification_names = []
-        for option in options:
-            device = handler.api.put_device(option['id'])
+        for device_id in device_ids:
+            device = handler.api.put_device(device_id)
             devices.append(device)
-            device_ids.append(device.id)
             notification_name = '%s-name' % device.id
             notification = device.send_notification(notification_name)
             notification_ids.append(notification.id)
@@ -347,8 +339,7 @@ def test_subscribe_notifications(test):
 def test_unsubscribe_notifications(test):
 
     def handle_connect(handler):
-        test_id = test.generate_id('u-n')
-        device_ids = ['%s-1' % test_id, '%s-2' % test_id, '%s-3' % test_id]
+        _, device_ids = test.generate_ids('u-n', test.DEVICE_ENTITY, 3)
         devices = []
         for device_id in device_ids:
             device = handler.api.put_device(device_id)
@@ -375,12 +366,10 @@ def test_unsubscribe_notifications(test):
 
 def test_list_devices(test):
     device_hive_api = test.device_hive_api()
-    test_id = test.generate_id('l-d')
-    options = [{'id': '%s-1' % test_id, 'name': '%s-name-1' % test_id},
-               {'id': '%s-2' % test_id, 'name': '%s-name-2' % test_id}]
-    test_devices = [device_hive_api.put_device(option['id'],
-                                               name=option['name'])
-                    for option in options]
+    test_id, device_ids = test.generate_ids('l-d', test.DEVICE_ENTITY, 2)
+    options = [{'device_id': device_id, 'name': '%s-name' % device_id}
+               for device_id in device_ids]
+    test_devices = [device_hive_api.put_device(**option) for option in options]
     devices = device_hive_api.list_devices()
     assert len(devices) >= len(options)
     name = options[0]['name']
@@ -394,27 +383,27 @@ def test_list_devices(test):
     device_0, device_1 = device_hive_api.list_devices(name_pattern=name_pattern,
                                                       sort_field='name',
                                                       sort_order='ASC')
-    assert device_0.id == options[0]['id']
-    assert device_1.id == options[1]['id']
+    assert device_0.id == options[0]['device_id']
+    assert device_1.id == options[1]['device_id']
     device_0, device_1 = device_hive_api.list_devices(name_pattern=name_pattern,
                                                       sort_field='name',
                                                       sort_order='DESC')
-    assert device_0.id == options[1]['id']
-    assert device_1.id == options[0]['id']
+    assert device_0.id == options[1]['device_id']
+    assert device_1.id == options[0]['device_id']
     device, = device_hive_api.list_devices(name_pattern=name_pattern,
                                            sort_field='name', sort_order='ASC',
                                            take=1)
-    assert device.id == options[0]['id']
+    assert device.id == options[0]['device_id']
     device, = device_hive_api.list_devices(name_pattern=name_pattern,
                                            sort_field='name', sort_order='ASC',
                                            take=1, skip=1)
-    assert device.id == options[1]['id']
+    assert device.id == options[1]['device_id']
     [test_device.remove() for test_device in test_devices]
 
 
 def test_get_device(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('g-d')
+    device_id = test.generate_id('g-d', test.DEVICE_ENTITY)
     name = '%s-name' % device_id
     data = {'data_key': 'data_value'}
     device_hive_api.put_device(device_id, name=name, data=data)
@@ -438,7 +427,7 @@ def test_get_device(test):
 
 def test_put_device(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('p-d')
+    device_id = test.generate_id('p-d', test.DEVICE_ENTITY)
     device = device_hive_api.put_device(device_id)
     assert device.id == device_id
     assert device.name == device_id
@@ -461,13 +450,11 @@ def test_put_device(test):
 def test_list_networks(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    test_id = test.generate_id('l-n')
-    options = [{'name': '%s-name-1' % test_id,
-                'description': '%s-description-1' % test_id},
-               {'name': '%s-name-2' % test_id,
-                'description': '%s-description-2' % test_id}]
-    test_networks = [device_hive_api.create_network(option['name'],
-                                                    option['description'])
+    test_id, network_ids = test.generate_ids('l-n', test.NETWORK_ENTITY, 2)
+    options = [{'name': network_id,
+                'description': '%s-description' % network_id}
+               for network_id in network_ids]
+    test_networks = [device_hive_api.create_network(**option)
                      for option in options]
     networks = device_hive_api.list_networks()
     assert len(networks) >= len(options)
@@ -502,7 +489,7 @@ def test_list_networks(test):
 def test_get_network(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    name = test.generate_id('g-n')
+    name = test.generate_id('g-n', test.NETWORK_ENTITY)
     description = '%s-description' % name
     network = device_hive_api.create_network(name, description)
     network = device_hive_api.get_network(network.id)
@@ -521,7 +508,7 @@ def test_get_network(test):
 def test_create_network(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    name = test.generate_id('c-n')
+    name = test.generate_id('c-n', test.NETWORK_ENTITY)
     description = '%s-description' % name
     network = device_hive_api.create_network(name, description)
     assert isinstance(network.id, int)
@@ -538,18 +525,13 @@ def test_create_network(test):
 def test_list_users(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    test_id = test.generate_id('l-u')
+    test_id, user_ids = test.generate_ids('l-u', test.USER_ENTITY, 2)
     role = User.ADMINISTRATOR_ROLE
-    options = [{'login': '%s-login-1' % test_id,
-                'password': '%s-password-1' % test_id,
-                'role': role, 'data': {'1': '1'}},
-               {'login': '%s-login-2' % test_id,
-                'password': '%s-password-1' % test_id,
-                'role': role, 'data': {'2': '2'}}]
-    test_users = [device_hive_api.create_user(option['login'],
-                                              option['password'],
-                                              option['role'], option['data'])
-                  for option in options]
+    options = [{'login': user_id,
+                'password': '%s-password' % user_id,
+                'role': role, 'data': {str(i): i}}
+               for i, user_id in enumerate(user_ids)]
+    test_users = [device_hive_api.create_user(**option) for option in options]
     users = device_hive_api.list_users()
     assert len(users) >= len(options)
     login = options[0]['login']
@@ -595,7 +577,7 @@ def test_get_current_user(test):
 def test_get_user(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('g-u')
+    login = test.generate_id('g-u', test.USER_ENTITY)
     password = test.generate_id('g-u')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}
@@ -620,7 +602,7 @@ def test_get_user(test):
 def test_create_user(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    login = test.generate_id('c-u')
+    login = test.generate_id('c-u', test.USER_ENTITY)
     password = test.generate_id('c-u')
     role = User.ADMINISTRATOR_ROLE
     data = {'k': 'v'}

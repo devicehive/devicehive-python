@@ -5,10 +5,10 @@ from devicehive import ApiResponseError
 def test_save(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    name = test.generate_id('n-s')
+    name = test.generate_id('n-s', test.NETWORK_ENTITY)
     description = '%s-description' % name
     network = device_hive_api.create_network(name, description)
-    name = test.generate_id('n-s')
+    name = test.generate_id('n-s', test.NETWORK_ENTITY)
     description = '%s-description' % name
     network.name = name
     network.description = description
@@ -32,7 +32,7 @@ def test_save(test):
 def test_remove(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
-    name = test.generate_id('n-r')
+    name = test.generate_id('n-r', test.NETWORK_ENTITY)
     description = '%s-description' % name
     network = device_hive_api.create_network(name, description)
     network_1 = device_hive_api.get_network(network.id)

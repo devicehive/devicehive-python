@@ -2,7 +2,7 @@ FROM python:3.6
 MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
 
 ENV TEST=''
-ENV TRANSPORT_URLS='http://playground.dev.devicehive.com/api/rest,ws://playground.dev.devicehive.com/api/websocket'
+ENV TRANSPORT_URLS='http://playground-dev.devicehive.com/api/rest,ws://playground-dev.devicehive.com/api/websocket'
 ENV ADMIN_REFRESH_TOKEN=''
 ENV USER_REFRESH_TOKEN=''
 ENV LOG_LEVEL='INFO'
