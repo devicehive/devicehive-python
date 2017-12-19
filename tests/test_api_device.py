@@ -17,6 +17,7 @@ def test_save(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert device.is_blocked
     device.remove()
     try:
@@ -36,6 +37,7 @@ def test_remove(test):
     assert not device.name
     assert not device.data
     assert not device.network_id
+    assert not device.device_type_id
     assert not device.is_blocked
     try:
         device.remove()

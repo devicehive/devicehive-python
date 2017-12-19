@@ -14,6 +14,7 @@ class Device(object):
     NAME_KEY = 'name'
     DATA_KEY = 'data'
     NETWORK_ID_KEY = 'networkId'
+    DEVICE_TYPE_ID_KEY = 'deviceTypeId'
     IS_BLOCKED_KEY = 'isBlocked'
 
     def __init__(self, api, device=None):
@@ -22,6 +23,7 @@ class Device(object):
         self.name = None
         self.data = None
         self.network_id = None
+        self.device_type_id = None
         self.is_blocked = None
         if device:
             self._init(device)
@@ -31,6 +33,7 @@ class Device(object):
         self.name = device[self.NAME_KEY]
         self.data = device[self.DATA_KEY]
         self.network_id = device[self.NETWORK_ID_KEY]
+        self.device_type_id = device[self.DEVICE_TYPE_ID_KEY]
         self.is_blocked = device[self.IS_BLOCKED_KEY]
 
     def _ensure_exists(self):
@@ -78,6 +81,7 @@ class Device(object):
         device = {self.NAME_KEY: self.name,
                   self.DATA_KEY: self.data,
                   self.NETWORK_ID_KEY: self.network_id,
+                  self.DEVICE_TYPE_ID_KEY: self.device_type_id,
                   self.IS_BLOCKED_KEY: self.is_blocked}
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
@@ -98,6 +102,7 @@ class Device(object):
         self.name = None
         self.data = None
         self.network_id = None
+        self.device_type_id = None
         self.is_blocked = None
 
     def subscribe_insert_commands(self, names=None, timestamp=None):

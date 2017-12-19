@@ -59,6 +59,7 @@ class Test(object):
     USER_ENTITY = 'user'
     DEVICE_ENTITY = 'device'
     NETWORK_ENTITY = 'network'
+    DEVICE_TYPE_ENTITY = 'device_type'
 
     def __init__(self, transport_url, refresh_token, token_type):
         self._transport_url = transport_url

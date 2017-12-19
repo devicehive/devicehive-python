@@ -6,6 +6,7 @@ from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.device import Device
 from devicehive.device import DeviceError
 from devicehive.network import Network
+from devicehive.device_type import DeviceType
 from devicehive.user import User
 
 
@@ -181,7 +182,7 @@ class Api(object):
         auth_api_request.execute('Delete property failure.')
 
     def create_token(self, user_id, expiration=None, actions=None,
-                     network_ids=None, device_ids=None):
+                     network_ids=None, device_type_ids=None, device_ids=None):
         payload = {'userId': user_id}
         if expiration:
             payload['expiration'] = expiration
@@ -189,6 +190,8 @@ class Api(object):
             payload['actions'] = actions
         if network_ids:
             payload['networkIds'] = network_ids
+        if device_type_ids:
+            payload['deviceTypeIds'] = device_type_ids
         if device_ids:
             payload['deviceIds'] = device_ids
         auth_api_request = AuthApiRequest(self)
@@ -340,7 +343,8 @@ class Api(object):
             self.subscribe_notifications(**subscription_call)
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
-                     network_name=None, sort_field=None, sort_order=None,
+                     network_name=None, device_type_id=None,
+                     device_type_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
         auth_api_request = AuthApiRequest(self)
         auth_api_request.url('device')
@@ -349,6 +353,8 @@ class Api(object):
         auth_api_request.param('namePattern', name_pattern)
         auth_api_request.param('networkId', network_id)
         auth_api_request.param('networkName', network_name)
+        auth_api_request.param('devicetypeId', device_type_id)
+        auth_api_request.param('devicetypeName', device_type_name)
         auth_api_request.param('sortField', sort_field)
         auth_api_request.param('sortOrder', sort_order)
         auth_api_request.param('take', take)
@@ -363,13 +369,14 @@ class Api(object):
         return device
 
     def put_device(self, device_id, name=None, data=None, network_id=None,
-                   is_blocked=False):
+                   device_type_id=None, is_blocked=False):
         if not name:
             name = device_id
         device = {Device.ID_KEY: device_id,
                   Device.NAME_KEY: name,
                   Device.DATA_KEY: data,
                   Device.NETWORK_ID_KEY: network_id,
+                  Device.DEVICE_TYPE_ID_KEY: device_type_id,
                   Device.IS_BLOCKED_KEY: is_blocked}
         device = Device(self, device)
         device.save()
@@ -408,6 +415,40 @@ class Api(object):
         network[Network.NAME_KEY] = name
         network[Network.DESCRIPTION_KEY] = description
         return Network(self, network)
+
+    def list_device_types(self, name=None, name_pattern=None, sort_field=None,
+                          sort_order=None, take=None, skip=None):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('devicetype')
+        auth_api_request.action('devicetype/list')
+        auth_api_request.param('name', name)
+        auth_api_request.param('namePattern', name_pattern)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('deviceTypes')
+        device_types = auth_api_request.execute('List device types failure.')
+        return [DeviceType(self, device_type) for device_type in device_types]
+
+    def get_device_type(self, device_type_id):
+        device_type = DeviceType(self)
+        device_type.get(device_type_id)
+        return device_type
+
+    def create_device_type(self, name, description):
+        device_type = {DeviceType.NAME_KEY: name,
+                       DeviceType.DESCRIPTION_KEY: description}
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('POST')
+        auth_api_request.url('devicetype')
+        auth_api_request.action('devicetype/insert')
+        auth_api_request.set('deviceType', device_type, True)
+        auth_api_request.response_key('deviceType')
+        device_type = auth_api_request.execute('Device type create failure.')
+        device_type[DeviceType.NAME_KEY] = name
+        device_type[DeviceType.DESCRIPTION_KEY] = description
+        return DeviceType(self, device_type)
 
     def list_users(self, login=None, login_pattern=None, role=None, status=None,
                    sort_field=None, sort_order=None, take=None, skip=None):

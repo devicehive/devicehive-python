@@ -412,6 +412,7 @@ def test_get_device(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert not device.is_blocked
     device.remove()
     device_id = test.generate_id('g-d-n-e')
@@ -433,6 +434,7 @@ def test_put_device(test):
     assert device.name == device_id
     assert not device.data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert not device.is_blocked
     device.remove()
     name = '%s-name' % device_id
@@ -443,6 +445,7 @@ def test_put_device(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert device.is_blocked
     device.remove()
 
@@ -520,6 +523,82 @@ def test_create_network(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 403
     network.remove()
+
+
+def test_list_device_types(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    test_id, device_type_ids = test.generate_ids('l-dt',
+                                                 test.DEVICE_TYPE_ENTITY, 2)
+    options = [{'name': device_type_id,
+                'description': '%s-description' % device_type_id}
+               for device_type_id in device_type_ids]
+    test_device_types = [device_hive_api.create_device_type(**option)
+                         for option in options]
+    device_types = device_hive_api.list_device_types()
+    assert len(device_types) >= len(options)
+    name = options[0]['name']
+    device_type, = device_hive_api.list_device_types(name=name)
+    assert device_type.name == name
+    name_pattern = test.generate_id('l-dt-n-e')
+    assert not device_hive_api.list_device_types(name_pattern=name_pattern)
+    name_pattern = test_id + '%'
+    device_types = device_hive_api.list_device_types(name_pattern=name_pattern)
+    assert len(device_types) == len(options)
+    device_type_0, device_type_1 = device_hive_api.list_device_types(
+        name_pattern=name_pattern, sort_field='name', sort_order='ASC')
+    assert device_type_0.name == options[0]['name']
+    assert device_type_1.name == options[1]['name']
+    device_type_0, device_type_1 = device_hive_api.list_device_types(
+        name_pattern=name_pattern, sort_field='name', sort_order='DESC')
+    assert device_type_0.name == options[1]['name']
+    assert device_type_1.name == options[0]['name']
+    device_type, = device_hive_api.list_device_types(name_pattern=name_pattern,
+                                                     sort_field='name',
+                                                     sort_order='ASC', take=1)
+    assert device_type.name == options[0]['name']
+    device_type, = device_hive_api.list_device_types(name_pattern=name_pattern,
+                                                     sort_field='name',
+                                                     sort_order='ASC', take=1,
+                                                     skip=1)
+    assert device_type.name == options[1]['name']
+    [test_device_type.remove() for test_device_type in test_device_types]
+
+
+def test_get_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('g-dt', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+    device_type = device_hive_api.get_device_type(device_type.id)
+    assert isinstance(device_type.id, int)
+    assert device_type.name == name
+    assert device_type.description == description
+    device_type_id = device_type.id
+    device_type.remove()
+    try:
+        device_hive_api.get_device_type(device_type_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
+
+def test_create_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('c-dt', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+    assert isinstance(device_type.id, int)
+    assert device_type.name == name
+    assert device_type.description == description
+    try:
+        device_hive_api.create_device_type(name, description)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+    device_type.remove()
 
 
 def test_list_users(test):
