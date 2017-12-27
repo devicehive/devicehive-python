@@ -13,6 +13,7 @@ def test_save(test):
     user = device_hive_api.create_user(login, password, role, data)
     role = User.CLIENT_ROLE
     status = User.DISABLED_STATUS
+    all_device_types_available = True
     data = {'k-1': 'v-1'}
     user.role = role
     user.status = status
@@ -22,6 +23,7 @@ def test_save(test):
     assert user.role == role
     assert user.status == status
     assert user.data == data
+    assert user.all_device_types_available == all_device_types_available
     user.remove()
     try:
         user.save()
@@ -177,3 +179,203 @@ def test_unassign_network(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 404
     network.remove()
+
+
+def test_assign_all_device_types(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+
+    device_type_name = test.generate_id('u-a-a-dt', test.DEVICE_TYPE_ENTITY)
+    device_type_description = '%s-description' % device_type_name
+    device_hive_api.create_device_type(device_type_name,
+                                       device_type_description)
+
+    login = test.generate_id('u-a-a-dt', test.USER_ENTITY)
+    password = test.generate_id('u-a-a-dt')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    all_device_types_available = False
+    user = device_hive_api.create_user(login, password, role, data,
+                                       all_device_types_available)
+    user_1 = device_hive_api.get_user(user.id)
+
+    device_types = user.list_device_types()
+    assert device_types == []
+    user.assign_all_device_types()
+    device_types = user.list_device_types()
+    assert device_types != []
+
+    try:
+        user.assign_all_device_types()
+        assert False
+    except UserError:
+        pass
+
+    user.remove()
+
+    try:
+        user.assign_all_device_types()
+        assert False
+    except UserError:
+        pass
+
+    try:
+        user_1.assign_all_device_types()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
+
+def test_unassign_all_device_types(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+
+    device_type_name = test.generate_id('u-u-a-dt', test.DEVICE_TYPE_ENTITY)
+    device_type_description = '%s-description' % device_type_name
+    device_hive_api.create_device_type(device_type_name,
+                                       device_type_description)
+
+    login = test.generate_id('u-u-a-dt', test.USER_ENTITY)
+    password = test.generate_id('u-u-a-dt')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    all_device_types_available = True
+    user = device_hive_api.create_user(login, password, role, data,
+                                       all_device_types_available)
+    user_1 = device_hive_api.get_user(user.id)
+
+    device_types = user.list_device_types()
+    assert device_types != []
+    user.unassign_all_device_types()
+    device_types = user.list_device_types()
+    assert device_types == []
+
+    try:
+        user.unassign_all_device_types()
+        assert False
+    except UserError:
+        pass
+
+    user.remove()
+
+    try:
+        user.unassign_all_device_types()
+        assert False
+    except UserError:
+        pass
+
+    try:
+        user_1.unassign_all_device_types()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
+
+def test_assign_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+
+    device_type_name = test.generate_id('u-a-dt', test.DEVICE_TYPE_ENTITY)
+    device_type_description = '%s-description' % device_type_name
+    device_type = device_hive_api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+    login = test.generate_id('u-a-dt', test.USER_ENTITY)
+    password = test.generate_id('u-a-dt')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    all_device_types_available = False
+    user = device_hive_api.create_user(login, password, role, data,
+                                       all_device_types_available)
+    device_types = user.list_device_types()
+    assert device_types == []
+
+    user_1 = device_hive_api.get_user(user.id)
+    user.assign_all_device_types()
+
+    try:
+        user.assign_device_type(device_type.id)
+        assert False
+    except UserError:
+        pass
+
+    try:
+        user_1.assign_device_type(device_type.id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+
+    user.unassign_all_device_types()
+
+    user.assign_device_type(device_type.id)
+    device_type, = user.list_device_types()
+    assert device_type.name == device_type_name
+    assert device_type.description == device_type_description
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    try:
+        user.assign_device_type(device_type.id)
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.assign_device_type(device_type.id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+    device_type.remove()
+
+
+def test_unassign_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+
+    device_type_name = test.generate_id('u-u-dt', test.DEVICE_TYPE_ENTITY)
+    device_type_description = '%s-description' % device_type_name
+    device_type = device_hive_api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+    login = test.generate_id('u-u-dt', test.USER_ENTITY)
+    password = test.generate_id('u-u-dt')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    all_device_types_available = False
+    user = device_hive_api.create_user(login, password, role, data,
+                                       all_device_types_available)
+    device_types = user.list_device_types()
+    assert device_types == []
+
+    user_1 = device_hive_api.get_user(user.id)
+    user.assign_all_device_types()
+
+    try:
+        user.unassign_device_type(device_type.id)
+        assert False
+    except UserError:
+        pass
+
+    try:
+        user_1.unassign_device_type(device_type.id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+
+    user.unassign_all_device_types()
+
+    user.assign_device_type(device_type.id)
+    user.unassign_device_type(device_type.id)
+    device_types = user.list_device_types()
+    assert device_types == []
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    try:
+        user.unassign_device_type(device_type.id)
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.unassign_device_type(device_type.id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+    device_type.remove()

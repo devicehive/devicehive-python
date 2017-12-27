@@ -2,9 +2,9 @@ from devicehive.token import Token
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
-from devicehive.api_request import RemoveSubscriptionApiRequest
 from devicehive.device import Device
-from devicehive.device import DeviceError
+from devicehive.subscription import CommandsSubscription, \
+    NotificationsSubscription
 from devicehive.network import Network
 from devicehive.device_type import DeviceType
 from devicehive.user import User
@@ -21,32 +21,6 @@ class Api(object):
         self._removed_subscription_ids = {}
         self.server_timestamp = None
 
-    def _unsubscribe(self, action, device_ids):
-        subscription_ids, subscriptions, subscription_calls = [], [], []
-        for device_id in device_ids:
-            subscription_id = self.subscription_id(action, device_id)
-            if subscription_id in subscription_ids:
-                continue
-            subscription_ids.append(subscription_id)
-        for subscription in self._subscriptions[action]:
-            if subscription['device_id'] in device_ids:
-                continue
-            if subscription['subscription_id'] in subscription_ids:
-                subscriptions.append(subscription)
-        for subscription in subscriptions:
-            found = False
-            for subscription_call in subscription_calls:
-                if subscription_call['names'] == subscription['names']:
-                    found = True
-                    device_id = subscription['device_id']
-                    subscription_call['device_ids'].append(device_id)
-                    break
-            if not found:
-                subscription_call = {'device_ids': [subscription['device_id']],
-                                     'names': subscription['names']}
-                subscription_calls.append(subscription_call)
-        return subscription_ids, subscription_calls
-
     @property
     def transport(self):
         return self._transport
@@ -58,83 +32,6 @@ class Api(object):
     @property
     def connected(self):
         return self._connected
-
-    def ensure_subscription_not_exist(self, action, device_ids):
-        for device_id in device_ids:
-            if not self.subscription_id(action, device_id):
-                continue
-            raise DeviceError('Device %s has already subscribed for %s.' %
-                              (device_id, action))
-
-    def ensure_subscription_exists(self, action, device_ids):
-        for device_id in device_ids:
-            if self.subscription_id(action, device_id):
-                continue
-            raise DeviceError('Device %s has not subscribed for %s.' %
-                              (device_id, action))
-
-    def subscription_id(self, action, device_id):
-        if not self._subscriptions.get(action):
-            return None
-        for subscription in self._subscriptions[action]:
-            if subscription['device_id'] != device_id:
-                continue
-            return subscription['subscription_id']
-
-    def subscription(self, action, subscription_id, device_ids, names):
-        if not self._subscriptions.get(action):
-            self._subscriptions[action] = []
-        subscriptions = [{'subscription_id': subscription_id,
-                          'device_id': device_id,
-                          'names': names}
-                         for device_id in device_ids]
-        self._subscriptions[action].extend(subscriptions)
-
-    def remove_subscription(self, action, subscription_id):
-        subscriptions = [subscription
-                         for subscription in self._subscriptions[action]
-                         if subscription['subscription_id'] != subscription_id]
-        self._subscriptions[action] = subscriptions
-        if not self._removed_subscription_ids.get(action):
-            self._removed_subscription_ids[action] = []
-        self._removed_subscription_ids[action].append(subscription_id)
-
-    def removed_subscription_id_exists(self, action, subscription_id):
-        subscription_ids = self._removed_subscription_ids.get(action)
-        if not subscription_ids:
-            return False
-        return subscription_id in subscription_ids
-
-    def resubscribe(self):
-        subscription_calls = {}
-        for action in self._subscriptions:
-            subscription_calls[action] = []
-            for subscription in self._subscriptions[action]:
-                found = False
-                for subscription_call in subscription_calls[action]:
-                    if subscription_call['names'] == subscription['names']:
-                        found = True
-                        device_id = subscription['device_id']
-                        subscription_call['device_ids'].append(device_id)
-                        break
-                if not found:
-                    device_id = subscription['device_id']
-                    subscription_call = {'device_ids': [device_id],
-                                         'names': subscription['names']}
-                    subscription_calls[action].append(subscription_call)
-        self._subscriptions = {}
-        action = 'command/insert'
-        if action in subscription_calls:
-            for subscription_call in subscription_calls[action]:
-                self.subscribe_insert_commands(**subscription_call)
-        action = 'command/update'
-        if action in subscription_calls:
-            for subscription_call in subscription_calls[action]:
-                self.subscribe_update_commands(**subscription_call)
-        action = 'notification/insert'
-        if action in subscription_calls:
-            for subscription_call in subscription_calls[action]:
-                self.subscribe_notifications(**subscription_call)
 
     def get_info(self):
         api_request = ApiRequest(self)
@@ -207,62 +104,53 @@ class Api(object):
         self._token.refresh()
         return self._token.access_token
 
-    def subscribe_insert_commands(self, device_ids, names=None, timestamp=None):
+    def subscribe_insert_commands(self, device_id=None, network_ids=(),
+                                  device_type_ids=(), names=(),
+                                  timestamp=None):
         action = 'command/insert'
-        self.ensure_subscription_not_exist(action, device_ids)
-        join_device_ids = ','.join(device_ids)
-        join_names = ','.join(names) if names else None
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
         auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/command/poll')
-        auth_subscription_api_request.param('deviceIds', join_device_ids)
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('command')
         api_request = ApiRequest(self)
         api_request.action('command/subscribe')
-        api_request.set('deviceIds', device_ids)
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
         api_request.set('names', names)
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe insert commands failure.')
-        subscription_id = subscription['subscriptionId']
-        self.subscription(action, subscription_id, device_ids, names)
+        return CommandsSubscription(self, subscription)
 
-    def unsubscribe_insert_commands(self, device_ids):
-        action = 'command/insert'
-        self.ensure_subscription_exists(action, device_ids)
-        subscription_ids, subscription_calls = self._unsubscribe(action,
-                                                                 device_ids)
-        for subscription_id in subscription_ids:
-            remove_subscription_api_request = RemoveSubscriptionApiRequest()
-            remove_subscription_api_request.subscription_id(subscription_id)
-            api_request = ApiRequest(self)
-            api_request.action('command/unsubscribe')
-            api_request.set('subscriptionId', subscription_id)
-            api_request.remove_subscription_request(
-                remove_subscription_api_request)
-            api_request.execute('Unsubscribe insert commands failure.')
-            self.remove_subscription(action, subscription_id)
-        timestamp = self.get_info()['server_timestamp']
-        for subscription_call in subscription_calls:
-            subscription_call['timestamp'] = timestamp
-            self.subscribe_insert_commands(**subscription_call)
-
-    def subscribe_update_commands(self, device_ids, names=None, timestamp=None):
+    def subscribe_update_commands(self, device_id=None, network_ids=(),
+                                  device_type_ids=(), names=(),
+                                  timestamp=None):
         action = 'command/update'
-        self.ensure_subscription_not_exist(action, device_ids)
-        join_device_ids = ','.join(device_ids)
-        join_names = ','.join(names) if names else None
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
         auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/command/poll')
         auth_subscription_api_request.param('returnUpdatedCommands', True)
-        auth_subscription_api_request.param('deviceIds', join_device_ids)
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_timestamp_key('lastUpdated')
@@ -270,77 +158,44 @@ class Api(object):
         api_request = ApiRequest(self)
         api_request.action('command/subscribe')
         api_request.set('returnUpdatedCommands', True)
-        api_request.set('deviceIds', device_ids)
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
         api_request.set('names', names)
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe update commands failure.')
-        subscription_id = subscription['subscriptionId']
-        self.subscription(action, subscription_id, device_ids, names)
+        return CommandsSubscription(self, subscription)
 
-    def unsubscribe_update_commands(self, device_ids):
-        action = 'command/update'
-        self.ensure_subscription_exists(action, device_ids)
-        subscription_ids, subscription_calls = self._unsubscribe(action,
-                                                                 device_ids)
-        for subscription_id in subscription_ids:
-            remove_subscription_api_request = RemoveSubscriptionApiRequest()
-            remove_subscription_api_request.subscription_id(subscription_id)
-            api_request = ApiRequest(self)
-            api_request.action('command/unsubscribe')
-            api_request.set('subscriptionId', subscription_id)
-            api_request.remove_subscription_request(
-                remove_subscription_api_request)
-            api_request.execute('Unsubscribe update commands failure.')
-            self.remove_subscription(action, subscription_id)
-        timestamp = self.get_info()['server_timestamp']
-        for subscription_call in subscription_calls:
-            subscription_call['timestamp'] = timestamp
-            self.subscribe_update_commands(**subscription_call)
-
-    def subscribe_notifications(self, device_ids, names=None, timestamp=None):
+    def subscribe_notifications(self, device_id=None, network_ids=(),
+                                device_type_ids=(), names=(),
+                                timestamp=None):
         action = 'notification/insert'
-        self.ensure_subscription_not_exist(action, device_ids)
-        join_device_ids = ','.join(device_ids)
-        join_names = ','.join(names) if names else None
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
         if not timestamp:
             timestamp = self.server_timestamp
         auth_subscription_api_request = AuthSubscriptionApiRequest(self)
         auth_subscription_api_request.action(action)
         auth_subscription_api_request.url('device/notification/poll')
-        auth_subscription_api_request.param('deviceIds', join_device_ids)
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
         auth_subscription_api_request.param('names', join_names)
         auth_subscription_api_request.param('timestamp', timestamp)
         auth_subscription_api_request.response_key('notification')
         api_request = ApiRequest(self)
         api_request.action('notification/subscribe')
-        api_request.set('deviceIds', device_ids)
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
         api_request.set('names', names)
         api_request.set('timestamp', timestamp)
         api_request.subscription_request(auth_subscription_api_request)
         subscription = api_request.execute('Subscribe notifications failure.')
-        subscription_id = subscription['subscriptionId']
-        self.subscription(action, subscription_id, device_ids, names)
-
-    def unsubscribe_notifications(self, device_ids):
-        action = 'notification/insert'
-        self.ensure_subscription_exists(action, device_ids)
-        subscription_ids, subscription_calls = self._unsubscribe(action,
-                                                                 device_ids)
-        for subscription_id in subscription_ids:
-            remove_subscription_api_request = RemoveSubscriptionApiRequest()
-            remove_subscription_api_request.subscription_id(subscription_id)
-            api_request = ApiRequest(self)
-            api_request.action('notification/unsubscribe')
-            api_request.set('subscriptionId', subscription_id)
-            api_request.remove_subscription_request(
-                remove_subscription_api_request)
-            api_request.execute('Unsubscribe notifications failure.')
-            self.remove_subscription(action, subscription_id)
-        timestamp = self.get_info()['server_timestamp']
-        for subscription_call in subscription_calls:
-            subscription_call['timestamp'] = timestamp
-            self.subscribe_notifications(**subscription_call)
+        return NotificationsSubscription(self, subscription)
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
                      network_name=None, device_type_id=None,
@@ -477,13 +332,15 @@ class Api(object):
         user.get(user_id)
         return user
 
-    def create_user(self, login, password, role, data):
+    def create_user(self, login, password, role, data,
+                    all_device_types_available=True):
         status = User.ACTIVE_STATUS
         user = {User.LOGIN_KEY: login,
                 User.ROLE_KEY: role,
                 User.STATUS_KEY: status,
                 User.DATA_KEY: data,
-                User.PASSWORD_KEY: password}
+                User.PASSWORD_KEY: password,
+                User.ALL_DEVICE_TYPES_KEY: all_device_types_available}
         auth_api_request = AuthApiRequest(self)
         auth_api_request.method('POST')
         auth_api_request.url('user')

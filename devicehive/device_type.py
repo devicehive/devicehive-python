@@ -69,6 +69,22 @@ class DeviceType(object):
         return self._api.list_devices(name, name_pattern, self._id, self.name,
                                       sort_field, sort_order, take, skip)
 
+    def subscribe_insert_commands(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_insert_commands(
+            device_type_ids=[self.id], names=names, timestamp=timestamp)
+
+    def subscribe_update_commands(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_update_commands(
+            device_type_ids=[self.id], names=names, timestamp=timestamp)
+
+    def subscribe_notifications(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_notifications(device_type_ids=[self.id],
+                                                 names=names,
+                                                 timestamp=timestamp)
+
 
 class DeviceTypeError(ApiRequestError):
     """DeviceType error."""

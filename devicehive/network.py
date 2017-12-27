@@ -68,6 +68,24 @@ class Network(object):
         return self._api.list_devices(name, name_pattern, self._id, self.name,
                                       sort_field, sort_order, take, skip)
 
+    def subscribe_insert_commands(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_insert_commands(network_ids=[self.id],
+                                                   names=names,
+                                                   timestamp=timestamp)
+
+    def subscribe_update_commands(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_update_commands(network_ids=[self.id],
+                                                   names=names,
+                                                   timestamp=timestamp)
+
+    def subscribe_notifications(self, names=(), timestamp=None):
+        self._ensure_exists()
+        return self._api.subscribe_notifications(network_ids=[self.id],
+                                                 names=names,
+                                                 timestamp=timestamp)
+
 
 class NetworkError(ApiRequestError):
     """Network error."""

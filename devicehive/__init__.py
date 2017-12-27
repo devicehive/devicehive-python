@@ -7,4 +7,5 @@ from .api_response import ApiResponseError
 from .device import DeviceError
 from .network import NetworkError
 from .device_type import DeviceTypeError
+from .subscription import SubscriptionError
 from .user import UserError
