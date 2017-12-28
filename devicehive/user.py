@@ -168,29 +168,29 @@ class User(object):
         self._ensure_exists()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.url('user/{userId}/devicetype', userId=self._id)
-        auth_api_request.action('user/get')
-        auth_api_request.response_key('user')
+        auth_api_request.action('user/getDeviceTypes')
+        auth_api_request.response_key('deviceTypes')
         device_types = auth_api_request.execute('List device types failure.')
         return [DeviceType(self._api, device_type)
                 for device_type in device_types]
 
-    def assign_all_device_types(self):
+    def allow_all_device_types(self):
         self._ensure_exists()
         self._ensure_not_all_device_types_available()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('PUT')
         auth_api_request.url('user/{userId}/devicetype/all', userId=self._id)
-        auth_api_request.action('user/assignAllDeviceTypes')
+        auth_api_request.action('user/allowAllDeviceTypes')
         auth_api_request.execute('Assign all device types failure.')
         self._all_device_types_available = True
 
-    def unassign_all_device_types(self):
+    def disallow_all_device_types(self):
         self._ensure_exists()
         self._ensure_all_device_types_available()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('DELETE')
         auth_api_request.url('user/{userId}/devicetype/all', userId=self._id)
-        auth_api_request.action('user/unassignAllDeviceTypes')
+        auth_api_request.action('user/disallowAllDeviceTypes')
         auth_api_request.execute('Unassign device type failure.')
         self._all_device_types_available = False
 

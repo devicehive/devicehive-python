@@ -17,10 +17,10 @@ class DeviceType(object):
         if device_type:
             self._init(device_type)
 
-    def _init(self, device):
-        self._id = device[self.ID_KEY]
-        self.name = device[self.NAME_KEY]
-        self.description = device[self.DESCRIPTION_KEY]
+    def _init(self, device_type):
+        self._id = device_type[self.ID_KEY]
+        self.name = device_type[self.NAME_KEY]
+        self.description = device_type[self.DESCRIPTION_KEY]
 
     def _ensure_exists(self):
         if self._id:

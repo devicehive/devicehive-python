@@ -181,6 +181,41 @@ def test_unassign_network(test):
     network.remove()
 
 
+def test_list_device_types(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    login = test.generate_id('u-l-dt', test.USER_ENTITY)
+    password = test.generate_id('u-l-dt')
+    role = User.ADMINISTRATOR_ROLE
+    data = {'k': 'v'}
+    all_device_types_available = False
+    user = device_hive_api.create_user(login, password, role, data,
+                                       all_device_types_available)
+    device_types = user.list_device_types()
+    assert device_types == []
+    device_type_name = test.generate_id('u-l-dt', test.DEVICE_TYPE_ENTITY)
+    device_type_description = '%s-description' % device_type_name
+    device_type = device_hive_api.create_device_type(device_type_name,
+                                                     device_type_description)
+    user.assign_device_type(device_type.id)
+    device_type, = user.list_device_types()
+    assert device_type.name == device_type_name
+    assert device_type.description == device_type_description
+    user_1 = device_hive_api.get_user(user.id)
+    user.remove()
+    device_type.remove()
+    try:
+        user.list_device_types()
+        assert False
+    except UserError:
+        pass
+    try:
+        user_1.list_device_types()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
+
 def test_assign_all_device_types(test):
     test.only_admin_implementation()
     device_hive_api = test.device_hive_api()
@@ -201,12 +236,12 @@ def test_assign_all_device_types(test):
 
     device_types = user.list_device_types()
     assert device_types == []
-    user.assign_all_device_types()
+    user.allow_all_device_types()
     device_types = user.list_device_types()
     assert device_types != []
 
     try:
-        user.assign_all_device_types()
+        user.allow_all_device_types()
         assert False
     except UserError:
         pass
@@ -214,13 +249,13 @@ def test_assign_all_device_types(test):
     user.remove()
 
     try:
-        user.assign_all_device_types()
+        user.allow_all_device_types()
         assert False
     except UserError:
         pass
 
     try:
-        user_1.assign_all_device_types()
+        user_1.allow_all_device_types()
         assert False
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 404
@@ -246,12 +281,12 @@ def test_unassign_all_device_types(test):
 
     device_types = user.list_device_types()
     assert device_types != []
-    user.unassign_all_device_types()
+    user.disallow_all_device_types()
     device_types = user.list_device_types()
     assert device_types == []
 
     try:
-        user.unassign_all_device_types()
+        user.disallow_all_device_types()
         assert False
     except UserError:
         pass
@@ -259,13 +294,13 @@ def test_unassign_all_device_types(test):
     user.remove()
 
     try:
-        user.unassign_all_device_types()
+        user.disallow_all_device_types()
         assert False
     except UserError:
         pass
 
     try:
-        user_1.unassign_all_device_types()
+        user_1.disallow_all_device_types()
         assert False
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 404
@@ -291,7 +326,7 @@ def test_assign_device_type(test):
     assert device_types == []
 
     user_1 = device_hive_api.get_user(user.id)
-    user.assign_all_device_types()
+    user.allow_all_device_types()
 
     try:
         user.assign_device_type(device_type.id)
@@ -305,7 +340,7 @@ def test_assign_device_type(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 403
 
-    user.unassign_all_device_types()
+    user.disallow_all_device_types()
 
     user.assign_device_type(device_type.id)
     device_type, = user.list_device_types()
@@ -346,7 +381,7 @@ def test_unassign_device_type(test):
     assert device_types == []
 
     user_1 = device_hive_api.get_user(user.id)
-    user.assign_all_device_types()
+    user.allow_all_device_types()
 
     try:
         user.unassign_device_type(device_type.id)
@@ -360,7 +395,7 @@ def test_unassign_device_type(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 403
 
-    user.unassign_all_device_types()
+    user.disallow_all_device_types()
 
     user.assign_device_type(device_type.id)
     user.unassign_device_type(device_type.id)
