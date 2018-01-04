@@ -178,9 +178,8 @@ def test_unsubscribe_insert_commands(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         device_type.remove()
 
     test.run(handle_connect)
@@ -315,9 +314,8 @@ def test_unsubscribe_update_commands(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         device_type.remove()
 
     test.run(handle_connect)
@@ -450,9 +448,8 @@ def test_unsubscribe_notifications(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         device_type.remove()
 
     test.run(handle_connect)

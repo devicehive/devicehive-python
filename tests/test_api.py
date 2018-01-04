@@ -185,9 +185,8 @@ def test_unsubscribe_insert_commands(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         network.remove()
         device_type.remove()
 
@@ -332,9 +331,8 @@ def test_unsubscribe_update_commands(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         network.remove()
         device_type.remove()
 
@@ -475,9 +473,8 @@ def test_unsubscribe_notifications(test):
             subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
+
         network.remove()
         device_type.remove()
 
@@ -540,7 +537,7 @@ def test_get_device(test):
         device_hive_api.get_device(device_id)
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403

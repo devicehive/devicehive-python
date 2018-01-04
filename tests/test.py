@@ -104,20 +104,20 @@ class Test(object):
         return self._transport_name == 'websocket'
 
     @property
-    def client_refresh_token(self):
+    def is_user_client(self):
         return self._user_role == 'client'
 
     @property
-    def admin_refresh_token(self):
+    def is_user_admin(self):
         return self._user_role == 'admin'
 
     def only_client_implementation(self):
-        if self.client_refresh_token:
+        if self.is_user_client:
             return
         pytest.skip('Implemented only for "client" user role.')
 
     def only_admin_implementation(self):
-        if self.admin_refresh_token:
+        if self.is_user_admin:
             return
         pytest.skip('Implemented only for "admin" user role.')
 
