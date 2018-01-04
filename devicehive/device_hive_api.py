@@ -56,11 +56,8 @@ class DeviceHiveApi(object):
     @staticmethod
     def _unset_device_methods(device):
         unset_methods = ['subscribe_insert_commands',
-                         'unsubscribe_insert_commands',
                          'subscribe_update_commands',
-                         'unsubscribe_update_commands',
-                         'subscribe_notifications',
-                         'unsubscribe_notifications']
+                         'subscribe_notifications']
         DeviceHiveApi._unset_methods(device, unset_methods)
 
     @staticmethod

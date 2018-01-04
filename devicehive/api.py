@@ -17,8 +17,6 @@ class Api(object):
         self._transport = transport
         self._token = Token(self, auth)
         self._connected = True
-        self._subscriptions = {}
-        self._removed_subscription_ids = {}
         self.server_timestamp = None
 
     @property

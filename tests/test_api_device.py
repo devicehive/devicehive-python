@@ -388,7 +388,7 @@ def test_subscribe_notifications(test):
         device, notification_names, notification_ids = init_data(handler)
         notification_name = notification_names[:1]
         device.subscribe_notifications(names=notification_name)
-        set_handler_data(handler, device, notification_names,notification_ids)
+        set_handler_data(handler, device, notification_names, notification_ids)
         send_data(handler, device, notification_name)
 
     def handle_notification(handler, notification):
