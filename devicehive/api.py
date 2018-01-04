@@ -196,8 +196,7 @@ class Api(object):
         return NotificationsSubscription(self, subscription)
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
-                     network_name=None, device_type_id=None,
-                     device_type_name=None, sort_field=None, sort_order=None,
+                     network_name=None, sort_field=None, sort_order=None,
                      take=None, skip=None):
         auth_api_request = AuthApiRequest(self)
         auth_api_request.url('device')
@@ -206,8 +205,6 @@ class Api(object):
         auth_api_request.param('namePattern', name_pattern)
         auth_api_request.param('networkId', network_id)
         auth_api_request.param('networkName', network_name)
-        auth_api_request.param('devicetypeId', device_type_id)
-        auth_api_request.param('devicetypeName', device_type_name)
         auth_api_request.param('sortField', sort_field)
         auth_api_request.param('sortOrder', sort_order)
         auth_api_request.param('take', take)

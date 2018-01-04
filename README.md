@@ -152,7 +152,7 @@ print(access_token)
 
 ### Devices
 
-`list_devices(name, name_pattern, network_id, network_name, device_type_id, device_type_name, sort_field, sort_order, take, skip)` method returns list of `Device`
+`list_devices(name, name_pattern, network_id, network_name, sort_field, sort_order, take, skip)` method returns list of `Device`
 objects. All args are optional.
 
 `get_device(device_id)` method returns `Device` object.
