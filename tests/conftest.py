@@ -13,6 +13,8 @@ def pytest_addoption(parser):
     for role in USER_ROLES:
         parser.addoption('--%s-refresh-token' % role, action='store',
                          help='%s refresh token' % role.capitalize())
+        parser.addoption('--%s-access-token' % role, action='store',
+                         help='%s access token' % role.capitalize())
         parser.addoption('--%s-login' % role, action='store',
                          help='%s login' % role.capitalize())
         parser.addoption('--%s-password' % role, action='store',
@@ -27,11 +29,16 @@ def pytest_generate_tests(metafunc):
     role_credentials = {}
     for role in USER_ROLES:
         refresh_token = getattr(options, '%s_refresh_token' % role, None)
+        access_token = getattr(options, '%s_access_token' % role, None)
         login = getattr(options, '%s_login' % role, None)
         password = getattr(options, '%s_password' % role, None)
 
         if refresh_token:
             role_credentials[role] = {'refresh_token': refresh_token}
+            continue
+
+        if access_token:
+            role_credentials[role] = {'access_token': access_token}
             continue
 
         if login and password:
