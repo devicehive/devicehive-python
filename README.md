@@ -926,13 +926,19 @@ docker build -f Dockerfile.tests -t devicehive-tests .
 
 ### Run tests
 
-To run the tests you need to set `ADMIN_REFRESH_TOKEN` and/or `CLIENT_REFRESH_TOKEN` variable:
+You can run tests with refresh_token by setting `ADMIN_REFRESH_TOKEN` and/or `CLIENT_REFRESH_TOKEN` variable:
 
 ```
 docker run -it -e ADMIN_REFRESH_TOKEN='SOME_ADMIN_REFRESH_TOKEN' devicehive-tests
 ```
 
-Otherwise you can run tests with user login and password by setting `ADMIN_LOGIN` and `ADMIN_PASSWORD` for admin account and/or `CLIENT_LOGIN` and `CLIENT_PASSWORD` for client account.
+Or with access_token by setting `ADMIN_ACCESS_TOKEN` and/or `CLIENT_ACCESS_TOKEN` variable:
+
+```
+docker run -it -e ADMIN_ACCESS_TOKEN='SOME_ADMIN_ACCESS_TOKEN' devicehive-tests
+```
+
+Or with user login and password by setting `ADMIN_LOGIN` and `ADMIN_PASSWORD` for admin account and/or `CLIENT_LOGIN` and `CLIENT_PASSWORD` for client account.
 
 ```
 docker run -it -e ADMIN_LOGIN='SOME_ADMIN_LOGIN' -e ADMIN_PASSWORD='SOME_ADMIN_PASSWORD' devicehive-tests
