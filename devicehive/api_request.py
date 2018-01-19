@@ -204,8 +204,8 @@ class RemoveSubscriptionApiRequest(object):
 
     def __init__(self):
         self._subscription_id = None
-        self._response_code = 403
-        self._response_error = 'Subscription has already removed.'
+        self._response_code = 404
+        self._response_error = 'Subscription was not found.'
 
     def subscription_id(self, subscription_id):
         self._subscription_id = subscription_id

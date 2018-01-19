@@ -1,12 +1,12 @@
 import threading
+import pytest
+import time
 import six
 from six.moves import range as six_range
 from collections import defaultdict
 from devicehive import Handler
 from devicehive import DeviceHiveApi
 from devicehive import DeviceHive
-import time
-import pytest
 
 
 if six.PY2:
@@ -53,17 +53,17 @@ class TestHandler(Handler):
 
 class Test(object):
     """Test class."""
-    _entity_ids = None
 
     # entity types
     USER_ENTITY = 'user'
     DEVICE_ENTITY = 'device'
     NETWORK_ENTITY = 'network'
+    DEVICE_TYPE_ENTITY = 'device_type'
 
-    def __init__(self, transport_url, refresh_token, token_type):
+    def __init__(self, transport_url, user_role, credentials):
         self._transport_url = transport_url
-        self._refresh_token = refresh_token
-        self._token_type = token_type
+        self._user_role = user_role
+        self._credentials = credentials
         self._transport_name = DeviceHive.transport_name(self._transport_url)
         self._entity_ids = defaultdict(list)
         self._is_handle_timeout = False
@@ -71,9 +71,9 @@ class Test(object):
     def _generate_id(self, key=None):
         time_key = repr(time.time()).replace('.', '')
         if not key:
-            return '%s-%s-%s' % (self._transport_name, self._token_type,
+            return '%s-%s-%s' % (self._transport_name, self._user_role,
                                  time_key)
-        return '%s-%s-%s-%s' % (self._transport_name, key, self._token_type,
+        return '%s-%s-%s-%s' % (self._transport_name, key, self._user_role,
                                 time_key)
 
     def generate_id(self, key=None, entity_type=None):
@@ -104,22 +104,34 @@ class Test(object):
         return self._transport_name == 'websocket'
 
     @property
-    def user_refresh_token(self):
-        return self._token_type == 'user'
+    def is_user_client(self):
+        return self._user_role == 'client'
 
     @property
-    def admin_refresh_token(self):
-        return self._token_type == 'admin'
+    def is_user_admin(self):
+        return self._user_role == 'admin'
 
-    def only_user_implementation(self):
-        if self.user_refresh_token:
+    @property
+    def is_refresh_token_cred(self):
+        return 'refresh_token' in self._credentials
+
+    @property
+    def is_access_token_cred(self):
+        return 'access_token' in self._credentials
+
+    @property
+    def is_login_password_cred(self):
+        return 'login' in self._credentials
+
+    def only_client_implementation(self):
+        if self.is_user_client:
             return
-        pytest.skip('Implemented only for user refresh token.')
+        pytest.skip('Implemented only for "client" user role.')
 
     def only_admin_implementation(self):
-        if self.admin_refresh_token:
+        if self.is_user_admin:
             return
-        pytest.skip('Implemented only for admin refresh token.')
+        pytest.skip('Implemented only for "admin" user role.')
 
     def only_http_implementation(self):
         if self.http_transport:
@@ -131,9 +143,23 @@ class Test(object):
             return
         pytest.skip('Implemented only for websocket transport.')
 
+    def not_refresh_token_cred_implementation(self):
+        if not self.is_refresh_token_cred:
+            return
+        pytest.skip('Not implemented for "refresh_token" credentials.')
+
+    def not_access_token_cred_implementation(self):
+        if not self.is_access_token_cred:
+            return
+        pytest.skip('Not implemented for "access_token" credentials.')
+
+    def not_login_password_cred_implementation(self):
+        if not self.is_login_password_cred:
+            return
+        pytest.skip('Not implemented for "login/password" credentials.')
+
     def device_hive_api(self):
-        return DeviceHiveApi(self._transport_url,
-                             refresh_token=self._refresh_token)
+        return DeviceHiveApi(self._transport_url, **self._credentials)
 
     def _on_handle_timeout(self, device_hive):
         device_hive.handler.api.disconnect()
@@ -151,8 +177,7 @@ class Test(object):
                                         args=(device_hive,))
         timeout_timer.setDaemon(True)
         timeout_timer.start()
-        device_hive.connect(self._transport_url,
-                            refresh_token=self._refresh_token)
+        device_hive.connect(self._transport_url, **self._credentials)
         timeout_timer.cancel()
 
         if self._is_handle_timeout:

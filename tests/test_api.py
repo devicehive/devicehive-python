@@ -1,6 +1,7 @@
 from six import string_types
-from devicehive import ApiResponseError
-from devicehive import DeviceError
+from devicehive import ApiResponseError, SubscriptionError
+from devicehive.subscription import CommandsSubscription, \
+    NotificationsSubscription
 from devicehive.user import User
 
 
@@ -45,321 +46,438 @@ def test_create_token(test):
 
 
 def test_refresh_token(test):
+    test.not_access_token_cred_implementation()
     device_hive_api = test.device_hive_api()
     access_token = device_hive_api.refresh_token()
     assert isinstance(access_token, string_types)
-
-
+    
+    
 def test_subscribe_insert_commands(test):
+    test.only_admin_implementation()
 
-    def init_devices(handler):
-        devices, command_ids, command_names = [], [], []
-        _, device_ids = test.generate_ids('s-i-c', test.DEVICE_ENTITY, 2)
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            command_name = '%s-name' % device.id
+    def init_data(handler):
+        network_name = test.generate_id('s-i-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        
+        device_type_name = test.generate_id('s-i-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+        
+        device_id = test.generate_id('s-i-c', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id, 
+                                        device_type_id=device_type.id)
+        
+        command_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+        
+        return device, network, device_type, command_names, []
+
+    def send_data(handler, device, command_names):
+        for command_name in command_names:
             command = device.send_command(command_name)
-            command_ids.append(command.id)
-            command_names.append(command_name)
-        return devices, device_ids, command_ids, command_names
+            handler.data['command_ids'].append(command.id)
 
-    def set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names):
-        handler.data['devices'] = devices
-        handler.data['device_ids'] = device_ids
-        handler.data['command_ids'] = command_ids
+    def set_handler_data(handler, device, network, device_type, command_names, 
+                         command_ids):
+        handler.data['device'] = device
+        handler.data['network'] = network
+        handler.data['device_type'] = device_type
         handler.data['command_names'] = command_names
+        handler.data['command_ids'] = command_ids
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_insert_commands(device_ids)
-        set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names)
+        device, network, device_type, command_names, command_ids = init_data(
+            handler)
+        set_handler_data(handler, device, network, device_type, command_names,
+                         command_ids)
+        send_data(handler, device, command_names)
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        command_name = command_names[0]
-        handler.api.subscribe_insert_commands(device_ids, names=[command_name])
-        set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names)
+        device, network, device_type, command_names, command_ids = init_data(
+            handler)
+        command_name = command_names[:1]
+        set_handler_data(handler, device, network, device_type, command_names,
+                         command_ids)
+        send_data(handler, device, command_name)
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id],
+                                              names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_insert_commands(device_ids)
-        try:
-            handler.api.subscribe_insert_commands(device_ids)
-            assert False
-        except DeviceError:
-            pass
-        [device.remove() for device in devices]
-        if test.http_transport:
-            return
-        try:
-            handler.api.subscribe_insert_commands(device_ids)
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
+        network_name = test.generate_id('s-i-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        
+        device_type_name = test.generate_id('s-i-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+        
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
 
-    test.run(handle_connect)
+        device_id = test.generate_id('s-i-c', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id,
+                                        device_type_id=device_type.id)
+        command_name = '%s-name-1' % device_id
+        command = device.send_command(command_name)
+
+        set_handler_data(handler, device, network, device_type, [command_name],
+                         [command.id])
+
+    def handle_command_insert(handler, command):
+        assert command.id == handler.data['command_ids'][0]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_insert)
 
 
 def test_unsubscribe_insert_commands(test):
+    test.only_admin_implementation()
 
     def handle_connect(handler):
-        _, device_ids = test.generate_ids('u-i-c', test.DEVICE_ENTITY, 3)
-        devices = []
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            command_name = '%s-name' % device_id
-            device.send_command(command_name)
-        handler.api.subscribe_insert_commands(device_ids)
-        handler.api.unsubscribe_insert_commands(device_ids)
+        network_name = test.generate_id('u-i-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        
+        device_type_name = test.generate_id('u-i-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+        
+        subscription = handler.api.subscribe_insert_commands(
+            network_ids=[network.id], device_type_ids=[device_type.id])
+        subscription_1 = CommandsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            handler.api.unsubscribe_insert_commands(device_ids)
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        handler.api.subscribe_insert_commands(device_ids)
-        [device.remove() for device in devices]
         try:
-            handler.api.unsubscribe_insert_commands(device_ids)
+            subscription_1.remove()
             assert False
-        except DeviceError:
-            pass
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
+        network.remove()
+        device_type.remove()
 
     test.run(handle_connect)
-
-
+    
+    
 def test_subscribe_update_commands(test):
+    test.only_admin_implementation()
 
-    def init_devices(handler):
-        devices, command_ids, command_names = [], [], []
-        _, device_ids = test.generate_ids('s-u-c', test.DEVICE_ENTITY, 2)
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            command_name = '%s-name' % device.id
+    def init_data(handler):
+        network_name = test.generate_id('s-u-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+
+        device_type_name = test.generate_id('s-u-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+        device_id = test.generate_id('s-u-c', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id,
+                                        device_type_id=device_type.id)
+
+        command_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+
+        return device, network, device_type, command_names, []
+
+    def send_data(handler, device, command_names):
+        for command_name in command_names:
             command = device.send_command(command_name)
+            handler.data['command_ids'].append(command.id)
             command.status = 'status'
             command.save()
-            command_ids.append(command.id)
-            command_names.append(command_name)
-        return devices, device_ids, command_ids, command_names
 
-    def set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names):
-        handler.data['devices'] = devices
-        handler.data['device_ids'] = device_ids
-        handler.data['command_ids'] = command_ids
+    def set_handler_data(handler, device, network, device_type, command_names,
+                         command_ids):
+        handler.data['device'] = device
+        handler.data['network'] = network
+        handler.data['device_type'] = device_type
         handler.data['command_names'] = command_names
+        handler.data['command_ids'] = command_ids
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_update_commands(device_ids)
-        set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names)
+        device, network, device_type, command_names, command_ids = init_data(
+            handler)
+        set_handler_data(handler, device, network, device_type, command_names,
+                         command_ids)
+        send_data(handler, device, command_names)
+        handler.api.subscribe_update_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_command_update=handle_command_update)
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        command_name = command_names[0]
-        handler.api.subscribe_update_commands(device_ids, names=[command_name])
-        set_handler_data(handler, devices, device_ids, command_ids,
-                         command_names)
+        device, network, device_type, command_names, command_ids = init_data(
+            handler)
+        command_name = command_names[:1]
+        set_handler_data(handler, device, network, device_type, command_names,
+                         command_ids)
+        send_data(handler, device, command_name)
+        handler.api.subscribe_update_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id],
+                                              names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_command_update=handle_command_update)
 
     def handle_connect(handler):
-        devices, device_ids, command_ids, command_names = init_devices(handler)
-        handler.api.subscribe_update_commands(device_ids)
+        network_name = test.generate_id('s-u-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+
+        device_type_name = test.generate_id('s-u-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+        handler.api.subscribe_update_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
+
+        device_id = test.generate_id('s-u-c', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id,
+                                        device_type_id=device_type.id)
+        command_name = '%s-name-1' % device_id
+        command = device.send_command(command_name)
+        command.status = 'status'
+        command.save()
+
+        set_handler_data(handler, device, network, device_type, [command_name],
+                         [command.id])
+
+    def handle_command_update(handler, command):
+        assert command.id == handler.data['command_ids'][0]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_command_update=handle_command_update)
+
+
+def test_unsubscribe_update_commands(test):
+    test.only_admin_implementation()
+
+    def handle_connect(handler):
+        network_name = test.generate_id('u-u-c', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+        
+        device_type_name = test.generate_id('u-u-c', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+        
+        subscription = handler.api.subscribe_update_commands(
+            network_ids=[network.id], device_type_ids=[device_type.id])
+        subscription_1 = CommandsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            handler.api.subscribe_update_commands(device_ids)
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        [device.remove() for device in devices]
-        if test.http_transport:
-            return
         try:
-            handler.api.subscribe_update_commands(device_ids)
+            subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
-    test.run(handle_connect)
-
-
-def test_unsubscribe_update_commands(test):
-
-    def handle_connect(handler):
-        _, device_ids = test.generate_ids('u-u-c', test.DEVICE_ENTITY, 3)
-        devices = []
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            command_name = '%s-name' % device_id
-            command = device.send_command(command_name)
-            command.status = 'status'
-            command.save()
-        handler.api.subscribe_update_commands(device_ids)
-        handler.api.unsubscribe_update_commands(device_ids)
-        try:
-            handler.api.unsubscribe_update_commands(device_ids)
-            assert False
-        except DeviceError:
-            pass
-        handler.api.subscribe_update_commands(device_ids)
-        [device.remove() for device in devices]
-        try:
-            handler.api.unsubscribe_update_commands(device_ids)
-            assert False
-        except DeviceError:
-            pass
+        network.remove()
+        device_type.remove()
 
     test.run(handle_connect)
 
 
 def test_subscribe_notifications(test):
+    test.only_admin_implementation()
 
-    def init_devices(handler):
-        _, device_ids = test.generate_ids('s-n', test.DEVICE_ENTITY, 2)
-        devices, notification_ids = [], []
-        notification_names = []
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            notification_name = '%s-name' % device.id
+    def init_data(handler):
+        network_name = test.generate_id('s-n', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+
+        device_type_name = test.generate_id('s-n', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+        device_id = test.generate_id('s-n', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id,
+                                        device_type_id=device_type.id)
+
+        command_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+
+        return device, network, device_type, command_names, []
+
+    def send_data(handler, device, notification_names):
+        for notification_name in notification_names:
             notification = device.send_notification(notification_name)
-            notification_ids.append(notification.id)
-            notification_names.append(notification_name)
-        return devices, device_ids, notification_ids, notification_names
+            handler.data['notification_ids'].append(notification.id)
 
-    def set_handler_data(handler, devices, device_ids, notification_ids,
-                         notification_names):
-        handler.data['devices'] = devices
-        handler.data['device_ids'] = device_ids
-        handler.data['notification_ids'] = notification_ids
+    def set_handler_data(handler, device, network, device_type,
+                         notification_names, notification_ids):
+        handler.data['device'] = device
+        handler.data['network'] = network
+        handler.data['device_type'] = device_type
         handler.data['notification_names'] = notification_names
+        handler.data['notification_ids'] = notification_ids
 
     def handle_connect(handler):
-        (devices,
-         device_ids,
-         notification_ids,
-         notification_names) = init_devices(handler)
-        handler.api.subscribe_notifications(device_ids)
-        set_handler_data(handler, devices, device_ids, notification_ids,
-                         notification_names)
+        device, network, device_type, notification_names, notification_ids = \
+            init_data(handler)
+        set_handler_data(handler, device, network, device_type,
+                         notification_names, notification_ids)
+        send_data(handler, device, notification_names)
+        handler.api.subscribe_notifications(network_ids=[network.id],
+                                            device_type_ids=[device_type.id])
 
     def handle_notification(handler, notification):
-        if notification.notification[0] == '$':
-            return
         assert notification.id in handler.data['notification_ids']
         handler.data['notification_ids'].remove(notification.id)
         if handler.data['notification_ids']:
             return
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_notification=handle_notification)
 
     def handle_connect(handler):
-        (devices,
-         device_ids,
-         notification_ids,
-         notification_names) = init_devices(handler)
-        notification_name = notification_names[0]
-        handler.api.subscribe_notifications(device_ids,
-                                            names=[notification_name])
-        set_handler_data(handler, devices, device_ids, notification_ids,
-                         notification_names)
+        device, network, device_type, notification_names, notification_ids = \
+            init_data(handler)
+        notification_name = notification_names[:1]
+        set_handler_data(handler, device, network, device_type,
+                         notification_names, notification_ids)
+        send_data(handler, device, notification_name)
+        handler.api.subscribe_notifications(network_ids=[network.id],
+                                            device_type_ids=[device_type.id],
+                                            names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
-        [device.remove() for device in handler.data['devices']]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
         handler.disconnect()
 
     test.run(handle_connect, handle_notification=handle_notification)
 
     def handle_connect(handler):
-        (devices,
-         device_ids,
-         notification_ids,
-         notification_names) = init_devices(handler)
-        handler.api.subscribe_notifications(device_ids)
+        network_name = test.generate_id('s-n', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+
+        device_type_name = test.generate_id('s-n', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+        handler.api.subscribe_notifications(network_ids=[network.id],
+                                            device_type_ids=[device_type.id])
+
+        device_id = test.generate_id('s-n', test.DEVICE_ENTITY)
+        device = handler.api.put_device(device_id, network_id=network.id,
+                                        device_type_id=device_type.id)
+        notification_name = '%s-name-1' % device_id
+        notification = device.send_notification(notification_name)
+
+        set_handler_data(handler, device, network, device_type,
+                         [notification_name], [notification.id])
+
+    def handle_notification(handler, notification):
+        assert notification.id == handler.data['notification_ids'][0]
+        handler.data['device'].remove()
+        handler.data['network'].remove()
+        handler.data['device_type'].remove()
+        handler.disconnect()
+
+    test.run(handle_connect, handle_notification=handle_notification)
+
+
+def test_unsubscribe_notifications(test):
+    test.only_admin_implementation()
+
+    def handle_connect(handler):
+        network_name = test.generate_id('u-n', test.NETWORK_ENTITY)
+        network_description = '%s-description' % network_name
+        network = handler.api.create_network(network_name, network_description)
+
+        device_type_name = test.generate_id('u-n', test.DEVICE_TYPE_ENTITY)
+        device_type_description = '%s-description' % device_type_name
+        device_type = handler.api.create_device_type(device_type_name,
+                                                     device_type_description)
+
+        subscription = handler.api.subscribe_notifications(
+            network_ids=[network.id], device_type_ids=[device_type.id])
+        subscription_1 = NotificationsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            handler.api.subscribe_notifications(device_ids)
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        [device.remove() for device in devices]
-        if test.http_transport:
-            return
         try:
-            handler.api.subscribe_notifications(device_ids)
+            subscription_1.remove()
             assert False
         except ApiResponseError as api_response_error:
             assert api_response_error.code == 404
 
-    test.run(handle_connect)
-
-
-def test_unsubscribe_notifications(test):
-
-    def handle_connect(handler):
-        _, device_ids = test.generate_ids('u-n', test.DEVICE_ENTITY, 3)
-        devices = []
-        for device_id in device_ids:
-            device = handler.api.put_device(device_id)
-            devices.append(device)
-            notification_name = '%s-name' % device_id
-            device.send_notification(notification_name)
-        handler.api.subscribe_notifications(device_ids)
-        handler.api.unsubscribe_notifications(device_ids)
-        try:
-            handler.api.unsubscribe_notifications(device_ids)
-            assert False
-        except DeviceError:
-            pass
-        handler.api.subscribe_notifications(device_ids)
-        [device.remove() for device in devices]
-        try:
-            handler.api.unsubscribe_notifications(device_ids)
-            assert False
-        except DeviceError:
-            pass
+        network.remove()
+        device_type.remove()
 
     test.run(handle_connect)
 
@@ -412,6 +530,7 @@ def test_get_device(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert not device.is_blocked
     device.remove()
     device_id = test.generate_id('g-d-n-e')
@@ -419,7 +538,7 @@ def test_get_device(test):
         device_hive_api.get_device(device_id)
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403
@@ -433,6 +552,7 @@ def test_put_device(test):
     assert device.name == device_id
     assert not device.data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert not device.is_blocked
     device.remove()
     name = '%s-name' % device_id
@@ -443,6 +563,7 @@ def test_put_device(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert device.is_blocked
     device.remove()
 
@@ -520,6 +641,82 @@ def test_create_network(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 403
     network.remove()
+
+
+def test_list_device_types(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    test_id, device_type_ids = test.generate_ids('l-dt',
+                                                 test.DEVICE_TYPE_ENTITY, 2)
+    options = [{'name': device_type_id,
+                'description': '%s-description' % device_type_id}
+               for device_type_id in device_type_ids]
+    test_device_types = [device_hive_api.create_device_type(**option)
+                         for option in options]
+    device_types = device_hive_api.list_device_types()
+    assert len(device_types) >= len(options)
+    name = options[0]['name']
+    device_type, = device_hive_api.list_device_types(name=name)
+    assert device_type.name == name
+    name_pattern = test.generate_id('l-dt-n-e')
+    assert not device_hive_api.list_device_types(name_pattern=name_pattern)
+    name_pattern = test_id + '%'
+    device_types = device_hive_api.list_device_types(name_pattern=name_pattern)
+    assert len(device_types) == len(options)
+    device_type_0, device_type_1 = device_hive_api.list_device_types(
+        name_pattern=name_pattern, sort_field='name', sort_order='ASC')
+    assert device_type_0.name == options[0]['name']
+    assert device_type_1.name == options[1]['name']
+    device_type_0, device_type_1 = device_hive_api.list_device_types(
+        name_pattern=name_pattern, sort_field='name', sort_order='DESC')
+    assert device_type_0.name == options[1]['name']
+    assert device_type_1.name == options[0]['name']
+    device_type, = device_hive_api.list_device_types(name_pattern=name_pattern,
+                                                     sort_field='name',
+                                                     sort_order='ASC', take=1)
+    assert device_type.name == options[0]['name']
+    device_type, = device_hive_api.list_device_types(name_pattern=name_pattern,
+                                                     sort_field='name',
+                                                     sort_order='ASC', take=1,
+                                                     skip=1)
+    assert device_type.name == options[1]['name']
+    [test_device_type.remove() for test_device_type in test_device_types]
+
+
+def test_get_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('g-dt', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+    device_type = device_hive_api.get_device_type(device_type.id)
+    assert isinstance(device_type.id, int)
+    assert device_type.name == name
+    assert device_type.description == description
+    device_type_id = device_type.id
+    device_type.remove()
+    try:
+        device_hive_api.get_device_type(device_type_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
+
+def test_create_device_type(test):
+    test.only_admin_implementation()
+    device_hive_api = test.device_hive_api()
+    name = test.generate_id('c-dt', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+    assert isinstance(device_type.id, int)
+    assert device_type.name == name
+    assert device_type.description == description
+    try:
+        device_hive_api.create_device_type(name, description)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 403
+    device_type.remove()
 
 
 def test_list_users(test):

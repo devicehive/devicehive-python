@@ -15,5 +15,11 @@ RUN cd /opt/devicehive-python && pip install . pytest
 ENTRYPOINT pytest -xsv /opt/devicehive-python/tests/$TEST\
                   --transport-urls=$TRANSPORT_URLS\
                   --admin-refresh-token=$ADMIN_REFRESH_TOKEN\
-                  --user-refresh-token=$USER_REFRESH_TOKEN\
+                  --admin-access-token=$ADMIN_ACCESS_TOKEN\
+                  --client-refresh-token=$CLIENT_REFRESH_TOKEN\
+                  --client-access-token=$CLIENT_ACCESS_TOKEN\
+                  --admin-login=$ADMIN_LOGIN\
+                  --admin-password=$ADMIN_PASSWORD\
+                  --client-login=$CLIENT_LOGIN\
+                  --client-password=$CLIENT_PASSWORD\
                   --log-level=$LOG_LEVEL

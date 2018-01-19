@@ -167,6 +167,7 @@ Properties:
 * `name`
 * `data`
 * `network_id`
+* `device_type_id`
 * `is_blocked`
 
 Methods:
@@ -263,6 +264,43 @@ network = device_hive_api.create_network(network_name, network_description)
 print(network.name)
 ```
 
+### Device types
+
+`list_device_types(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `DeviceType` objects. All args are optional.
+
+`get_device_type(device_type_id)` method returns `DeviceType` object.
+
+`create_device_type(name, description)` method returns `DeviceType` object.
+
+#### DeviceType object
+
+Properties:
+
+* `id` (read only)
+* `name`
+* `description`
+
+Methods:
+
+* `save()` method does not return anything.
+* `remove()` method does not return anything.
+
+Example:
+
+```python
+from devicehive import DeviceHiveApi
+
+
+url = 'http://playground-dev.devicehive.com/api/rest'
+refresh_token = 'SOME_REFRESH_TOKEN'
+device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
+device_type_name = 'example-name'
+device_type_description = 'example-description'
+device_type = device_hive_api.create_device_type(device_type_name,
+                                                 device_type_description)
+print(device_type.name)
+```
+
 ### Users
 
 `list_users(login, login_pattern, role, status, sort_field, sort_order, take, skip)` method returns list of `User` objects. All args are optional.
@@ -271,7 +309,7 @@ print(network.name)
 
 `get_user(user_id)` method returns `User` object.
 
-`create_user(self, login, password, role, data)` method returns `User` object.
+`create_user(self, login, password, role, data, all_device_types_available)` method returns `User` object.
 
 #### User object
 
@@ -281,6 +319,7 @@ Properties:
 * `login` (read only)
 * `last_login` (read only)
 * `intro_reviewed` (read only)
+* `all_device_types_available` (read only)
 * `role`
 * `status`
 * `data`
@@ -291,8 +330,13 @@ Methods:
 * `update_password(password)` method does not return anything.
 * `remove()` method does not return anything.
 * `list_networks()` method Returns list of `Network` objects.
+* `list_device_types()` method Returns list of `DeviceType` objects.
 * `assign_network(network_id)` method does not return anything.
 * `unassign_network(network_id)` method does not return anything.
+* `assign_device_type(device_type_id)` method does not return anything.
+* `unassign_device_type(device_type_id)` method does not return anything.
+* `allow_all_device_types()` method does not return anything.
+* `disallow_all_device_types()` method does not return anything.
 
 Example:
 
@@ -534,15 +578,21 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
-### API commands subscription and unsubscription
+### API commands subscription
 
-`self.api.subscribe_insert_commands(device_ids, names, timestamp)` method does not return anything.
+`self.api.subscribe_insert_commands(device_id, network_ids, device_type_ids, names, timestamp)` method returns `CommandsSubscription` object.
 
-`self.api.subscribe_update_commands(device_ids, names, timestamp)` method does not return anything. Only `device_ids` arg is required.
+`self.api.subscribe_update_commands(device_id, network_ids, device_type_ids, names, timestamp)` method returns `CommandsSubscription` object.
 
-`self.api.unsubscribe_insert_commands(device_ids)` does not return anything.
+#### API CommandsSubscription object
 
-`self.api.unsubscribe_update_commands(device_ids)` does not return anything.
+Properties:
+
+* `id` (read only)
+
+Methods:
+
+* `remove()` method does not return anything.
 
 Example:
 
@@ -551,13 +601,17 @@ from devicehive import Handler
 
 
 class SimpleHandler(Handler):
+    insert_subscription = None
+    update_subscription = None
 
     def handle_connect(self):
         device_id = 'example-device'
         device = self.api.put_device(device_id)
         command_name = 'example-command'
-        self.api.subscribe_insert_commands([device_id], [command_name])
-        self.api.subscribe_update_commands([device_id], [command_name])
+        self.insert_subscription = self.api.subscribe_insert_commands(
+            device_id, [command_name])
+        self.update_subscription= self.api.subscribe_update_commands(
+            device_id, [command_name])
         command = device.send_command(command_name)
         command.status = 'new-status'
         command.save()
@@ -569,15 +623,23 @@ class SimpleHandler(Handler):
     def handle_command_update(self, command):
         print('Command update: %s, status: %s.' % (command.command,
                                                    command.status))
-        self.api.unsubscribe_insert_commands(['example-device'])
-        self.api.unsubscribe_update_commands(['example-device'])
+        self.insert_subscription.remove()
+        self.update_subscription.remove()
 ```
 
-### API notifications subscription and unsubscription
+### API notifications subscription
 
-`self.api.subscribe_notifications(device_ids, names, timestamp)` method does not return anything. Only `device_ids` arg is required.
+`self.api.subscribe_notifications(device_id, network_ids, device_type_ids, names, timestamp)` method returns `NotificationsSubscription` object.
 
-`self.api.unsubscribe_notifications(device_ids)` method does not return anything.
+#### API NotificationsSubscription object
+
+Properties:
+
+* `id` (read only)
+
+Methods:
+
+* `remove()` method does not return anything.
 
 Example:
 
@@ -586,17 +648,19 @@ from devicehive import Handler
 
 
 class SimpleHandler(Handler):
+    notification_subscription = None
 
     def handle_connect(self):
         device_id = 'example-device'
         device = self.api.put_device(device_id)
         notification_name = 'example-notification'
-        self.api.subscribe_notifications([device_id], [notification_name])
+        self.notification_subscription = self.api.subscribe_notifications(
+            device_id, [notification_name])
         device.send_notification(notification_name)
 
     def handle_notification(self, notification):
         print('Notification: %s.' % notification.notification)
-        self.api.unsubscribe_notifications(['example-device'])
+        self.notification_subscription.remove()
 ```
 
 ### API devices
@@ -605,7 +669,7 @@ class SimpleHandler(Handler):
 
 `self.api.get_device(device_id)` method returns `Device` object. `get_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.put_device(device_id, name, data, network_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.put_device(device_id, name, data, network_id, device_type_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [device](#devices) methods for more details.
 
@@ -616,12 +680,9 @@ API device object has the same properties as [device object](#device-object).
 API device object has all methods from [device object](#device-object) 
 and extends these methods with:
 
-* `subscribe_insert_commands(names, timestamp)` method does not return anything. All args are optional.
-* `unsubscribe_insert_commands()` method does not return anything.
-* `subscribe_update_commands(names, timestamp)` method does not return anything. All args are optional.
-* `unsubscribe_update_commands()` method does not return anything.
-* `subscribe_notifications(names, timestamp)` method does not return anything. All args are optional.
-* `unsubscribe_notifications()` method does not return anything.
+* `subscribe_insert_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_update_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_notifications(names, timestamp)` method returns `NotificationsSubscription` object. All args are optional.
 
 #### API command object
 
@@ -673,6 +734,9 @@ API network object has all methods from [network object](#network-object)
 and extends these methods with:
 
 * `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Device` objects. All args are optional.
+* `subscribe_insert_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_update_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_notifications(names, timestamp)` method returns `NotificationsSubscription` object. All args are optional.
 
 Example:
 
@@ -690,6 +754,44 @@ class SimpleHandler(Handler):
         self.api.disconnect()
 ```
 
+### API device types
+
+`self.api.list_device_types(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `DeviceType` objects. `list_device_types` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.get_device_type(device_type_id)` method returns `DeviceType` object. `get_device_type` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.create_device_type(name, description)` method returns `DeviceType` object. `create_device_type` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+See the description of `DeviceHiveApi` [device types](#device-types) methods for more details.
+
+#### API device type object
+
+API device type object has the same properties as [device type object](#devicetype-object).
+
+API device type object has all methods from [device type object](#devicetype-object)
+and extends these methods with:
+
+* `list_devices(name, name_pattern, sort_field, sort_order, take, skip)` method returns list of `Device` objects. All args are optional.
+* `subscribe_insert_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_update_commands(names, timestamp)` method returns `CommandsSubscription` object. All args are optional.
+* `subscribe_notifications(names, timestamp)` method returns `NotificationsSubscription` object. All args are optional.
+
+Example:
+
+```python
+from devicehive import Handler
+
+
+class SimpleHandler(Handler):
+
+    def handle_connect(self):
+        device_type_name = 'example-name'
+        device_type_description = 'example-description'
+        device_type = self.api.create_device_type(device_type_name, device_type_description)
+        print(device_type.name)
+        self.api.disconnect()
+```
+
 ### API users
 
 `self.api.list_users(login, login_pattern, role, status, sort_field, sort_order, take, skip)` method returns list of `User` objects. `list_users` method of `DeviceHiveApi` class is the wrapper on top of this call.
@@ -698,7 +800,7 @@ class SimpleHandler(Handler):
 
 `self.api.get_user(user_id)` method returns `User` object. `get_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
-`self.api.create_user(self, login, password, role, data)` method returns `User` object. `create_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
+`self.api.create_user(self, login, password, role, data, all_device_types_available)` method returns `User` object. `create_user` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [user](#users) methods for more details.
 
@@ -824,10 +926,22 @@ docker build -f Dockerfile.tests -t devicehive-tests .
 
 ### Run tests
 
-To run the tests you need to set `ADMIN_REFRESH_TOKEN` or `USER_REFRESH_TOKEN` variable:
+You can run tests with refresh_token by setting `ADMIN_REFRESH_TOKEN` and/or `CLIENT_REFRESH_TOKEN` variable:
 
 ```
 docker run -it -e ADMIN_REFRESH_TOKEN='SOME_ADMIN_REFRESH_TOKEN' devicehive-tests
+```
+
+Or with access_token by setting `ADMIN_ACCESS_TOKEN` and/or `CLIENT_ACCESS_TOKEN` variable:
+
+```
+docker run -it -e ADMIN_ACCESS_TOKEN='SOME_ADMIN_ACCESS_TOKEN' devicehive-tests
+```
+
+Or with user login and password by setting `ADMIN_LOGIN` and `ADMIN_PASSWORD` for admin account and/or `CLIENT_LOGIN` and `CLIENT_PASSWORD` for client account.
+
+```
+docker run -it -e ADMIN_LOGIN='SOME_ADMIN_LOGIN' -e ADMIN_PASSWORD='SOME_ADMIN_PASSWORD' devicehive-tests
 ```
 
 To run tests with enabled requests logging you need to change `LOG_LEVEL` variable:

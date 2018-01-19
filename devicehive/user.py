@@ -1,6 +1,7 @@
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import ApiRequestError
 from devicehive.network import Network
+from devicehive.device_type import DeviceType
 
 
 class User(object):
@@ -15,6 +16,7 @@ class User(object):
     DATA_KEY = 'data'
     PASSWORD_KEY = 'password'
     NETWORKS_KEY = 'networks'
+    ALL_DEVICE_TYPES_KEY = 'allDeviceTypesAvailable'
     ADMINISTRATOR_ROLE = 0
     CLIENT_ROLE = 1
     ACTIVE_STATUS = 0
@@ -27,6 +29,7 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
+        self._all_device_types_available = None
         self.role = None
         self.status = None
         self.data = None
@@ -39,6 +42,7 @@ class User(object):
         self._login = user[self.LOGIN_KEY]
         self._last_login = user[self.LAST_LOGIN_KEY]
         self._intro_reviewed = user[self.INTRO_REVIEWED_KEY]
+        self._all_device_types_available = user[self.ALL_DEVICE_TYPES_KEY]
         self.role = user[self.ROLE_KEY]
         self.status = user[self.STATUS_KEY]
         self.data = user[self.DATA_KEY]
@@ -47,6 +51,16 @@ class User(object):
         if self._id:
             return
         raise UserError('User does not exist.')
+
+    def _ensure_all_device_types_available(self):
+        if self._all_device_types_available:
+            return
+        raise UserError('User does not have access to all device types.')
+
+    def _ensure_not_all_device_types_available(self):
+        if not self._all_device_types_available:
+            return
+        raise UserError('User have access to all device types.')
 
     @property
     def id(self):
@@ -63,6 +77,10 @@ class User(object):
     @property
     def intro_reviewed(self):
         return self._intro_reviewed
+
+    @property
+    def all_device_types_available(self):
+        return self._all_device_types_available
 
     def get_current(self):
         auth_api_request = AuthApiRequest(self._api)
@@ -113,6 +131,7 @@ class User(object):
         self._login = None
         self._last_login = None
         self._intro_reviewed = None
+        self._all_device_types_available = None
         self.role = None
         self.status = None
         self.data = None
@@ -144,6 +163,56 @@ class User(object):
                              userId=self._id, networkId=network_id)
         auth_api_request.action('user/unassignNetwork')
         auth_api_request.execute('Unassign network failure.')
+
+    def list_device_types(self):
+        self._ensure_exists()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.url('user/{userId}/devicetype', userId=self._id)
+        auth_api_request.action('user/getDeviceTypes')
+        auth_api_request.response_key('deviceTypes')
+        device_types = auth_api_request.execute('List device types failure.')
+        return [DeviceType(self._api, device_type)
+                for device_type in device_types]
+
+    def allow_all_device_types(self):
+        self._ensure_exists()
+        self._ensure_not_all_device_types_available()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('user/{userId}/devicetype/all', userId=self._id)
+        auth_api_request.action('user/allowAllDeviceTypes')
+        auth_api_request.execute('Assign all device types failure.')
+        self._all_device_types_available = True
+
+    def disallow_all_device_types(self):
+        self._ensure_exists()
+        self._ensure_all_device_types_available()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('DELETE')
+        auth_api_request.url('user/{userId}/devicetype/all', userId=self._id)
+        auth_api_request.action('user/disallowAllDeviceTypes')
+        auth_api_request.execute('Unassign device type failure.')
+        self._all_device_types_available = False
+
+    def assign_device_type(self, device_type_id):
+        self._ensure_exists()
+        self._ensure_not_all_device_types_available()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('PUT')
+        auth_api_request.url('user/{userId}/devicetype/{deviceTypeId}',
+                             userId=self._id, deviceTypeId=device_type_id)
+        auth_api_request.action('user/assignDeviceType')
+        auth_api_request.execute('Assign device type failure.')
+
+    def unassign_device_type(self, device_type_id):
+        self._ensure_exists()
+        self._ensure_not_all_device_types_available()
+        auth_api_request = AuthApiRequest(self._api)
+        auth_api_request.method('DELETE')
+        auth_api_request.url('user/{userId}/devicetype/{deviceTypeId}',
+                             userId=self._id, deviceTypeId=device_type_id)
+        auth_api_request.action('user/unassignDeviceType')
+        auth_api_request.execute('Unassign device type failure.')
 
 
 class UserError(ApiRequestError):

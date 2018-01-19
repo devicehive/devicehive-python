@@ -17,7 +17,7 @@ def test_save(test):
         command.save()
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         # TODO: uncomment after server response for ws for user token will
         # be fixed
