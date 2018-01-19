@@ -1,3 +1,19 @@
+# Copyright (C) 2018 DataArt
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+
 from devicehive.api_response import ApiResponse
 from devicehive.api_response import ApiResponseError
 from devicehive.transports.transport import TransportError
@@ -204,8 +220,8 @@ class RemoveSubscriptionApiRequest(object):
 
     def __init__(self):
         self._subscription_id = None
-        self._response_code = 403
-        self._response_error = 'Subscription has already removed.'
+        self._response_code = 404
+        self._response_error = 'Subscription was not found.'
 
     def subscription_id(self, subscription_id):
         self._subscription_id = subscription_id

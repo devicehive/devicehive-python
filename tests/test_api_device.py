@@ -1,10 +1,28 @@
-from devicehive import DeviceError
+# Copyright (C) 2018 DataArt
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+
+from devicehive import DeviceError, SubscriptionError
 from devicehive import ApiResponseError
+from devicehive.subscription import CommandsSubscription, \
+    NotificationsSubscription
 
 
 def test_save(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s')
+    device_id = test.generate_id('d-s', test.DEVICE_ENTITY)
     device = device_hive_api.put_device(device_id)
     name = '%s-name' % device_id
     data = {'data_key': 'data_value'}
@@ -17,6 +35,7 @@ def test_save(test):
     assert device.name == name
     assert device.data == data
     assert isinstance(device.network_id, int)
+    assert isinstance(device.device_type_id, int)
     assert device.is_blocked
     device.remove()
     try:
@@ -28,7 +47,7 @@ def test_save(test):
 
 def test_remove(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-r')
+    device_id = test.generate_id('d-r', test.DEVICE_ENTITY)
     device = device_hive_api.put_device(device_id)
     device_1 = device_hive_api.get_device(device_id)
     device.remove()
@@ -36,6 +55,7 @@ def test_remove(test):
     assert not device.name
     assert not device.data
     assert not device.network_id
+    assert not device.device_type_id
     assert not device.is_blocked
     try:
         device.remove()
@@ -46,7 +66,7 @@ def test_remove(test):
         device_1.remove()
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403
@@ -54,27 +74,27 @@ def test_remove(test):
 
 def test_subscribe_insert_commands(test):
 
-    def init_device(handler):
-        test_id = test.generate_id('d-s-i-c')
-        options = [{'command': '%s-name-1' % test_id},
-                   {'command': '%s-name-2' % test_id}]
-        device = handler.api.put_device(test_id)
-        commands, command_ids = [], []
-        for option in options:
-            command = device.send_command(option['command'])
-            commands.append(command)
-            command_ids.append(command.id)
-        return device, commands, command_ids
+    def init_data(handler):
+        device_id = test.generate_id('d-s-i-c', test.DEVICE_ENTITY)
+        command_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+        device = handler.api.put_device(device_id)
+        return device, command_names, []
 
-    def set_handler_data(handler, device, commands, command_ids):
+    def send_data(handler, device, command_names):
+        for command_name in command_names:
+            command = device.send_command(command_name)
+            handler.data['command_ids'].append(command.id)
+
+    def set_handler_data(handler, device, command_names, command_ids):
         handler.data['device'] = device
-        handler.data['commands'] = commands
+        handler.data['command_names'] = command_names
         handler.data['command_ids'] = command_ids
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
+        device, command_names, command_ids = init_data(handler)
+        set_handler_data(handler, device, command_names, command_ids)
+        send_data(handler, device, command_names)
         device.subscribe_insert_commands()
-        set_handler_data(handler, device, commands, command_ids)
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
@@ -87,10 +107,11 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
-        command_name = commands[0].command
-        device.subscribe_insert_commands(names=[command_name])
-        set_handler_data(handler, device, commands, command_ids)
+        device, command_names, command_ids = init_data(handler)
+        command_name = command_names[:1]
+        set_handler_data(handler, device, command_names, command_ids)
+        send_data(handler, device, command_name)
+        device.subscribe_insert_commands(names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -100,27 +121,17 @@ def test_subscribe_insert_commands(test):
     test.run(handle_connect, handle_command_insert)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
+        device, commands, command_ids = init_data(handler)
         device.subscribe_insert_commands()
-        try:
-            device.subscribe_insert_commands()
-            assert False
-        except DeviceError:
-            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        try:
-            device.subscribe_insert_commands()
-            assert False
-        except DeviceError:
-            pass
         if test.http_transport:
             return
         try:
             device_1.subscribe_insert_commands()
             assert False
         except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
+            if test.is_user_admin:
                 assert api_response_error.code == 404
             else:
                 assert api_response_error.code == 403
@@ -131,52 +142,53 @@ def test_subscribe_insert_commands(test):
 def test_unsubscribe_insert_commands(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-i-c')
+        device_id = test.generate_id('d-u-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
-        device.subscribe_insert_commands()
-        device.unsubscribe_insert_commands()
+        subscription = device.subscribe_insert_commands()
+        subscription_1 = CommandsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            device.unsubscribe_insert_commands()
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        device_1 = handler.api.get_device(device.id)
-        device_1.subscribe_insert_commands()
+        try:
+            subscription_1.remove()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
         device.remove()
-        try:
-            device.unsubscribe_insert_commands()
-            assert False
-        except DeviceError:
-            pass
 
     test.run(handle_connect)
 
 
 def test_subscribe_update_commands(test):
 
-    def init_device(handler):
-        test_id = test.generate_id('d-s-u-c')
-        options = [{'command': '%s-name-1' % test_id},
-                   {'command': '%s-name-2' % test_id}]
-        device = handler.api.put_device(test_id)
-        commands, command_ids = [], []
-        for option in options:
-            command = device.send_command(option['command'])
+    def init_data(handler):
+        device_id = test.generate_id('d-s-u-c', test.DEVICE_ENTITY)
+        command_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+        device = handler.api.put_device(device_id)
+        return device, command_names, []
+
+    def send_data(handler, device, command_names):
+        for command_name in command_names:
+            command = device.send_command(command_name)
+            handler.data['command_ids'].append(command.id)
             command.status = 'status'
             command.save()
-            commands.append(command)
-            command_ids.append(command.id)
-        return device, commands, command_ids
 
-    def set_handler_data(handler, device, commands, command_ids):
+    def set_handler_data(handler, device, command_names, command_ids):
         handler.data['device'] = device
-        handler.data['commands'] = commands
+        handler.data['command_names'] = command_names
         handler.data['command_ids'] = command_ids
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
+        device, command_names, command_ids = init_data(handler)
+        set_handler_data(handler, device, command_names, command_ids)
+        send_data(handler, device, command_names)
         device.subscribe_update_commands()
-        set_handler_data(handler, device, commands, command_ids)
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
@@ -189,10 +201,11 @@ def test_subscribe_update_commands(test):
     test.run(handle_connect, handle_command_update=handle_command_update)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
-        command_name = commands[0].command
-        device.subscribe_update_commands(names=[command_name])
-        set_handler_data(handler, device, commands, command_ids)
+        device, command_names, command_ids = init_data(handler)
+        command_name = command_names[:1]
+        set_handler_data(handler, device, command_names, command_ids)
+        send_data(handler, device, command_name)
+        device.subscribe_update_commands(names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -202,27 +215,17 @@ def test_subscribe_update_commands(test):
     test.run(handle_connect, handle_command_update=handle_command_update)
 
     def handle_connect(handler):
-        device, commands, command_ids = init_device(handler)
+        device, commands, command_ids = init_data(handler)
         device.subscribe_update_commands()
-        try:
-            device.subscribe_update_commands()
-            assert False
-        except DeviceError:
-            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        try:
-            device.subscribe_update_commands()
-            assert False
-        except DeviceError:
-            pass
         if test.http_transport:
             return
         try:
             device_1.subscribe_update_commands()
             assert False
         except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
+            if test.is_user_admin:
                 assert api_response_error.code == 404
             else:
                 assert api_response_error.code == 403
@@ -233,23 +236,24 @@ def test_subscribe_update_commands(test):
 def test_unsubscribe_update_commands(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-u-c')
+        device_id = test.generate_id('d-u-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
-        device.subscribe_update_commands()
-        device.unsubscribe_update_commands()
+        subscription = device.subscribe_update_commands()
+        subscription_1 = CommandsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            device.unsubscribe_update_commands()
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        device_1 = handler.api.get_device(device.id)
-        device_1.subscribe_update_commands()
+        try:
+            subscription_1.remove()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
         device.remove()
-        try:
-            device.unsubscribe_update_commands()
-            assert False
-        except DeviceError:
-            pass
 
     test.run(handle_connect)
 
@@ -257,7 +261,7 @@ def test_unsubscribe_update_commands(test):
 def test_list_commands(test):
     device_hive_api = test.device_hive_api()
     server_timestamp = device_hive_api.get_info()['server_timestamp']
-    test_id = test.generate_id('d-l-c')
+    test_id = test.generate_id('d-l-c', test.DEVICE_ENTITY)
     options = [{'command': '%s-name-1' % test_id, 'lifetime': 100,
                 'status': '1'},
                {'command': '%s-name-2' % test_id, 'lifetime': 100,
@@ -303,7 +307,7 @@ def test_list_commands(test):
         device_1.list_commands()
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403
@@ -311,7 +315,7 @@ def test_list_commands(test):
 
 def test_send_command(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s-c')
+    device_id = test.generate_id('d-s-c', test.DEVICE_ENTITY)
     command_name = test.generate_id('d-s-c')
     device = device_hive_api.put_device(device_id)
     command = device.send_command(command_name)
@@ -354,7 +358,7 @@ def test_send_command(test):
         device_1.send_command(command_name)
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         # TODO: finish after fix.
         # else:
@@ -363,31 +367,30 @@ def test_send_command(test):
 
 def test_subscribe_notifications(test):
 
-    def init_device(handler):
-        test_id = test.generate_id('d-s-n')
-        options = [{'notification': '%s-name-1' % test_id},
-                   {'notification': '%s-name-2' % test_id}]
-        device = handler.api.put_device(test_id)
-        notifications, notification_ids = [], []
-        for option in options:
-            notification = device.send_notification(option['notification'])
-            notifications.append(notification)
-            notification_ids.append(notification.id)
-        return device, notifications, notification_ids
+    def init_data(handler):
+        device_id = test.generate_id('d-s-n', test.DEVICE_ENTITY)
+        notification_names = ['%s-name-%s' % (device_id, i) for i in range(2)]
+        device = handler.api.put_device(device_id)
+        return device, notification_names, []
 
-    def set_handler_data(handler, device, notifications, notification_ids):
+    def send_data(handler, device, notification_names):
+        for notification_name in notification_names:
+            notification = device.send_notification(notification_name)
+            handler.data['notification_ids'].append(notification.id)
+
+    def set_handler_data(handler, device, notification_names,
+                         notification_ids):
         handler.data['device'] = device
-        handler.data['notifications'] = notifications
+        handler.data['notification_names'] = notification_names
         handler.data['notification_ids'] = notification_ids
 
     def handle_connect(handler):
-        device, notifications, notification_ids = init_device(handler)
+        device, notification_names, notification_ids = init_data(handler)
+        set_handler_data(handler, device, notification_names, notification_ids)
+        send_data(handler, device, notification_names)
         device.subscribe_notifications()
-        set_handler_data(handler, device, notifications, notification_ids)
 
     def handle_notification(handler, notification):
-        if notification.notification[0] == '$':
-            return
         assert notification.id in handler.data['notification_ids']
         handler.data['notification_ids'].remove(notification.id)
         if handler.data['notification_ids']:
@@ -398,10 +401,11 @@ def test_subscribe_notifications(test):
     test.run(handle_connect, handle_notification=handle_notification)
 
     def handle_connect(handler):
-        device, notifications, notification_ids = init_device(handler)
-        notification_name = notifications[0].notification
-        device.subscribe_notifications(names=[notification_name])
-        set_handler_data(handler, device, notifications, notification_ids)
+        device, notification_names, notification_ids = init_data(handler)
+        notification_name = notification_names[:1]
+        set_handler_data(handler, device, notification_names, notification_ids)
+        send_data(handler, device, notification_name)
+        device.subscribe_notifications(names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
@@ -411,27 +415,18 @@ def test_subscribe_notifications(test):
     test.run(handle_connect, handle_notification=handle_notification)
 
     def handle_connect(handler):
-        device, notifications, notification_ids = init_device(handler)
+        device, notification_names, notification_ids = init_data(handler)
+
         device.subscribe_notifications()
-        try:
-            device.subscribe_notifications()
-            assert False
-        except DeviceError:
-            pass
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        try:
-            device.subscribe_notifications()
-            assert False
-        except DeviceError:
-            pass
         if test.http_transport:
             return
         try:
             device_1.subscribe_notifications()
             assert False
         except ApiResponseError as api_response_error:
-            if test.admin_refresh_token:
+            if test.is_user_admin:
                 assert api_response_error.code == 404
             else:
                 assert api_response_error.code == 403
@@ -442,23 +437,24 @@ def test_subscribe_notifications(test):
 def test_unsubscribe_notifications(test):
 
     def handle_connect(handler):
-        device_id = test.generate_id('d-u-n')
+        device_id = test.generate_id('d-u-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
-        device.subscribe_notifications()
-        device.unsubscribe_notifications()
+        subscription = device.subscribe_notifications()
+        subscription_1 = NotificationsSubscription(
+            handler.api, {'subscriptionId': subscription.id})
+        subscription.remove()
         try:
-            device.unsubscribe_notifications()
+            subscription.remove()
             assert False
-        except DeviceError:
+        except SubscriptionError:
             pass
-        device_1 = handler.api.get_device(device.id)
-        device_1.subscribe_notifications()
+        try:
+            subscription_1.remove()
+            assert False
+        except ApiResponseError as api_response_error:
+            assert api_response_error.code == 404
+
         device.remove()
-        try:
-            device.unsubscribe_notifications()
-            assert False
-        except DeviceError:
-            pass
 
     test.run(handle_connect)
 
@@ -472,7 +468,7 @@ def list_notifications(device, **params):
 def test_list_notifications(test):
     device_hive_api = test.device_hive_api()
     server_timestamp = device_hive_api.get_info()['server_timestamp']
-    test_id = test.generate_id('d-l-n')
+    test_id = test.generate_id('d-l-n', test.DEVICE_ENTITY)
     options = [{'notification': '%s-name-1' % test_id,
                 'parameters': {'parameters_key': '1'}},
                {'notification': '%s-name-2' % test_id,
@@ -521,7 +517,7 @@ def test_list_notifications(test):
         device_1.list_commands()
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403
@@ -529,7 +525,7 @@ def test_list_notifications(test):
 
 def test_send_notification(test):
     device_hive_api = test.device_hive_api()
-    device_id = test.generate_id('d-s-n')
+    device_id = test.generate_id('d-s-n', test.DEVICE_ENTITY)
     notification_name = test.generate_id('d-s-n')
     device = device_hive_api.put_device(device_id)
     notification = device.send_notification(notification_name)
@@ -557,7 +553,7 @@ def test_send_notification(test):
         device_1.send_notification(notification_name)
         assert False
     except ApiResponseError as api_response_error:
-        if test.admin_refresh_token:
+        if test.is_user_admin:
             assert api_response_error.code == 404
         else:
             assert api_response_error.code == 403

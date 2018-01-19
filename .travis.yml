@@ -9,9 +9,11 @@ install:
     - pip install -r requirements.txt
     - pip install -r test_requirements.txt
 before_install:
-    - export DEVICE_HIVE_TRANSPORT_URLS='http://playground.dev.devicehive.com/api/rest,ws://playground.dev.devicehive.com/api/websocket'
-    - openssl aes-256-cbc -K $encrypted_94dc46d8330a_key -iv $encrypted_94dc46d8330a_iv -in refresh_tokens.tar.enc -out refresh_tokens.tar -d
-    - tar xvf refresh_tokens.tar
-    - export DEVICE_HIVE_ADMIN_REFRESH_TOKEN=$(cat admin_refresh_token.txt)
-    - export DEVICE_HIVE_USER_REFRESH_TOKEN=$(cat user_refresh_token.txt)
-script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --admin-refresh-token=$DEVICE_HIVE_ADMIN_REFRESH_TOKEN --user-refresh-token=$DEVICE_HIVE_USER_REFRESH_TOKEN
+    - export DEVICE_HIVE_TRANSPORT_URLS='http://playground-dev.devicehive.com/api/rest,ws://playground-dev.devicehive.com/api/websocket'
+    - openssl aes-256-cbc -K $encrypted_94dc46d8330a_key -iv $encrypted_94dc46d8330a_iv -in credentials.tar.enc -out credentials.tar -d
+    - tar xvf credentials.tar
+    - export DEVICE_HIVE_ADMIN_LOGIN=$(cat admin_login.txt)
+    - export DEVICE_HIVE_ADMIN_PASSWORD=$(cat admin_password.txt)
+    - export DEVICE_HIVE_CLIENT_LOGIN=$(cat client_login.txt)
+    - export DEVICE_HIVE_CLIENT_PASSWORD=$(cat client_password.txt)
+script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --admin-login=$DEVICE_HIVE_ADMIN_LOGIN --admin-password=$DEVICE_HIVE_ADMIN_PASSWORD --client-login=$DEVICE_HIVE_CLIENT_LOGIN --client-password=$DEVICE_HIVE_CLIENT_PASSWORD

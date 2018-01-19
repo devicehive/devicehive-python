@@ -1,3 +1,19 @@
+# Copyright (C) 2018 DataArt
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+
 from devicehive.handler import Handler
 from devicehive.device_hive import DeviceHive
 import time
@@ -56,17 +72,19 @@ class DeviceHiveApi(object):
     @staticmethod
     def _unset_device_methods(device):
         unset_methods = ['subscribe_insert_commands',
-                         'unsubscribe_insert_commands',
                          'subscribe_update_commands',
-                         'unsubscribe_update_commands',
-                         'subscribe_notifications',
-                         'unsubscribe_notifications']
+                         'subscribe_notifications']
         DeviceHiveApi._unset_methods(device, unset_methods)
 
     @staticmethod
     def _unset_network_methods(network):
         unset_methods = ['list_devices']
         DeviceHiveApi._unset_methods(network, unset_methods)
+
+    @staticmethod
+    def _unset_device_type_methods(device_type):
+        unset_methods = ['list_devices']
+        DeviceHiveApi._unset_methods(device_type, unset_methods)
 
     def _call(self, call, *args, **kwargs):
         device_hive = DeviceHive(ApiCallHandler, call, *args, **kwargs)
@@ -127,6 +145,22 @@ class DeviceHiveApi(object):
         network = self._call('create_network', *args, **kwargs)
         self._unset_network_methods(network)
         return network
+
+    def list_device_types(self, *args, **kwargs):
+        device_types = self._call('list_device_types', *args, **kwargs)
+        for device_type in device_types:
+            self._unset_device_type_methods(device_type)
+        return device_types
+
+    def get_device_type(self, *args, **kwargs):
+        device_type = self._call('get_device_type', *args, **kwargs)
+        self._unset_device_type_methods(device_type)
+        return device_type
+
+    def create_device_type(self, *args, **kwargs):
+        device_type = self._call('create_device_type', *args, **kwargs)
+        self._unset_device_type_methods(device_type)
+        return device_type
 
     def list_users(self, *args, **kwargs):
         return self._call('list_users', *args, **kwargs)

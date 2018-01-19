@@ -1,3 +1,19 @@
+# Copyright (C) 2018 DataArt
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+
 from devicehive.api_request import ApiRequest
 from devicehive.api_request import ApiRequestError
 
@@ -45,6 +61,8 @@ class Token(object):
         return auth_header_name, auth_header_value
 
     def refresh(self):
+        if not self._refresh_token:
+            raise TokenError('Can\'t refresh token without "refresh_token"')
         api_request = ApiRequest(self._api)
         api_request.method('POST')
         api_request.url('token/refresh')
