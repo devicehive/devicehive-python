@@ -81,10 +81,10 @@ def test_subscribe_insert_commands(test):
 
     def handle_connect(handler):
         device, device_type, command_names, command_ids = init_data(handler)
-        device_type.subscribe_insert_commands()
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
+        device_type.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
@@ -100,10 +100,10 @@ def test_subscribe_insert_commands(test):
     def handle_connect(handler):
         device, device_type, command_names, command_ids = init_data(handler)
         command_name = command_names[:1]
-        device_type.subscribe_insert_commands(names=command_name)
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
+        device_type.subscribe_insert_commands(names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -215,10 +215,10 @@ def test_subscribe_update_commands(test):
 
     def handle_connect(handler):
         device, device_type, command_names, command_ids = init_data(handler)
-        device_type.subscribe_update_commands()
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
+        device_type.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
@@ -234,10 +234,10 @@ def test_subscribe_update_commands(test):
     def handle_connect(handler):
         device, device_type, command_names, command_ids = init_data(handler)
         command_name = command_names[:1]
-        device_type.subscribe_update_commands(names=command_name)
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
+        device_type.subscribe_update_commands(names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -350,10 +350,10 @@ def test_subscribe_notifications(test):
     def handle_connect(handler):
         device, device_type, notification_names, notification_ids = \
             init_data(handler)
-        device_type.subscribe_notifications()
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_names)
+        device_type.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id in handler.data['notification_ids']
@@ -370,10 +370,10 @@ def test_subscribe_notifications(test):
         device, device_type, notification_names, notification_ids = \
             init_data(handler)
         notification_name = notification_names[:1]
-        device_type.subscribe_notifications(names=notification_name)
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_name)
+        device_type.subscribe_notifications(names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]

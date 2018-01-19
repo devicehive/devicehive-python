@@ -111,6 +111,18 @@ class Test(object):
     def is_user_admin(self):
         return self._user_role == 'admin'
 
+    @property
+    def is_refresh_token_cred(self):
+        return 'refresh_token' in self._credentials
+
+    @property
+    def is_access_token_cred(self):
+        return 'access_token' in self._credentials
+
+    @property
+    def is_login_password_cred(self):
+        return 'login' in self._credentials
+
     def only_client_implementation(self):
         if self.is_user_client:
             return
@@ -130,6 +142,21 @@ class Test(object):
         if self.websocket_transport:
             return
         pytest.skip('Implemented only for websocket transport.')
+
+    def not_refresh_token_cred_implementation(self):
+        if not self.is_refresh_token_cred:
+            return
+        pytest.skip('Not implemented for "refresh_token" credentials.')
+
+    def not_access_token_cred_implementation(self):
+        if not self.is_access_token_cred:
+            return
+        pytest.skip('Not implemented for "access_token" credentials.')
+
+    def not_login_password_cred_implementation(self):
+        if not self.is_login_password_cred:
+            return
+        pytest.skip('Not implemented for "login/password" credentials.')
 
     def device_hive_api(self):
         return DeviceHiveApi(self._transport_url, **self._credentials)

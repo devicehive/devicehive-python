@@ -35,15 +35,10 @@ def pytest_generate_tests(metafunc):
 
         if refresh_token:
             role_credentials[role] = {'refresh_token': refresh_token}
-            continue
-
-        if access_token:
+        elif access_token:
             role_credentials[role] = {'access_token': access_token}
-            continue
-
-        if login and password:
+        elif login and password:
             role_credentials[role] = {'login': login, 'password': password}
-            continue
 
     log_level = options.log_level or 'INFO'
 

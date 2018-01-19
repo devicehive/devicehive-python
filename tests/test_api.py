@@ -46,6 +46,7 @@ def test_create_token(test):
 
 
 def test_refresh_token(test):
+    test.not_access_token_cred_implementation()
     device_hive_api = test.device_hive_api()
     access_token = device_hive_api.refresh_token()
     assert isinstance(access_token, string_types)
@@ -88,11 +89,11 @@ def test_subscribe_insert_commands(test):
     def handle_connect(handler):
         device, network, device_type, command_names, command_ids = init_data(
             handler)
-        handler.api.subscribe_insert_commands(network_ids=[network.id], 
-                                              device_type_ids=[device_type.id])
-        set_handler_data(handler, device, network, device_type, command_names, 
+        set_handler_data(handler, device, network, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
@@ -110,12 +111,12 @@ def test_subscribe_insert_commands(test):
         device, network, device_type, command_names, command_ids = init_data(
             handler)
         command_name = command_names[:1]
-        handler.api.subscribe_insert_commands(network_ids=[network.id], 
-                                              device_type_ids=[device_type.id],
-                                              names=command_name)
-        set_handler_data(handler, device, network, device_type, command_names, 
+        set_handler_data(handler, device, network, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id],
+                                              names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -136,16 +137,16 @@ def test_subscribe_insert_commands(test):
         device_type = handler.api.create_device_type(device_type_name,
                                                      device_type_description)
         
-        handler.api.subscribe_insert_commands(network_ids=[network.id], 
+        handler.api.subscribe_insert_commands(network_ids=[network.id],
                                               device_type_ids=[device_type.id])
-        
+
         device_id = test.generate_id('s-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id, network_id=network.id,
                                         device_type_id=device_type.id)
         command_name = '%s-name-1' % device_id
         command = device.send_command(command_name)
 
-        set_handler_data(handler, device, network, device_type, [command_name], 
+        set_handler_data(handler, device, network, device_type, [command_name],
                          [command.id])
 
     def handle_command_insert(handler, command):
@@ -232,11 +233,11 @@ def test_subscribe_update_commands(test):
     def handle_connect(handler):
         device, network, device_type, command_names, command_ids = init_data(
             handler)
-        handler.api.subscribe_update_commands(network_ids=[network.id],
-                                              device_type_ids=[device_type.id])
         set_handler_data(handler, device, network, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
+        handler.api.subscribe_update_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id])
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
@@ -254,12 +255,12 @@ def test_subscribe_update_commands(test):
         device, network, device_type, command_names, command_ids = init_data(
             handler)
         command_name = command_names[:1]
-        handler.api.subscribe_update_commands(network_ids=[network.id],
-                                              device_type_ids=[device_type.id],
-                                              names=command_name)
         set_handler_data(handler, device, network, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
+        handler.api.subscribe_update_commands(network_ids=[network.id],
+                                              device_type_ids=[device_type.id],
+                                              names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
@@ -376,11 +377,11 @@ def test_subscribe_notifications(test):
     def handle_connect(handler):
         device, network, device_type, notification_names, notification_ids = \
             init_data(handler)
-        handler.api.subscribe_notifications(network_ids=[network.id],
-                                            device_type_ids=[device_type.id])
         set_handler_data(handler, device, network, device_type,
                          notification_names, notification_ids)
         send_data(handler, device, notification_names)
+        handler.api.subscribe_notifications(network_ids=[network.id],
+                                            device_type_ids=[device_type.id])
 
     def handle_notification(handler, notification):
         assert notification.id in handler.data['notification_ids']
@@ -398,12 +399,12 @@ def test_subscribe_notifications(test):
         device, network, device_type, notification_names, notification_ids = \
             init_data(handler)
         notification_name = notification_names[:1]
-        handler.api.subscribe_notifications(network_ids=[network.id],
-                                            device_type_ids=[device_type.id],
-                                            names=notification_name)
         set_handler_data(handler, device, network, device_type,
                          notification_names, notification_ids)
         send_data(handler, device, notification_name)
+        handler.api.subscribe_notifications(network_ids=[network.id],
+                                            device_type_ids=[device_type.id],
+                                            names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]

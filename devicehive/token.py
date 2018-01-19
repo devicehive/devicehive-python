@@ -45,6 +45,8 @@ class Token(object):
         return auth_header_name, auth_header_value
 
     def refresh(self):
+        if not self._refresh_token:
+            raise TokenError('Can\'t refresh token without "refresh_token"')
         api_request = ApiRequest(self._api)
         api_request.method('POST')
         api_request.url('token/refresh')
