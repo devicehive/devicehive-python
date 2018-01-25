@@ -16,7 +16,6 @@
 
 import pytest
 import six
-import logging.config
 from tests.test import Test
 
 
@@ -56,16 +55,6 @@ def pytest_generate_tests(metafunc):
             role_credentials[role] = {'access_token': access_token}
         elif login and password:
             role_credentials[role] = {'login': login, 'password': password}
-
-    log_level = options.log_level or 'INFO'
-
-    logger = logging.getLogger('devicehive')
-    logger.setLevel(log_level)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('[%(asctime)s] %(message)s',
-                                  '%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
     tests = []
     ids = []
