@@ -84,6 +84,37 @@ class Test(object):
         self._entity_ids = defaultdict(list)
         self._is_handle_timeout = False
 
+    def _cleanup_user(self, _id):
+        api = self.device_hive_api()
+        for obj in api.list_users(login=_id):
+            obj.remove()
+
+    def _cleanup_device(self, _id):
+        api = self.device_hive_api()
+        api.get_device(_id).remove()
+
+    def _cleanup_network(self, _id):
+        api = self.device_hive_api()
+        for obj in api.list_networks(name=_id):
+            obj.remove()
+
+    def _cleanup_device_type(self, _id):
+        api = self.device_hive_api()
+        for obj in api.list_device_types(name=_id):
+            obj.remove()
+
+    def cleanup(self):
+        for entity_type, entity_ids in six.iteritems(self.entity_ids):
+            if entity_type is None:
+                continue
+
+            attr_name = '_clean_%s' % entity_type
+            for _id in entity_ids:
+                try:
+                    getattr(self, attr_name)(_id)
+                except:
+                    pass
+
     def _generate_id(self, key=None):
         time_key = repr(time.time()).replace('.', '')
         if not key:

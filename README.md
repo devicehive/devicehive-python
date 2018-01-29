@@ -389,10 +389,10 @@ class SimpleHandler(Handler):
     def handle_connect(self):
         device_ids = ['example-device-1', 'example-device-2']
         for device_id in device_ids:
-            self.api.put_device(device_id)
-        self.api.subscribe_insert_commands(device_ids)
-        self.api.subscribe_update_commands(device_ids)
-        self.api.subscribe_notifications(device_ids)
+            device = self.api.put_device(device_id)
+            device.subscribe_insert_commands()
+            device.subscribe_update_commands()
+            device.subscribe_notifications()
 
     def handle_command_insert(self, command):
         print(command.command)
@@ -419,10 +419,10 @@ class SimpleHandler(Handler):
     def handle_connect(self):
         device_ids = ['example-device-1', 'example-device-2']
         for device_id in device_ids:
-            self.api.put_device(device_id)
-        self.api.subscribe_insert_commands()
-        self.api.subscribe_update_commands()
-        self.api.subscribe_notifications()
+            device = self.api.put_device(device_id)
+            device.subscribe_insert_commands()
+            device.subscribe_update_commands()
+            device.subscribe_notifications()
 
     def handle_command_insert(self, command):
         print(command.command)

@@ -41,9 +41,7 @@ def test_save(test):
         network_1.save()
         assert False
     except ApiResponseError as api_response_error:
-        # TODO: uncomment after server response will be fixed.
-        # assert api_response_error.code == 404
-        pass
+        assert api_response_error.code == 404
 
 
 def test_remove(test):
