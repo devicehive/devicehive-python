@@ -16,4 +16,4 @@ before_install:
     - export DEVICE_HIVE_ADMIN_PASSWORD=$(cat admin_password.txt)
     - export DEVICE_HIVE_CLIENT_LOGIN=$(cat client_login.txt)
     - export DEVICE_HIVE_CLIENT_PASSWORD=$(cat client_password.txt)
-script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --admin-login=$DEVICE_HIVE_ADMIN_LOGIN --admin-password=$DEVICE_HIVE_ADMIN_PASSWORD --client-login=$DEVICE_HIVE_CLIENT_LOGIN --client-password=$DEVICE_HIVE_CLIENT_PASSWORD
+script: pytest -xv tests --transport-urls=$DEVICE_HIVE_TRANSPORT_URLS --admin-login=$DEVICE_HIVE_ADMIN_LOGIN --admin-password=$DEVICE_HIVE_ADMIN_PASSWORD --client-login=$DEVICE_HIVE_CLIENT_LOGIN --client-password=$DEVICE_HIVE_CLIENT_PASSWORD --tb=short

@@ -4,7 +4,13 @@ MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
 ENV TEST=''
 ENV TRANSPORT_URLS='http://playground-dev.devicehive.com/api/rest,ws://playground-dev.devicehive.com/api/websocket'
 ENV ADMIN_REFRESH_TOKEN=''
-ENV USER_REFRESH_TOKEN=''
+ENV CLIENT_REFRESH_TOKEN=''
+ENV ADMIN_ACCESS_TOKEN=''
+ENV CLIENT_ACCESS_TOKEN=''
+ENV ADMIN_LOGIN=''
+ENV ADMIN_PASSWORD=''
+ENV CLIENT_LOGIN=''
+ENV CLIENT_PASSWORD=''
 ENV LOG_LEVEL='INFO'
 
 ADD devicehive /opt/devicehive-python/devicehive

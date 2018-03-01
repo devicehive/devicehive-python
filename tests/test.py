@@ -108,7 +108,7 @@ class Test(object):
             if entity_type is None:
                 continue
 
-            attr_name = '_clean_%s' % entity_type
+            attr_name = '_cleanup_%s' % entity_type
             for _id in entity_ids:
                 try:
                     getattr(self, attr_name)(_id)
