@@ -34,6 +34,7 @@ class WebsocketTransport(Transport):
                                                  data_format_options,
                                                  handler_class, handler_options)
         self._websocket = websocket.WebSocket()
+        self._connection_lock = threading.Lock()
         self._event_queue_sleep_time = None
         self._response_sleep_time = None
         self._pong_received = False
@@ -76,8 +77,9 @@ class WebsocketTransport(Transport):
     def _event(self):
         while self._connected:
             try:
-                opcode, data = self._websocket_call(self._websocket.recv_data,
-                                                    True)
+                with self._connection_lock:
+                    opcode, data = self._websocket_call(
+                        self._websocket.recv_data, True)
                 if opcode in (websocket.ABNF.OPCODE_TEXT,
                               websocket.ABNF.OPCODE_BINARY):
                     if opcode == websocket.ABNF.OPCODE_TEXT:
@@ -122,7 +124,9 @@ class WebsocketTransport(Transport):
             self._event_queue = []
 
     def _disconnect(self):
-        self._websocket_call(self._websocket.close)
+        self._websocket_call(self._websocket.ping)
+        with self._connection_lock:
+            self._websocket_call(self._websocket.close)
         self._pong_received = False
         self._event_queue = []
         self._responses = {}
