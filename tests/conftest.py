@@ -14,8 +14,8 @@
 # =============================================================================
 
 
+import pytest
 import six
-import logging.config
 from tests.test import Test
 
 
@@ -56,37 +56,16 @@ def pytest_generate_tests(metafunc):
         elif login and password:
             role_credentials[role] = {'login': login, 'password': password}
 
-    log_level = options.log_level or 'INFO'
-
-    logger = logging.getLogger('devicehive')
-    logger.setLevel(log_level)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('[%(asctime)s] %(message)s',
-                                  '%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
     tests = []
     ids = []
     for transport_url in transport_urls:
         for user_role, credentials in six.iteritems(role_credentials):
             tests.append(Test(transport_url, user_role, credentials))
             ids.append('%s:%s' % (user_role, transport_url))
-    metafunc.parametrize('test', tests, ids=ids)
+    metafunc.parametrize('test', tests, ids=ids, indirect=['test'])
 
 
-def pytest_exception_interact(node, call, report):
-    if not hasattr(node, 'funcargs'):
-        return
-
-    test = node.funcargs['test']
-    api = test.device_hive_api()
-    for entity_type, entity_ids in six.iteritems(test.entity_ids):
-        if entity_type is None:
-            continue
-        for entity_id in entity_ids:
-            try:
-                getattr(api, 'get_%s' % entity_type)(entity_id).remove()
-                print('Remove %s "%s"' % (entity_type, entity_id))
-            except:
-                pass
+@pytest.fixture
+def test(request):
+    request.addfinalizer(request.param.cleanup)
+    return request.param
