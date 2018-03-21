@@ -156,9 +156,7 @@ def test_subscribe_insert_commands(test):
             network_1.subscribe_insert_commands()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -283,9 +281,7 @@ def test_subscribe_update_commands(test):
             network_1.subscribe_update_commands()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -412,9 +408,7 @@ def test_subscribe_notifications(test):
             network_1.subscribe_notifications()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
