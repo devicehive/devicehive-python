@@ -131,6 +131,18 @@ class DeviceHiveApi(object):
         self._unset_device_methods(device)
         return device
 
+    def list_commands(self, *args, **kwargs):
+        return self._call('list_commands', *args, **kwargs)
+
+    def send_command(self, *args, **kwargs):
+        return self._call('send_command', *args, **kwargs)
+
+    def list_notifications(self, *args, **kwargs):
+        return self._call('list_notifications', *args, **kwargs)
+
+    def send_notification(self, *args, **kwargs):
+        return self._call('send_notification', *args, **kwargs)
+
     def list_networks(self, *args, **kwargs):
         networks = self._call('list_networks', *args, **kwargs)
         [self._unset_network_methods(network) for network in networks]
