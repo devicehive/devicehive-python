@@ -131,7 +131,7 @@ class Device(object):
         self._ensure_exists()
         return self._api.list_notifications(device_id=self._id, start=start,
                                             end=end,
-                                            command=notification,
+                                            notification=notification,
                                             sort_field=sort_field,
                                             sort_order=sort_order,
                                             take=take, skip=skip)
