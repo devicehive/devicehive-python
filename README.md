@@ -1,4 +1,6 @@
-![build status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=stable)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/devicehive.svg)](https://pypi.python.org/pypi/devicehive)
+[![Build Status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=master)](https://travis-ci.org/devicehive/devicehive-python)
 
 # Devicehive
 
