@@ -1,4 +1,6 @@
-![build status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=stable)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/devicehive.svg)](https://pypi.python.org/pypi/devicehive)
+[![Build Status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=master)](https://travis-ci.org/devicehive/devicehive-python)
 
 # Devicehive
 
@@ -158,6 +160,18 @@ objects. All args are optional.
 `get_device(device_id)` method returns `Device` object.
 
 `put_device(device_id, name, data, network_id, is_blocked)` method returns `Device` object. Only `device_id` is required.
+
+`list_commands(device_id, start, end, command, status, sort_field, sort_order, take, skip)` method returns list of `Command` 
+objects. Only `device_id` is required.
+
+`send_command(device_id, command_name, parameters, lifetime, timestamp, status, result)` method returns `Command` object. 
+Only `device_id` and `command_name` are required.
+
+`list_notifications(device_id, start, end, notification, sort_field, sort_order, take, skip)` method returns list of `Notification` 
+object. Only `device_id` is required.
+
+`send_notification(device_id, notification_name, parameters, timestamp)` method returns `Notification` object. 
+Only `device_id` and `notification_name` are required.
 
 #### Device object
 
@@ -670,6 +684,18 @@ class SimpleHandler(Handler):
 `self.api.get_device(device_id)` method returns `Device` object. `get_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 `self.api.put_device(device_id, name, data, network_id, device_type_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.list_commands(device_id, start, end, command, status, sort_field, sort_order, take, skip)` method returns list of `Command` 
+objects. `list_commands` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.send_command(device_id, command_name, parameters, lifetime, timestamp, status, result)` method returns `Command` object. 
+`send_command` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.list_notifications(device_id, start, end, notification, sort_field, sort_order, take, skip)` method returns list of `Notification` 
+objects. `list_notifications` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.send_notification(device_id, notification_name, parameters, timestamp)` method returns `Notification` object. 
+`send_notification` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [device](#devices) methods for more details.
 

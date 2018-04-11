@@ -19,6 +19,8 @@ from devicehive.api_request import ApiRequest
 from devicehive.api_request import AuthApiRequest
 from devicehive.api_request import AuthSubscriptionApiRequest
 from devicehive.device import Device
+from devicehive.command import Command
+from devicehive.notification import Notification
 from devicehive.subscription import CommandsSubscription, \
     NotificationsSubscription
 from devicehive.network import Network
@@ -248,6 +250,90 @@ class Api(object):
         device.save()
         device.get(device_id)
         return device
+
+    def list_commands(self, device_id, start=None, end=None, command=None,
+                      status=None, sort_field=None, sort_order=None, take=None,
+                      skip=None):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('device/{deviceId}/command', deviceId=device_id)
+        auth_api_request.action('command/list')
+        auth_api_request.param('start', start)
+        auth_api_request.param('end', end)
+        auth_api_request.param('command', command)
+        auth_api_request.param('status', status)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('commands')
+        commands = auth_api_request.execute('List commands failure.')
+        return [Command(self, command) for command in commands]
+
+    def send_command(self, device_id, command_name, parameters=None,
+                     lifetime=None, timestamp=None, status=None, result=None):
+        command = {Command.COMMAND_KEY: command_name}
+        if parameters:
+            command[Command.PARAMETERS_KEY] = parameters
+        if lifetime:
+            command[Command.LIFETIME_KEY] = lifetime
+        if timestamp:
+            command[Command.TIMESTAMP_KEY] = timestamp
+        if status:
+            command[Command.STATUS_KEY] = status
+        if result:
+            command[Command.RESULT_KEY] = result
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('POST')
+        auth_api_request.url('device/{deviceId}/command', deviceId=device_id)
+        auth_api_request.action('command/insert')
+        auth_api_request.set('command', command, True)
+        auth_api_request.response_key('command')
+        command = auth_api_request.execute('Command send failure.')
+        command[Command.DEVICE_ID_KEY] = device_id
+        command[Command.COMMAND_KEY] = command_name
+        command[Command.PARAMETERS_KEY] = parameters
+        command[Command.LIFETIME_KEY] = lifetime
+        command[Command.STATUS_KEY] = status
+        command[Command.RESULT_KEY] = result
+        return Command(self, command)
+
+    def list_notifications(self, device_id, start=None, end=None,
+                           notification=None, sort_field=None, sort_order=None,
+                           take=None, skip=None):
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.url('device/{deviceId}/notification',
+                             deviceId=device_id)
+        auth_api_request.action('notification/list')
+        auth_api_request.param('start', start)
+        auth_api_request.param('end', end)
+        auth_api_request.param('notification', notification)
+        auth_api_request.param('sortField', sort_field)
+        auth_api_request.param('sortOrder', sort_order)
+        auth_api_request.param('take', take)
+        auth_api_request.param('skip', skip)
+        auth_api_request.response_key('notifications')
+        notifications = auth_api_request.execute('List notifications failure.')
+        return [Notification(notification) for notification in notifications]
+
+    def send_notification(self, device_id, notification_name, parameters=None,
+                          timestamp=None):
+        notification = {'notification': notification_name}
+        if parameters:
+            notification['parameters'] = parameters
+        if timestamp:
+            notification['timestamp'] = timestamp
+        auth_api_request = AuthApiRequest(self)
+        auth_api_request.method('POST')
+        auth_api_request.url('device/{deviceId}/notification',
+                             deviceId=device_id)
+        auth_api_request.action('notification/insert')
+        auth_api_request.set('notification', notification, True)
+        auth_api_request.response_key('notification')
+        notification = auth_api_request.execute('Notification send failure.')
+        notification[Notification.DEVICE_ID_KEY] = device_id
+        notification[Notification.NOTIFICATION_KEY] = notification_name
+        notification[Notification.PARAMETERS_KEY] = parameters
+        return Notification(notification)
 
     def list_networks(self, name=None, name_pattern=None, sort_field=None,
                       sort_order=None, take=None, skip=None):
