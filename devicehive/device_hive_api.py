@@ -87,8 +87,12 @@ class DeviceHiveApi(object):
         DeviceHiveApi._unset_methods(device_type, unset_methods)
 
     def _call(self, call, *args, **kwargs):
+        wait_result = kwargs.pop('wait_result', True)
         device_hive = DeviceHive(ApiCallHandler, call, *args, **kwargs)
         device_hive.connect(self._transport_url, **self._options)
+        # If result is unnecessary
+        if not wait_result:
+            return
         while not device_hive.handler.ready:
             time.sleep(self._transport_alive_sleep_time)
             if device_hive.transport.exception_info:
