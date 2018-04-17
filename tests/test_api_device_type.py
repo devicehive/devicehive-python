@@ -98,13 +98,14 @@ def test_subscribe_insert_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
-        device_type.subscribe_insert_commands()
+        handler.data['subscription'] = device_type.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -117,10 +118,12 @@ def test_subscribe_insert_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
-        device_type.subscribe_insert_commands(names=command_name)
+        handler.data['subscription'] = device_type.subscribe_insert_commands(
+            names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -132,7 +135,6 @@ def test_subscribe_insert_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_insert_commands()
         device_id = test.generate_id('dt-s-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -141,9 +143,11 @@ def test_subscribe_insert_commands(test):
 
         set_handler_data(handler, device, device_type, [command_name],
                          [command.id])
+        handler.data['subscription'] = device_type.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -155,10 +159,9 @@ def test_subscribe_insert_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_insert_commands()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
+        # TODO: remove when subscription probe will be done.
         if test.http_transport:
             return
         try:
@@ -230,13 +233,14 @@ def test_subscribe_update_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
-        device_type.subscribe_update_commands()
+        handler.data['subscription'] = device_type.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -249,10 +253,12 @@ def test_subscribe_update_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
-        device_type.subscribe_update_commands(names=command_name)
+        handler.data['subscription'] = device_type.subscribe_update_commands(
+            names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -264,7 +270,6 @@ def test_subscribe_update_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_update_commands()
         device_id = test.generate_id('dt-s-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -275,9 +280,11 @@ def test_subscribe_update_commands(test):
 
         set_handler_data(handler, device, device_type, [command_name],
                          [command.id])
+        handler.data['subscription'] = device_type.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -289,10 +296,9 @@ def test_subscribe_update_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_update_commands()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
+        # TODO: remove when subscription probe will be done.
         if test.http_transport:
             return
         try:
@@ -363,13 +369,14 @@ def test_subscribe_notifications(test):
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_names)
-        device_type.subscribe_notifications()
+        handler.data['subscription'] = device_type.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id in handler.data['notification_ids']
         handler.data['notification_ids'].remove(notification.id)
         if handler.data['notification_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -383,10 +390,12 @@ def test_subscribe_notifications(test):
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_name)
-        device_type.subscribe_notifications(names=notification_name)
+        handler.data['subscription'] = device_type.subscribe_notifications(
+            names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -398,7 +407,6 @@ def test_subscribe_notifications(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_notifications()
         device_id = test.generate_id('dt-s-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -407,9 +415,11 @@ def test_subscribe_notifications(test):
 
         set_handler_data(handler, device, device_type, [notification_name],
                          [notification.id])
+        handler.data['subscription'] = device_type.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -421,10 +431,9 @@ def test_subscribe_notifications(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_notifications()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
+        # TODO: remove when subscription probe will be done.
         if test.http_transport:
             return
         try:
