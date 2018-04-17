@@ -161,9 +161,6 @@ def test_subscribe_insert_commands(test):
                                                      description)
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_insert_commands()
             assert False
@@ -298,9 +295,6 @@ def test_subscribe_update_commands(test):
                                                      description)
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_update_commands()
             assert False
@@ -433,9 +427,6 @@ def test_subscribe_notifications(test):
                                                      description)
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_notifications()
             assert False

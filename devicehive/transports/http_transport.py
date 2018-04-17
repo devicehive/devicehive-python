@@ -113,6 +113,9 @@ class HttpTransport(Transport):
 
     def _subscription_request(self, request_id, action, subscription_request,
                               response_subscription_id_key):
+        response = self._subscription_probe(**subscription_request)
+        if response[self.RESPONSE_STATUS_KEY] != self.RESPONSE_SUCCESS_STATUS:
+            return response
         subscription_id = subscription_request['subscription_id']
         self._subscription_ids.append(subscription_id)
         subscription_thread_name = '%s-transport-subscription-%s'
@@ -126,6 +129,19 @@ class HttpTransport(Transport):
                 self.REQUEST_ACTION_KEY: action,
                 self.RESPONSE_STATUS_KEY: self.RESPONSE_SUCCESS_STATUS,
                 response_subscription_id_key: subscription_id}
+
+    def _subscription_probe(self, subscription_id, request_id, action, request,
+                            params):
+        params = params.copy()
+        params.pop('response_error_handler', None)
+        params.pop('response_error_handler_args', None)
+        params.pop('params_timestamp_key', None)
+        params.pop('response_timestamp_key', None)
+        params.pop('response_subscription_id_key', None)
+
+        params['params']['waitTimeout'] = 0
+        params['params']['limit'] = 0
+        return self._request(request_id, action, request.copy(), **params)
 
     def _subscription(self, subscription_id, request_id, action, request,
                       params):

@@ -127,17 +127,15 @@ def test_subscribe_insert_commands(test):
         device, commands, command_ids = init_data(handler)
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_1.subscribe_insert_commands()
             assert False
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
+            # TODO: Uncomment when server response will be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -224,17 +222,15 @@ def test_subscribe_update_commands(test):
         device, commands, command_ids = init_data(handler)
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_1.subscribe_update_commands()
             assert False
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
+            # TODO: Uncomment when server response will be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -427,17 +423,15 @@ def test_subscribe_notifications(test):
 
         device_1 = handler.api.get_device(device.id)
         device.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             device_1.subscribe_notifications()
             assert False
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            else:
-                assert api_response_error.code == 403
+            # TODO: Uncomment when server response will be fixed
+            # else:
+            #     assert api_response_error.code == 403
 
     test.run(handle_connect)
 

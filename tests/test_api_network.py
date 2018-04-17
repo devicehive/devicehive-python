@@ -152,9 +152,6 @@ def test_subscribe_insert_commands(test):
         network = handler.api.create_network(network_name, description)
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_insert_commands()
             assert False
@@ -280,9 +277,6 @@ def test_subscribe_update_commands(test):
         network = handler.api.create_network(network_name, description)
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_update_commands()
             assert False
@@ -410,9 +404,6 @@ def test_subscribe_notifications(test):
         network = handler.api.create_network(network_name, description)
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        # TODO: remove when subscription probe will be done.
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_notifications()
             assert False
