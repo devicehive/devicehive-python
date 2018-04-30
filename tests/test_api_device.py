@@ -133,9 +133,8 @@ def test_subscribe_insert_commands(test):
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            # TODO: Uncomment when server response will be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -228,9 +227,8 @@ def test_subscribe_update_commands(test):
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            # TODO: Uncomment when server response will be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
@@ -429,9 +427,8 @@ def test_subscribe_notifications(test):
         except ApiResponseError as api_response_error:
             if test.is_user_admin:
                 assert api_response_error.code == 404
-            # TODO: Uncomment when server response will be fixed
-            # else:
-            #     assert api_response_error.code == 403
+            else:
+                assert api_response_error.code == 403
 
     test.run(handle_connect)
 
