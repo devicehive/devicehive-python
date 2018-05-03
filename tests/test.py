@@ -14,7 +14,6 @@
 # =============================================================================
 
 
-import threading
 import pytest
 import time
 import six
@@ -76,13 +75,14 @@ class Test(object):
     NETWORK_ENTITY = 'network'
     DEVICE_TYPE_ENTITY = 'device_type'
 
-    def __init__(self, transport_url, user_role, credentials):
+    def __init__(self, transport_url, user_role, credentials,
+                 timeout_sleep_time=1e-6):
         self._transport_url = transport_url
         self._user_role = user_role
         self._credentials = credentials
+        self._timeout_sleep_time = timeout_sleep_time
         self._transport_name = DeviceHive.transport_name(self._transport_url)
         self._entity_ids = defaultdict(list)
-        self._is_handle_timeout = False
 
     def _cleanup_user(self, _id):
         api = self.device_hive_api()
@@ -208,10 +208,6 @@ class Test(object):
     def device_hive_api(self):
         return DeviceHiveApi(self._transport_url, **self._credentials)
 
-    def _on_handle_timeout(self, device_hive):
-        device_hive.handler.api.disconnect()
-        self._is_handle_timeout = True
-
     def run(self, handle_connect, handle_command_insert=None,
             handle_command_update=None, handle_notification=None,
             handle_timeout=60):
@@ -220,12 +216,18 @@ class Test(object):
                           'handle_command_update': handle_command_update,
                           'handle_notification': handle_notification}
         device_hive = DeviceHive(TestHandler, **handler_kwargs)
-        timeout_timer = threading.Timer(handle_timeout, self._on_handle_timeout,
-                                        args=(device_hive,))
-        timeout_timer.setDaemon(True)
-        timeout_timer.start()
-        device_hive.connect(self._transport_url, **self._credentials)
-        timeout_timer.cancel()
+        device_hive.connect(self._transport_url, transport_keep_alive=False,
+                            **self._credentials)
 
-        if self._is_handle_timeout:
-            raise TimeoutError('Waited too long for handle.')
+        start_time = time.time()
+        while time.time() - handle_timeout < start_time:
+            exception_info = device_hive.transport.exception_info
+            if exception_info:
+                six.reraise(*exception_info)
+
+            if not device_hive.handler.api.connected:
+                return
+
+            time.sleep(self._timeout_sleep_time)
+
+        raise TimeoutError('Waited too long for handle.')

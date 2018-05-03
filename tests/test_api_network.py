@@ -117,13 +117,14 @@ def test_subscribe_insert_commands(test):
         device, network, command_names, command_ids = init_data(handler)
         set_handler_data(handler, device, network, command_names, command_ids)
         send_data(handler, device, command_names)
-        network.subscribe_insert_commands()
+        handler.data['subscription'] = network.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -135,10 +136,12 @@ def test_subscribe_insert_commands(test):
         command_name = command_names[:1]
         set_handler_data(handler, device, network, command_names, command_ids)
         send_data(handler, device, command_name)
-        network.subscribe_insert_commands(names=command_name)
+        handler.data['subscription'] = network.subscribe_insert_commands(
+            names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -149,16 +152,17 @@ def test_subscribe_insert_commands(test):
         network_name = test.generate_id('n-s-i-c', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-        network.subscribe_insert_commands()
         device_id = test.generate_id('n-s-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id, network_id=network.id)
         command_name = '%s-name-1' % device_id
         command = device.send_command(command_name)
 
         set_handler_data(handler, device, network, [command_name], [command.id])
+        handler.data['subscription'] = network.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -169,12 +173,8 @@ def test_subscribe_insert_commands(test):
         network_name = test.generate_id('n-s-i-c', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-
-        network.subscribe_insert_commands()
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_insert_commands()
             assert False
@@ -240,13 +240,14 @@ def test_subscribe_update_commands(test):
         device, network, command_names, command_ids = init_data(handler)
         set_handler_data(handler, device, network, command_names, command_ids)
         send_data(handler, device, command_names)
-        network.subscribe_update_commands()
+        handler.data['subscription'] = network.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -258,10 +259,12 @@ def test_subscribe_update_commands(test):
         command_name = command_names[:1]
         set_handler_data(handler, device, network, command_names, command_ids)
         send_data(handler, device, command_name)
-        network.subscribe_update_commands(names=command_name)
+        handler.data['subscription'] = network.subscribe_update_commands(
+            names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -272,7 +275,6 @@ def test_subscribe_update_commands(test):
         network_name = test.generate_id('n-s-u-c', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-        network.subscribe_update_commands()
         device_id = test.generate_id('n-s-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id, network_id=network.id)
         command_name = '%s-name-1' % device_id
@@ -281,9 +283,11 @@ def test_subscribe_update_commands(test):
         command.save()
 
         set_handler_data(handler, device, network, [command_name], [command.id])
+        handler.data['subscription'] = network.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -294,12 +298,8 @@ def test_subscribe_update_commands(test):
         network_name = test.generate_id('n-s-u-c', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-
-        network.subscribe_update_commands()
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_update_commands()
             assert False
@@ -366,13 +366,14 @@ def test_subscribe_notifications(test):
         set_handler_data(handler, device, network, notification_names,
                          notification_ids)
         send_data(handler, device, notification_names)
-        network.subscribe_notifications()
+        handler.data['subscription'] = network.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id in handler.data['notification_ids']
         handler.data['notification_ids'].remove(notification.id)
         if handler.data['notification_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -383,13 +384,15 @@ def test_subscribe_notifications(test):
         device, network, notification_names, notification_ids = init_data(
             handler)
         notification_name = notification_names[:1]
-        network.subscribe_notifications(names=notification_name)
         set_handler_data(handler, device, network, notification_names,
                          notification_ids)
         send_data(handler, device, notification_name)
+        handler.data['subscription'] = network.subscribe_notifications(
+            names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -400,7 +403,6 @@ def test_subscribe_notifications(test):
         network_name = test.generate_id('n-s-n', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-        network.subscribe_notifications()
         device_id = test.generate_id('n-s-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id, network_id=network.id)
         notification_name = '%s-name-1' % device_id
@@ -408,9 +410,11 @@ def test_subscribe_notifications(test):
 
         set_handler_data(handler, device, network, [notification_name],
                          [notification.id])
+        handler.data['subscription'] = network.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['network'].remove()
         handler.disconnect()
@@ -421,12 +425,8 @@ def test_subscribe_notifications(test):
         network_name = test.generate_id('n-s-n', test.NETWORK_ENTITY)
         description = '%s-description' % network_name
         network = handler.api.create_network(network_name, description)
-
-        network.subscribe_notifications()
         network_1 = handler.api.get_network(network.id)
         network.remove()
-        if test.http_transport:
-            return
         try:
             network_1.subscribe_notifications()
             assert False

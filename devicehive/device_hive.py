@@ -16,8 +16,12 @@
 
 from devicehive.data_formats.json_data_format import JsonDataFormat
 from devicehive.api_handler import ApiHandler
+import logging
 import time
 import six
+
+
+logger = logging.getLogger(__name__)
 
 
 class DeviceHive(object):
@@ -86,9 +90,12 @@ class DeviceHive(object):
             while self._transport.is_alive():
                 time.sleep(transport_alive_sleep_time)
             exception_info = self._transport.exception_info
-            if exception_info and not isinstance(exception_info[1],
-                                                 self._transport.error):
-                six.reraise(*exception_info)
+            if exception_info:
+                if isinstance(exception_info[1], self._transport.error):
+                    logger.error('An error has occurred:',
+                                 exc_info=exception_info)
+                else:
+                    six.reraise(*exception_info)
             if not self.handler.api.connected:
                 return
             if time.time() - connect_time < connect_timeout:
