@@ -261,7 +261,7 @@ Properties:
 Methods:
 
 * `save()` method does not return anything.
-* `remove()` method does not return anything.
+* `remove(force)` method does not return anything. All args are optional.
 
 Example:
 
@@ -297,7 +297,7 @@ Properties:
 Methods:
 
 * `save()` method does not return anything.
-* `remove()` method does not return anything.
+* `remove(force)` method does not return anything. All args are optional.
 
 Example:
 

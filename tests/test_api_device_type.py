@@ -66,6 +66,29 @@ def test_remove(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 404
 
+    # ==========================================================================
+    name = test.generate_id('dt-r', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+
+    device_id = test.generate_id('dt-r', test.DEVICE_ENTITY)
+    device_hive_api.put_device(device_id, device_type_id=device_type.id)
+
+    try:
+        device_type.remove()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 400
+        device = device_hive_api.get_device(device_id)
+        assert device.id == device_id
+
+    device_type.remove(force=True)
+    try:
+        device_hive_api.get_device(device_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
 
 def test_subscribe_insert_commands(test):
     test.only_admin_implementation()
