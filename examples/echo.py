@@ -55,7 +55,7 @@ class EchoHandler(Handler):
                                        parameters=command.parameters)
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'PUT_YOUR_REFRESH_TOKEN_HERE'
 dh = DeviceHive(EchoHandler)
 dh.connect(url, refresh_token=refresh_token)
