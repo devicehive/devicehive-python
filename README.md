@@ -1,4 +1,6 @@
-![build status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=stable)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/devicehive.svg)](https://pypi.python.org/pypi/devicehive)
+[![Build Status](https://travis-ci.org/devicehive/devicehive-python.svg?branch=master)](https://travis-ci.org/devicehive/devicehive-python)
 
 # Devicehive
 
@@ -18,7 +20,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 ```
@@ -28,7 +30,7 @@ device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 If you want to use `Websocket` protocol you need only to specify the url:
 
 ```python
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 ```
 
 ### Authentication
@@ -45,7 +47,7 @@ Examples:
 from devicehive import DeviceHiveApi
 
 
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive_api = DeviceHiveApi(url, refresh_token='SOME_REFRESH_TOKEN')
 ```
 
@@ -53,7 +55,7 @@ device_hive_api = DeviceHiveApi(url, refresh_token='SOME_REFRESH_TOKEN')
 from devicehive import DeviceHiveApi
 
 
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive_api = DeviceHiveApi(url, access_token='SOME_ACCESS_TOKEN')
 ```
 
@@ -61,7 +63,7 @@ device_hive_api = DeviceHiveApi(url, access_token='SOME_ACCESS_TOKEN')
 from devicehive import DeviceHiveApi
 
 
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive_api = DeviceHiveApi(url, login='SOME_LOGIN', password='SOME_PASSWORD')
 ```
 
@@ -85,7 +87,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 info = device_hive_api.get_info()
@@ -112,7 +114,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 name = 'user.login.lastTimeoutSent'
@@ -141,7 +143,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 tokens = device_hive_api.create_token(1)
@@ -158,6 +160,18 @@ objects. All args are optional.
 `get_device(device_id)` method returns `Device` object.
 
 `put_device(device_id, name, data, network_id, is_blocked)` method returns `Device` object. Only `device_id` is required.
+
+`list_commands(device_id, start, end, command, status, sort_field, sort_order, take, skip)` method returns list of `Command` 
+objects. Only `device_id` is required.
+
+`send_command(device_id, command_name, parameters, lifetime, timestamp, status, result)` method returns `Command` object. 
+Only `device_id` and `command_name` are required.
+
+`list_notifications(device_id, start, end, notification, sort_field, sort_order, take, skip)` method returns list of `Notification` 
+object. Only `device_id` is required.
+
+`send_notification(device_id, notification_name, parameters, timestamp)` method returns `Notification` object. 
+Only `device_id` and `notification_name` are required.
 
 #### Device object
 
@@ -213,7 +227,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 device_id = 'example-device'
@@ -247,7 +261,7 @@ Properties:
 Methods:
 
 * `save()` method does not return anything.
-* `remove()` method does not return anything.
+* `remove(force)` method does not return anything. All args are optional.
 
 Example:
 
@@ -255,7 +269,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 network_name = 'example-name'
@@ -283,7 +297,7 @@ Properties:
 Methods:
 
 * `save()` method does not return anything.
-* `remove()` method does not return anything.
+* `remove(force)` method does not return anything. All args are optional.
 
 Example:
 
@@ -291,7 +305,7 @@ Example:
 from devicehive import DeviceHiveApi
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 device_type_name = 'example-name'
@@ -345,7 +359,7 @@ from devicehive import DeviceHiveApi
 from devicehive.user import User
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 device_hive_api = DeviceHiveApi(url, refresh_token=refresh_token)
 login = 'example-login'
@@ -434,7 +448,7 @@ class SimpleHandler(Handler):
         print(notification.notification)
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(SimpleHandler)
 dh.connect(url, refresh_token=refresh_token)
@@ -469,7 +483,7 @@ device_hive = DeviceHive(SimpleHandler, 'some_arg', some_kwarg='some_kwarg')
 If you want to use `Websocket` protocol you need only to specify the url:
 
 ```python
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 ```
 
 ### Authentication
@@ -483,17 +497,17 @@ There are three ways of initial authentication:
 Examples:
 
 ```python
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive.connect(url, refresh_token='SOME_REFRESH_TOKEN')
 ```
 
 ```python
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive.connect(url, access_token='SOME_ACCESS_TOKEN')
 ```
 
 ```python
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 device_hive.connect(url, login='SOME_LOGIN', password='SOME_PASSWORD')
 ```
 
@@ -670,6 +684,18 @@ class SimpleHandler(Handler):
 `self.api.get_device(device_id)` method returns `Device` object. `get_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 `self.api.put_device(device_id, name, data, network_id, device_type_id, is_blocked)` method does not return anything. `put_device` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.list_commands(device_id, start, end, command, status, sort_field, sort_order, take, skip)` method returns list of `Command` 
+objects. `list_commands` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.send_command(device_id, command_name, parameters, lifetime, timestamp, status, result)` method returns `Command` object. 
+`send_command` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.list_notifications(device_id, start, end, notification, sort_field, sort_order, take, skip)` method returns list of `Notification` 
+objects. `list_notifications` method of `DeviceHiveApi` class is the wrapper on top of this call.
+
+`self.api.send_notification(device_id, notification_name, parameters, timestamp)` method returns `Notification` object. 
+`send_notification` method of `DeviceHiveApi` class is the wrapper on top of this call.
 
 See the description of `DeviceHiveApi` [device](#devices) methods for more details.
 
@@ -864,7 +890,7 @@ class ReceiverHandler(Handler):
         print('Notification "%s" received' % notification.notification)
 
 
-url = 'ws://playground-dev.devicehive.com/api/websocket'
+url = 'ws://playground.devicehive.com/api/websocket'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(ReceiverHandler)
 dh.connect(url, refresh_token=refresh_token)
@@ -907,7 +933,7 @@ class SenderHandler(Handler):
             self._send_notifications()
 
 
-url = 'http://playground-dev.devicehive.com/api/rest'
+url = 'http://playground.devicehive.com/api/rest'
 refresh_token = 'SOME_REFRESH_TOKEN'
 dh = DeviceHive(SenderHandler)
 dh.connect(url, refresh_token=refresh_token)

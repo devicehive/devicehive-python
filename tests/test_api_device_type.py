@@ -66,6 +66,29 @@ def test_remove(test):
     except ApiResponseError as api_response_error:
         assert api_response_error.code == 404
 
+    # ==========================================================================
+    name = test.generate_id('dt-r', test.DEVICE_TYPE_ENTITY)
+    description = '%s-description' % name
+    device_type = device_hive_api.create_device_type(name, description)
+
+    device_id = test.generate_id('dt-r', test.DEVICE_ENTITY)
+    device_hive_api.put_device(device_id, device_type_id=device_type.id)
+
+    try:
+        device_type.remove()
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 400
+        device = device_hive_api.get_device(device_id)
+        assert device.id == device_id
+
+    device_type.remove(force=True)
+    try:
+        device_hive_api.get_device(device_id)
+        assert False
+    except ApiResponseError as api_response_error:
+        assert api_response_error.code == 404
+
 
 def test_subscribe_insert_commands(test):
     test.only_admin_implementation()
@@ -98,13 +121,14 @@ def test_subscribe_insert_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
-        device_type.subscribe_insert_commands()
+        handler.data['subscription'] = device_type.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -117,10 +141,12 @@ def test_subscribe_insert_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
-        device_type.subscribe_insert_commands(names=command_name)
+        handler.data['subscription'] = device_type.subscribe_insert_commands(
+            names=command_name)
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -132,7 +158,6 @@ def test_subscribe_insert_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_insert_commands()
         device_id = test.generate_id('dt-s-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -141,9 +166,11 @@ def test_subscribe_insert_commands(test):
 
         set_handler_data(handler, device, device_type, [command_name],
                          [command.id])
+        handler.data['subscription'] = device_type.subscribe_insert_commands()
 
     def handle_command_insert(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -155,19 +182,13 @@ def test_subscribe_insert_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_insert_commands()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_insert_commands()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -232,13 +253,14 @@ def test_subscribe_update_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_names)
-        device_type.subscribe_update_commands()
+        handler.data['subscription'] = device_type.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id in handler.data['command_ids']
         handler.data['command_ids'].remove(command.id)
         if handler.data['command_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -251,10 +273,12 @@ def test_subscribe_update_commands(test):
         set_handler_data(handler, device, device_type, command_names,
                          command_ids)
         send_data(handler, device, command_name)
-        device_type.subscribe_update_commands(names=command_name)
+        handler.data['subscription'] = device_type.subscribe_update_commands(
+            names=command_name)
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -266,7 +290,6 @@ def test_subscribe_update_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_update_commands()
         device_id = test.generate_id('dt-s-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -277,9 +300,11 @@ def test_subscribe_update_commands(test):
 
         set_handler_data(handler, device, device_type, [command_name],
                          [command.id])
+        handler.data['subscription'] = device_type.subscribe_update_commands()
 
     def handle_command_update(handler, command):
         assert command.id == handler.data['command_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -291,19 +316,13 @@ def test_subscribe_update_commands(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_update_commands()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_update_commands()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 
@@ -367,13 +386,14 @@ def test_subscribe_notifications(test):
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_names)
-        device_type.subscribe_notifications()
+        handler.data['subscription'] = device_type.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id in handler.data['notification_ids']
         handler.data['notification_ids'].remove(notification.id)
         if handler.data['notification_ids']:
             return
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -387,10 +407,12 @@ def test_subscribe_notifications(test):
         set_handler_data(handler, device, device_type, notification_names,
                          notification_ids)
         send_data(handler, device, notification_name)
-        device_type.subscribe_notifications(names=notification_name)
+        handler.data['subscription'] = device_type.subscribe_notifications(
+            names=notification_name)
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -402,7 +424,6 @@ def test_subscribe_notifications(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-        device_type.subscribe_notifications()
         device_id = test.generate_id('dt-s-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id,
                                         device_type_id=device_type.id)
@@ -411,9 +432,11 @@ def test_subscribe_notifications(test):
 
         set_handler_data(handler, device, device_type, [notification_name],
                          [notification.id])
+        handler.data['subscription'] = device_type.subscribe_notifications()
 
     def handle_notification(handler, notification):
         assert notification.id == handler.data['notification_ids'][0]
+        handler.data['subscription'].remove()
         handler.data['device'].remove()
         handler.data['device_type'].remove()
         handler.disconnect()
@@ -425,19 +448,13 @@ def test_subscribe_notifications(test):
         description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      description)
-
-        device_type.subscribe_notifications()
         device_type_1 = handler.api.get_device_type(device_type.id)
         device_type.remove()
-        if test.http_transport:
-            return
         try:
             device_type_1.subscribe_notifications()
             assert False
         except ApiResponseError as api_response_error:
-            # TODO: uncomment when server response will be fixed
-            # assert api_response_error.code == 404
-            pass
+            assert api_response_error.code == 404
 
     test.run(handle_connect)
 

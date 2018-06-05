@@ -68,12 +68,13 @@ class DeviceType(object):
         auth_api_request.set('deviceType', device_type, True)
         auth_api_request.execute('DeviceType save failure.')
 
-    def remove(self):
+    def remove(self, force=False):
         self._ensure_exists()
         auth_api_request = AuthApiRequest(self._api)
         auth_api_request.method('DELETE')
         auth_api_request.url('devicetype/{deviceTypeId}', deviceTypeId=self._id)
         auth_api_request.action('devicetype/delete')
+        auth_api_request.param('force', force)
         auth_api_request.execute('DeviceType remove failure.')
         self._id = None
         self.name = None

@@ -23,7 +23,7 @@ except(IOError, ImportError):
 
 
 setup(name='devicehive',
-      version='2.1.3',
+      version='2.1.4',
       author='DataArt (http://dataart.com)',
       author_email='info@devicehive.com',
       url='https://devicehive.com',
