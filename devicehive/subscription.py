@@ -23,15 +23,13 @@ class BaseSubscription(object):
 
     ID_KEY = 'subscriptionId'
 
-    def __init__(self, api, subscription=None):
+    def __init__(self, api, subscription=None, call=None, args=None):
         self._api = api
         self._id = None
-
         if subscription:
-            self._init(subscription)
-
-    def _init(self, subscription):
-        self._id = subscription[self.ID_KEY]
+            self._id = subscription[self.ID_KEY]
+        self._call = call
+        self._args = args
 
     def _ensure_exists(self):
         if self._id:
@@ -55,6 +53,8 @@ class BaseSubscription(object):
         api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe failure.')
         self._id = None
+        if self._call and self._args:
+            self._api.remove_subscription_call(self._call, self._args)
 
 
 class CommandsSubscription(BaseSubscription):
