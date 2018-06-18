@@ -48,10 +48,10 @@ class ApiHandler(Handler):
         if self._api_init:
             server_timestamp = self._api.get_info()['server_timestamp']
             self._api.server_timestamp = server_timestamp
+        self._api.apply_subscription_calls()
         if not self._handle_connect:
             self._handle_connect = True
             self._handler.handle_connect()
-            return
 
     def handle_event(self, event):
         api_event = ApiEvent(event)
