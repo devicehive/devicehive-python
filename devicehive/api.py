@@ -35,9 +35,9 @@ class Api(object):
         self._transport = transport
         self._token = Token(self, auth)
         self._connected = True
-        self._subscription_calls = {self.subscribe_insert_commands: {},
-                                    self.subscribe_update_commands: {},
-                                    self.subscribe_notifications: {}}
+        self._subscription_calls = {self.subscribe_insert_commands: set(),
+                                    self.subscribe_update_commands: set(),
+                                    self.subscribe_notifications: set()}
         self.server_timestamp = None
 
     @staticmethod
@@ -53,13 +53,13 @@ class Api(object):
         args = self._hashable_args(args)
         if args in self._subscription_calls[call]:
             return
-        self._subscription_calls[call][args] = None
+        self._subscription_calls[call].add(args)
 
     def remove_subscription_call(self, call, args):
         args = self._hashable_args(args)
         if args not in self._subscription_calls[call]:
             return
-        del self._subscription_calls[call][args]
+        self._subscription_calls[call].remove(args)
 
     def apply_subscription_calls(self):
         for call in self._subscription_calls:
