@@ -16,8 +16,6 @@
 
 from devicehive import DeviceError, SubscriptionError
 from devicehive import ApiResponseError
-from devicehive.subscription import CommandsSubscription, \
-    NotificationsSubscription
 
 
 def test_save(test):

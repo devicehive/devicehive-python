@@ -16,8 +16,6 @@
 
 from six import string_types
 from devicehive import ApiResponseError, SubscriptionError
-from devicehive.subscription import CommandsSubscription, \
-    NotificationsSubscription
 from devicehive.user import User
 
 
