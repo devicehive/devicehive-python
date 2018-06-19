@@ -237,7 +237,6 @@ class Api(object):
     def subscribe_update_commands(self, device_id=None, network_ids=(),
                                   device_type_ids=(), names=(),
                                   timestamp=None):
-
         call = self._subscribe_update_commands
         args = (device_id, network_ids, device_type_ids, names, timestamp)
         commands_subscription = CommandsSubscription(self, call, args)
@@ -252,6 +251,7 @@ class Api(object):
         args = (device_id, network_ids, device_type_ids, names, timestamp)
         notifications_subscription = NotificationsSubscription(self, call, args)
         notifications_subscription.subscribe()
+        self._add_subscription(notifications_subscription)
         return notifications_subscription
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
