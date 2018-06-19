@@ -66,8 +66,8 @@ def test_refresh_token(test):
     device_hive_api = test.device_hive_api()
     access_token = device_hive_api.refresh_token()
     assert isinstance(access_token, string_types)
-    
-    
+
+
 def test_subscribe_insert_commands(test):
     test.only_admin_implementation()
 
@@ -185,34 +185,27 @@ def test_unsubscribe_insert_commands(test):
         network_name = test.generate_id('u-i-c', test.NETWORK_ENTITY)
         network_description = '%s-description' % network_name
         network = handler.api.create_network(network_name, network_description)
-        
+
         device_type_name = test.generate_id('u-i-c', test.DEVICE_TYPE_ENTITY)
         device_type_description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      device_type_description)
-        
+
         subscription = handler.api.subscribe_insert_commands(
             network_ids=[network.id], device_type_ids=[device_type.id])
-        subscription_1 = CommandsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         network.remove()
         device_type.remove()
 
     test.run(handle_connect)
-    
-    
+
+
 def test_subscribe_update_commands(test):
     test.only_admin_implementation()
 
@@ -334,27 +327,20 @@ def test_unsubscribe_update_commands(test):
         network_name = test.generate_id('u-u-c', test.NETWORK_ENTITY)
         network_description = '%s-description' % network_name
         network = handler.api.create_network(network_name, network_description)
-        
+
         device_type_name = test.generate_id('u-u-c', test.DEVICE_TYPE_ENTITY)
         device_type_description = '%s-description' % device_type_name
         device_type = handler.api.create_device_type(device_type_name,
                                                      device_type_description)
-        
+
         subscription = handler.api.subscribe_update_commands(
             network_ids=[network.id], device_type_ids=[device_type.id])
-        subscription_1 = CommandsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         network.remove()
         device_type.remove()
@@ -487,19 +473,12 @@ def test_unsubscribe_notifications(test):
 
         subscription = handler.api.subscribe_notifications(
             network_ids=[network.id], device_type_ids=[device_type.id])
-        subscription_1 = NotificationsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         network.remove()
         device_type.remove()

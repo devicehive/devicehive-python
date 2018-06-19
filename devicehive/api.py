@@ -35,36 +35,112 @@ class Api(object):
         self._transport = transport
         self._token = Token(self, auth)
         self._connected = True
-        self._subscription_calls = {self.subscribe_insert_commands: set(),
-                                    self.subscribe_update_commands: set(),
-                                    self.subscribe_notifications: set()}
+        self._subscriptions = set()
         self.server_timestamp = None
 
-    @staticmethod
-    def _hashable_args(args):
-        args = list(args)
-        for i in range(len(args)):
-            if not isinstance(args[i], list):
-                continue
-            args[i] = tuple(args[i])
-        return tuple(args)
+    def _subscribe_insert_commands(self, device_id=None, network_ids=(),
+                                   device_type_ids=(), names=(),
+                                   timestamp=None):
+        action = 'command/insert'
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
+        if not timestamp:
+            timestamp = self.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
+        auth_subscription_api_request.action(action)
+        auth_subscription_api_request.url('device/command/poll')
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_key('command')
+        api_request = ApiRequest(self)
+        api_request.action('command/subscribe')
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
+        api_request.set('names', names)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        return api_request.execute('Subscribe insert commands failure.')
 
-    def _set_subscription_call(self, call, args):
-        args = self._hashable_args(args)
-        if args in self._subscription_calls[call]:
-            return
-        self._subscription_calls[call].add(args)
+    def _subscribe_update_commands(self, device_id=None, network_ids=(),
+                                   device_type_ids=(), names=(),
+                                   timestamp=None):
+        action = 'command/update'
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
+        if not timestamp:
+            timestamp = self.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
+        auth_subscription_api_request.action(action)
+        auth_subscription_api_request.url('device/command/poll')
+        auth_subscription_api_request.param('returnUpdatedCommands', True)
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_timestamp_key('lastUpdated')
+        auth_subscription_api_request.response_key('command')
+        api_request = ApiRequest(self)
+        api_request.action('command/subscribe')
+        api_request.set('returnUpdatedCommands', True)
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
+        api_request.set('names', names)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        return api_request.execute('Subscribe update commands failure.')
 
-    def remove_subscription_call(self, call, args):
-        args = self._hashable_args(args)
-        if args not in self._subscription_calls[call]:
+    def _subscribe_notifications(self, device_id=None, network_ids=(),
+                                 device_type_ids=(), names=(),
+                                 timestamp=None):
+        action = 'notification/insert'
+        join_names = ','.join(map(str, names))
+        join_network_ids = ','.join(map(str, network_ids))
+        join_device_type_ids = ','.join(map(str, device_type_ids))
+        if not timestamp:
+            timestamp = self.server_timestamp
+        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
+        auth_subscription_api_request.action(action)
+        auth_subscription_api_request.url('device/notification/poll')
+        auth_subscription_api_request.param('deviceId', device_id)
+        auth_subscription_api_request.param('networkIds', join_network_ids)
+        auth_subscription_api_request.param('deviceTypeIds',
+                                            join_device_type_ids)
+        auth_subscription_api_request.param('names', join_names)
+        auth_subscription_api_request.param('timestamp', timestamp)
+        auth_subscription_api_request.response_key('notification')
+        api_request = ApiRequest(self)
+        api_request.action('notification/subscribe')
+        api_request.set('deviceId', device_id)
+        api_request.set('networkIds', network_ids)
+        api_request.set('deviceTypeIds', device_type_ids)
+        api_request.set('names', names)
+        api_request.set('timestamp', timestamp)
+        api_request.subscription_request(auth_subscription_api_request)
+        return api_request.execute('Subscribe notifications failure.')
+
+    def _add_subscription(self, subscription):
+        if subscription in self._subscriptions:
             return
-        self._subscription_calls[call].remove(args)
+        self._subscriptions.add(subscription)
+
+    def remove_subscription(self, subscription):
+        if subscription not in self._subscriptions:
+            return
+        self._subscriptions.remove(subscription)
 
     def apply_subscription_calls(self):
-        for call in self._subscription_calls:
-            for args in self._subscription_calls[call]:
-                call(*args)
+        for subscription in self._subscriptions:
+            subscription.subscribe()
 
     @property
     def transport(self):
@@ -150,115 +226,32 @@ class Api(object):
         return self._token.access_token
 
     def subscribe_insert_commands(self, device_id=None, network_ids=(),
-                                  device_type_ids=(), names=(),
-                                  timestamp=None):
-        action = 'command/insert'
-        join_names = ','.join(map(str, names))
-        join_network_ids = ','.join(map(str, network_ids))
-        join_device_type_ids = ','.join(map(str, device_type_ids))
-        request_timestamp = None
-        if not timestamp:
-            request_timestamp = self.server_timestamp
-        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action(action)
-        auth_subscription_api_request.url('device/command/poll')
-        auth_subscription_api_request.param('deviceId', device_id)
-        auth_subscription_api_request.param('networkIds', join_network_ids)
-        auth_subscription_api_request.param('deviceTypeIds',
-                                            join_device_type_ids)
-        auth_subscription_api_request.param('names', join_names)
-        auth_subscription_api_request.param('timestamp', request_timestamp)
-        auth_subscription_api_request.response_key('command')
-        api_request = ApiRequest(self)
-        api_request.action('command/subscribe')
-        api_request.set('deviceId', device_id)
-        api_request.set('networkIds', network_ids)
-        api_request.set('deviceTypeIds', device_type_ids)
-        api_request.set('names', names)
-        api_request.set('timestamp', request_timestamp)
-        api_request.subscription_request(auth_subscription_api_request)
-        subscription = api_request.execute('Subscribe insert commands failure.')
-        call = self.subscribe_insert_commands
+                                  device_type_ids=(), names=(), timestamp=None):
+        call = self._subscribe_insert_commands
         args = (device_id, network_ids, device_type_ids, names, timestamp)
-        commands_subscription = CommandsSubscription(self, subscription,
-                                                     call, args)
-        self._set_subscription_call(call, args)
+        commands_subscription = CommandsSubscription(self, call, args)
+        commands_subscription.subscribe()
+        self._add_subscription(commands_subscription)
         return commands_subscription
 
     def subscribe_update_commands(self, device_id=None, network_ids=(),
                                   device_type_ids=(), names=(),
                                   timestamp=None):
-        action = 'command/update'
-        join_names = ','.join(map(str, names))
-        join_network_ids = ','.join(map(str, network_ids))
-        join_device_type_ids = ','.join(map(str, device_type_ids))
-        request_timestamp = None
-        if not timestamp:
-            request_timestamp = self.server_timestamp
-        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action(action)
-        auth_subscription_api_request.url('device/command/poll')
-        auth_subscription_api_request.param('returnUpdatedCommands', True)
-        auth_subscription_api_request.param('deviceId', device_id)
-        auth_subscription_api_request.param('networkIds', join_network_ids)
-        auth_subscription_api_request.param('deviceTypeIds',
-                                            join_device_type_ids)
-        auth_subscription_api_request.param('names', join_names)
-        auth_subscription_api_request.param('timestamp', request_timestamp)
-        auth_subscription_api_request.response_timestamp_key('lastUpdated')
-        auth_subscription_api_request.response_key('command')
-        api_request = ApiRequest(self)
-        api_request.action('command/subscribe')
-        api_request.set('returnUpdatedCommands', True)
-        api_request.set('deviceId', device_id)
-        api_request.set('networkIds', network_ids)
-        api_request.set('deviceTypeIds', device_type_ids)
-        api_request.set('names', names)
-        api_request.set('timestamp', request_timestamp)
-        api_request.subscription_request(auth_subscription_api_request)
-        subscription = api_request.execute('Subscribe update commands failure.')
-        call = self.subscribe_update_commands
+
+        call = self._subscribe_update_commands
         args = (device_id, network_ids, device_type_ids, names, timestamp)
-        commands_subscription = CommandsSubscription(self, subscription,
-                                                     call, args)
-        self._set_subscription_call(call, args)
+        commands_subscription = CommandsSubscription(self, call, args)
+        commands_subscription.subscribe()
+        self._add_subscription(commands_subscription)
         return commands_subscription
 
     def subscribe_notifications(self, device_id=None, network_ids=(),
                                 device_type_ids=(), names=(),
                                 timestamp=None):
-        action = 'notification/insert'
-        join_names = ','.join(map(str, names))
-        join_network_ids = ','.join(map(str, network_ids))
-        join_device_type_ids = ','.join(map(str, device_type_ids))
-        request_timestamp = None
-        if not timestamp:
-            request_timestamp = self.server_timestamp
-        auth_subscription_api_request = AuthSubscriptionApiRequest(self)
-        auth_subscription_api_request.action(action)
-        auth_subscription_api_request.url('device/notification/poll')
-        auth_subscription_api_request.param('deviceId', device_id)
-        auth_subscription_api_request.param('networkIds', join_network_ids)
-        auth_subscription_api_request.param('deviceTypeIds',
-                                            join_device_type_ids)
-        auth_subscription_api_request.param('names', join_names)
-        auth_subscription_api_request.param('timestamp', request_timestamp)
-        auth_subscription_api_request.response_key('notification')
-        api_request = ApiRequest(self)
-        api_request.action('notification/subscribe')
-        api_request.set('deviceId', device_id)
-        api_request.set('networkIds', network_ids)
-        api_request.set('deviceTypeIds', device_type_ids)
-        api_request.set('names', names)
-        api_request.set('timestamp', request_timestamp)
-        api_request.subscription_request(auth_subscription_api_request)
-        subscription = api_request.execute('Subscribe notifications failure.')
-        call = self.subscribe_notifications
+        call = self._subscribe_notifications
         args = (device_id, network_ids, device_type_ids, names, timestamp)
-        notifications_subscription = NotificationsSubscription(self,
-                                                               subscription,
-                                                               call, args)
-        self._set_subscription_call(call, args)
+        notifications_subscription = NotificationsSubscription(self, call, args)
+        notifications_subscription.subscribe()
         return notifications_subscription
 
     def list_devices(self, name=None, name_pattern=None, network_id=None,
