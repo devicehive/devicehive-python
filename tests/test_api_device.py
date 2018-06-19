@@ -232,6 +232,7 @@ def test_unsubscribe_update_commands(test):
         device_id = test.generate_id('d-u-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         subscription = device.subscribe_update_commands()
+        subscription.remove()
         try:
             subscription.remove()
             assert False
@@ -424,6 +425,7 @@ def test_unsubscribe_notifications(test):
         device_id = test.generate_id('d-u-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         subscription = device.subscribe_notifications()
+        subscription.remove()
         try:
             subscription.remove()
             assert False
