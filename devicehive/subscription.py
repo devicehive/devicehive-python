@@ -23,25 +23,36 @@ class BaseSubscription(object):
 
     ID_KEY = 'subscriptionId'
 
-    def __init__(self, api, subscription=None, call=None, args=None):
+    def __init__(self, api, call, args):
         self._api = api
-        self._id = None
-        if subscription:
-            self._id = subscription[self.ID_KEY]
         self._call = call
-        self._args = args
+        self._args = self._hashable_args(args)
+        self._id = None
+
+    @staticmethod
+    def _hashable_args(args):
+        args = list(args)
+        for i in range(len(args)):
+            if not isinstance(args[i], list):
+                continue
+            args[i] = tuple(args[i])
+        return tuple(args)
 
     def _ensure_exists(self):
         if self._id:
             return
         raise SubscriptionError('Subscription does not exist.')
 
+    def _get_subscription_type(self):
+        raise NotImplementedError
+
+    def subscribe(self):
+        subscription = self._call(*self._args)
+        self._id = subscription[self.ID_KEY]
+
     @property
     def id(self):
         return self._id
-
-    def _get_subscription_type(self):
-        raise NotImplementedError
 
     def remove(self):
         self._ensure_exists()
@@ -52,9 +63,8 @@ class BaseSubscription(object):
         api_request.set('subscriptionId', self._id)
         api_request.remove_subscription_request(remove_subscription_api_request)
         api_request.execute('Unsubscribe failure.')
+        self._api.remove_subscription(self)
         self._id = None
-        if self._call and self._args:
-            self._api.remove_subscription_call(self._call, self._args)
 
 
 class CommandsSubscription(BaseSubscription):

@@ -16,8 +16,6 @@
 
 from devicehive import DeviceError, SubscriptionError
 from devicehive import ApiResponseError
-from devicehive.subscription import CommandsSubscription, \
-    NotificationsSubscription
 
 
 def test_save(test):
@@ -145,19 +143,12 @@ def test_unsubscribe_insert_commands(test):
         device_id = test.generate_id('d-u-i-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         subscription = device.subscribe_insert_commands()
-        subscription_1 = CommandsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         device.remove()
 
@@ -239,19 +230,12 @@ def test_unsubscribe_update_commands(test):
         device_id = test.generate_id('d-u-u-c', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         subscription = device.subscribe_update_commands()
-        subscription_1 = CommandsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         device.remove()
 
@@ -439,19 +423,12 @@ def test_unsubscribe_notifications(test):
         device_id = test.generate_id('d-u-n', test.DEVICE_ENTITY)
         device = handler.api.put_device(device_id)
         subscription = device.subscribe_notifications()
-        subscription_1 = NotificationsSubscription(
-            handler.api, {'subscriptionId': subscription.id})
         subscription.remove()
         try:
             subscription.remove()
             assert False
         except SubscriptionError:
             pass
-        try:
-            subscription_1.remove()
-            assert False
-        except ApiResponseError as api_response_error:
-            assert api_response_error.code == 404
 
         device.remove()
 
